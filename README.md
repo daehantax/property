@@ -17,41 +17,49 @@
 
 코드로 작성된 세금 계산 엔진이 먼저 계산을 수행합니다. AI가 아닌 결정적(deterministic) 로직이므로 같은 입력에는 항상 같은 결과가 나옵니다.
 
-### 2단계 — AI 검증 (계획)
+### 2단계 — AI 검증 (구현 완료)
 
-계산기가 **어떻게 계산했는지**(적용 세율, 공제, 중과 여부 등)를 AI가 받아서:
+계산기가 **어떻게 계산했는지**(적용 세율, 공제, 중과 여부, 근거 법령)를 Claude AI가 받아서:
 
 - 계산 과정이 올바른지 검증
-- **최신 개정 세법**이 제대로 반영되었는지 확인 (현재 엔진은 2026.5.10 시행분 기준)
-- 오류나 누락이 있으면 지적
+- **최신 개정 세법**이 제대로 반영되었는지 웹검색으로 확인 (현재 엔진은 2026.5.10 시행분 기준)
+- 오류나 누락이 있으면 지적하고 `pass / warning / fail` 판정을 반환
 
-### 3단계 — 요약 문서 생성 (계획)
+### 3단계 — 요약 문서 생성 (구현 완료)
 
-검증까지 끝난 결과를 바탕으로 AI가 **요약 문서**를 자동 생성합니다. 케이스별 세부담 비교, 유리한 선택지, 근거 세법 등을 담은 고객 전달용 보고서가 목표입니다.
+검증까지 끝난 결과를 바탕으로 AI가 **고객 전달용 요약 보고서**(마크다운)를 자동 생성합니다. 케이스별 세부담 비교표, 보유세 변화, 유리한 선택지, 유의사항, 근거 세법을 담습니다. API 키가 없을 때를 위한 템플릿 기반 폴백 보고서(`buildBasicReport`)도 제공합니다.
 
 ## 현재 구현 상태
 
 | 단계 | 상태 | 위치 |
 |------|------|------|
-| 1단계 계산기 로직 | ✅ 구현 완료 (테스트 78개 포함) | `tax-ai-consulting/src/` |
-| 2단계 AI 검증 | ⬜ 미구현 (계획) | — |
-| 3단계 요약 문서 생성 | ⬜ 미구현 (계획) | — |
+| 1단계 계산기 로직 | ✅ 구현 완료 | `tax-ai-consulting/src/core`, `src/scenario` |
+| 2단계 AI 검증 | ✅ 구현 완료 (Claude API + 웹검색) | `tax-ai-consulting/src/verify` |
+| 3단계 요약 문서 생성 | ✅ 구현 완료 (AI 생성 + 템플릿 폴백) | `tax-ai-consulting/src/report` |
+| 전체 파이프라인 / CLI | ✅ 구현 완료 | `tax-ai-consulting/src/pipeline.js`, `src/cli.js` |
+
+테스트 95개 (계산 엔진 78개 + AI 단계 17개, AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
 ```
 property/
-└── tax-ai-consulting/          # 1단계: 세금 계산·시나리오 엔진 (2026.5.10 시행 기준)
+└── tax-ai-consulting/
     ├── src/
-    │   ├── core/               # 세금 계산 엔진 (공개 API: core/index.js)
+    │   ├── core/               # 1단계: 세금 계산 엔진 (2026.5.10 시행 기준)
     │   │   ├── gift-tax.js           # 증여세 (calcGiveTax)
     │   │   ├── acquisition-tax.js    # 취득세 (calcTakingTax, calcGiveTakingEtcTax)
     │   │   ├── transfer-tax.js       # 양도세 (calcSaleIncomeTax)
     │   │   ├── property-tax.js       # 재산세 (calcPropertyTax)
     │   │   ├── comprehensive-tax.js  # 종합부동산세 (calcAggrTax)
     │   │   └── constants.js          # 세율·공제 상수
-    │   └── scenario/           # 상담 시나리오 10종 (runScenario1 ~ runScenario10)
-    └── tests/                  # vitest 테스트 (core / scenario)
+    │   ├── scenario/           # 1단계: 상담 시나리오 10종 (runScenario1 ~ runScenario10)
+    │   ├── ai/client.js        # Claude API 클라이언트 래퍼 (pause_turn 재개, refusal 처리)
+    │   ├── verify/             # 2단계: AI 검증 (verifyCalculation — 웹검색으로 최신 세법 확인)
+    │   ├── report/             # 3단계: 요약 보고서 (generateReport / buildBasicReport)
+    │   ├── pipeline.js         # 계산 → 검증 → 보고서 전체 파이프라인 (runPipeline)
+    │   └── cli.js              # 커맨드라인 실행기
+    └── tests/                  # vitest 테스트 (core / scenario / verify / report)
 ```
 
 ### 시나리오 목록
@@ -74,11 +82,36 @@ property/
 ```bash
 cd tax-ai-consulting
 npm install
-npm test          # vitest 테스트 실행
+npm test          # vitest 테스트 실행 (네트워크·API 키 불필요)
 ```
+
+### 전체 파이프라인 실행 (CLI)
+
+```bash
+# AI 검증·보고서까지 실행 — ANTHROPIC_API_KEY 환경변수 필요
+export ANTHROPIC_API_KEY=sk-ant-...
+node src/cli.js 1                          # 시나리오 1을 샘플 입력으로 실행
+node src/cli.js 1 inputs.json --out 보고서.md   # 입력 파일 지정, 보고서 파일로 저장
+
+# AI 없이 계산 + 템플릿 보고서만 (API 키 불필요)
+node src/cli.js 1 --no-ai
+```
+
+### 코드에서 사용
+
+```js
+import { runPipeline } from './src/pipeline.js';
+
+const { calculation, verification, report } = await runPipeline(1, inputs);
+// calculation : 1단계 계산 결과 (세액, lawRef 등)
+// verification: 2단계 AI 검증 { verdict, summary, issues, lawChanges, reportText }
+// report      : 3단계 고객용 요약 보고서 (마크다운)
+```
+
+AI 단계는 `claude-opus-4-8` 모델과 웹검색 도구(`web_search`)를 사용해 계산 엔진 기준일(2026.5.10) 이후의 세법 개정 여부까지 확인합니다.
 
 ## 앞으로 할 일 (로드맵)
 
-1. **AI 검증 모듈**: 계산 결과 + 계산 근거를 AI에 전달해 최신 세법 기준으로 검증하는 단계 구현
-2. **요약 문서 생성 모듈**: 검증된 결과로 고객용 요약 보고서(MD/PDF 등) 자동 생성
+1. 보고서 PDF/DOCX 변환 등 출력 형식 확장
+2. 실제 상담 사례로 AI 검증 정확도 평가 및 프롬프트 튜닝
 3. 세법 개정 시 `src/core/constants.js` 및 계산 로직 업데이트 절차 정리

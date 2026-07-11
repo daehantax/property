@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0"
   }
 }
