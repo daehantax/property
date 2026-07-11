@@ -9,7 +9,7 @@
 
 import { CHILD, SKIP_F } from '../core/constants.js';
 import { calcGiveTax }       from '../core/gift-tax.js';
-import { calcTakingTax }     from '../core/acquisition-tax.js';
+import { calcTakingTax, calcBurdenedGiveTakingTax } from '../core/acquisition-tax.js';
 import { calcPropertyTax }   from '../core/property-tax.js';
 import { calcAggrTax }       from '../core/comprehensive-tax.js';
 import { calcSaleIncomeTax } from '../core/transfer-tax.js';
@@ -56,8 +56,8 @@ export function runScenario2(inputs) {
   // ── Case 2: 부담부증여 ────────────────────────────────
   // 자녀 증여세: 시가 − 승계대출
   const gift2Result = calcGiveTax(CHILD, SKIP_F, marketPrice - loanPrice, childAge);
-  // 자녀 취득세: 시가 기준 (전체)
-  const acq2Result  = calcTakingTax('give', marketPrice, 0, 0, space, heavy);
+  // 자녀 취득세: 유상분(승계채무, 매매세율) + 무상분(시가-채무, 증여세율) 구분 과세
+  const acq2Result  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy);
 
   // 소유자 양도세: 대출분에 대해 양도한 것으로 간주
   // 대출분 취득원가 = 취득가액 × (대출/시가)

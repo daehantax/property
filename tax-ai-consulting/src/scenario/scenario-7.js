@@ -15,7 +15,7 @@
 
 import { SPOUSE, SKIP_F } from '../core/constants.js';
 import { calcGiveTax }       from '../core/gift-tax.js';
-import { calcTakingTax }     from '../core/acquisition-tax.js';
+import { calcTakingTax, calcBurdenedGiveTakingTax }     from '../core/acquisition-tax.js';
 import { calcPropertyTax }   from '../core/property-tax.js';
 import { calcAggrTax }       from '../core/comprehensive-tax.js';
 import { calcSaleIncomeTax } from '../core/transfer-tax.js';
@@ -71,7 +71,8 @@ export function runScenario7(inputs) {
 
   // ── Case 2: 부담부증여 ────────────────────────────────
   const c2GiftResult = calcGiveTax(SPOUSE, SKIP_F, ownerMarketPrice - ownerLoanPrice, spouseAge);
-  const c2AcqResult  = calcTakingTax('give1s1h', ownerMarketPrice, 0, 0, space, heavy);
+  // 취득세: 유상분(승계채무, 매매세율) + 무상분(증여 1세대1주택 세율) 구분 과세
+  const c2AcqResult  = calcBurdenedGiveTakingTax(ownerMarketPrice, ownerLoanPrice, space, heavy, 'give1s1h');
 
   const loanBase = Math.floor(ownerBasePrice * ownerLoanPrice / ownerMarketPrice);
   const transferResult = calcSaleIncomeTax(
@@ -140,6 +141,11 @@ export function runScenario7(inputs) {
       saving: case1.grandTotal - case2.grandTotal,
       holdingChange: holdingTax.change,
     },
-    lawRef: [],
+    lawRef: [...new Set([
+      ...c1GiftResult.lawRef,
+      ...c1AcqResult.lawRef,
+      ...c2AcqResult.lawRef,
+      ...transferResult.lawRef,
+    ])],
   };
 }

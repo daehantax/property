@@ -22,12 +22,24 @@ export function extractText(response) {
 }
 
 /**
- * messages.create 호출 + 서버 도구(웹검색) 사용 시 발생하는 pause_turn 재개 처리.
+ * 메시지 1회 호출. 스트리밍을 기본으로 사용해 장시간 응답(깊은 추론 + 웹검색)에서
+ * SDK의 10분 HTTP 타임아웃에 걸리지 않도록 한다. 스트리밍이 없는 클라이언트
+ * (테스트 mock 등)는 create()로 폴백한다.
+ */
+async function callOnce(client, request) {
+  if (typeof client.messages.stream === 'function') {
+    return client.messages.stream(request).finalMessage();
+  }
+  return client.messages.create(request);
+}
+
+/**
+ * 메시지 호출 + 서버 도구(웹검색) 사용 시 발생하는 pause_turn 재개 처리.
  * stop_reason이 refusal이면 오류를 던진다.
  */
 export async function createMessageWithResume(client, request, { maxContinuations = 5 } = {}) {
   let messages = request.messages;
-  let response = await client.messages.create({ ...request, messages });
+  let response = await callOnce(client, { ...request, messages });
 
   let continuations = 0;
   while (response.stop_reason === 'pause_turn') {
@@ -35,7 +47,7 @@ export async function createMessageWithResume(client, request, { maxContinuation
       throw new Error(`AI 호출이 ${maxContinuations}회 재개 후에도 완료되지 않았습니다 (pause_turn).`);
     }
     messages = [...messages, { role: 'assistant', content: response.content }];
-    response = await client.messages.create({ ...request, messages });
+    response = await callOnce(client, { ...request, messages });
   }
 
   if (response.stop_reason === 'refusal') {

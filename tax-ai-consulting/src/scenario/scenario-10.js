@@ -15,7 +15,7 @@ import {
   INDEPENDENT_HH_AGE,
 } from '../core/constants.js';
 import { calcGiveTax }         from '../core/gift-tax.js';
-import { calcTakingTax, calcGiveTakingEtcTax } from '../core/acquisition-tax.js';
+import { calcBurdenedGiveTakingTax } from '../core/acquisition-tax.js';
 import { calcPropertyTax }     from '../core/property-tax.js';
 import { calcAggrTax }         from '../core/comprehensive-tax.js';
 import { calcSaleIncomeTax }   from '../core/transfer-tax.js';
@@ -59,7 +59,7 @@ export function runScenario10(inputs) {
   // ── Case 1: 배우자에게만 부담부증여 ──────────────────
   const c1NetPrice = marketPrice - loanPrice;
   const c1GiftResult = calcGiveTax(SPOUSE, SKIP_F, c1NetPrice, spouse.age);
-  const c1AcqResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy);
+  const c1AcqResult  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy);
 
   const case1 = {
     label: '배우자에게만 부담부증여',
@@ -87,14 +87,9 @@ export function runScenario10(inputs) {
     const partLoan = Math.floor(loanPrice * rate);
     const netPrice = r.price - partLoan;
 
-    let giftResult, acqResult;
-    if (rel === EXT_REL) {
-      giftResult = calcGiveTax(EXT_REL, SKIP_F, netPrice, r.age);
-      acqResult  = calcGiveTakingEtcTax(r.price, space, heavy);
-    } else {
-      giftResult = calcGiveTax(rel, SKIP_F, netPrice, r.age);
-      acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy);
-    }
+    // 취득세: 지분 시가 중 승계채무(유상)·나머지(무상) 구분 과세
+    const acqResult = calcBurdenedGiveTakingTax(r.price, partLoan, space, heavy);
+    const giftResult = calcGiveTax(rel === EXT_REL ? EXT_REL : rel, SKIP_F, netPrice, r.age);
     c2TotalGift += giftResult.tax;
     c2TotalAcq  += acqResult.total;
     return { label, price: r.price, partLoan, giftTax: giftResult.tax, acqTax: acqResult.total };
@@ -195,6 +190,10 @@ export function runScenario10(inputs) {
       case2GrandTotal: case2.grandTotal,
       saving: case1.grandTotal - case2.grandTotal,
     },
-    lawRef: [],
+    lawRef: [...new Set([
+      ...c1GiftResult.lawRef,
+      ...c1AcqResult.lawRef,
+      ...transferResult.lawRef,
+    ])],
   };
 }

@@ -106,3 +106,32 @@ export function calcTakingTax(type, price, newHouse, inheritHouse, space, heavy)
 export function calcGiveTakingEtcTax(price, space, heavy) {
   return calcTakingTax('give', price, 0, 0, space, heavy);
 }
+
+/**
+ * 부담부증여 취득세 — 지방세법 §7⑪·⑫에 따라 유상·무상 구분 과세
+ *   유상분(수증자가 인수하는 채무액): 매매 취득세율
+ *   무상분(시가 − 채무액): 증여 취득세율
+ *
+ * @param {number} marketPrice 시가(전체) [원]
+ * @param {number} loanPrice   수증자가 인수하는 채무(전세보증금·담보대출) [원]
+ * @param {number} space 전용면적 코드 (85/86)
+ * @param {number} heavy 조정지역 여부 (0/1)
+ * @param {string} [giveType='give'] 무상분 세율 유형 ('give' | 'give1s1h')
+ */
+export function calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, giveType = 'give') {
+  const onerous    = calcTakingTax('normal', loanPrice, 0, 0, space, heavy);
+  const gratuitous = calcTakingTax(giveType, marketPrice - loanPrice, 0, 0, space, heavy);
+
+  return {
+    takeTax: onerous.takeTax + gratuitous.takeTax,
+    agTax:   onerous.agTax + gratuitous.agTax,
+    eduTax:  onerous.eduTax + gratuitous.eduTax,
+    total:   onerous.total + gratuitous.total,
+    breakdown: { onerous: onerous.breakdown, gratuitous: gratuitous.breakdown },
+    lawRef: [...new Set([
+      ...onerous.lawRef,
+      ...gratuitous.lawRef,
+      '지방세법 §7⑪·⑫(부담부증여 유상·무상 구분)',
+    ])],
+  };
+}
