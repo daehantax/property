@@ -1,0 +1,26 @@
+{
+  "scenarioId": 1,
+  "title": "마포 2주택자 — 성년 자녀 증여 vs 제3자 양도",
+  "description": "서울 마포구 아파트(시가 18억, 기준시가 12.6억, 10년 전 9억에 취득)와 지방 아파트(기준시가 10억)를 보유한 2주택자. 조정대상지역. 마포 아파트를 32세 직장인 자녀에게 증여할지, 제3자에게 양도할지 비교.",
+  "inputs": {
+    "marketPrice": 1800000000,
+    "officialPrice": 1260000000,
+    "basePrice": 900000000,
+    "loanPrice": 0,
+    "holdPeriod": 10,
+    "stayPeriod": 0,
+    "space": 85,
+    "heavy": 1,
+    "holdOfficialPrice": 1000000000,
+    "holdPeriod2": 8,
+    "ownerAge": 62,
+    "childAge": 32,
+    "spouseAge": 58,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "partRate": 1,
+    "ownCount": 2,
+    "isAdj": 1
+  }
+}

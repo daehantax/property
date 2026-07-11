@@ -1,0 +1,26 @@
+{
+  "scenarioId": 5,
+  "title": "2주택자 — 배우자 일반증여 vs 담보대출 승계 부담부증여",
+  "description": "시가 12억(기준시가 8.4억), 담보대출 4억이 있는 아파트를 배우자에게 증여하려는 2주택자. 배우자 공제 6억을 활용한 일반증여와 대출 승계 부담부증여를 비교. 비조정지역, 취득가 5억, 보유 12년.",
+  "inputs": {
+    "marketPrice": 1200000000,
+    "officialPrice": 840000000,
+    "basePrice": 500000000,
+    "loanPrice": 400000000,
+    "holdPeriod": 12,
+    "stayPeriod": 5,
+    "space": 85,
+    "heavy": 0,
+    "holdOfficialPrice": 700000000,
+    "holdPeriod2": 9,
+    "ownerAge": 60,
+    "childAge": 30,
+    "spouseAge": 57,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "partRate": 1,
+    "ownCount": 2,
+    "isAdj": 0
+  }
+}

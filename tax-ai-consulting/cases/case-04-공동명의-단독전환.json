@@ -1,0 +1,26 @@
+{
+  "scenarioId": 7,
+  "title": "공동명의 1주택 — 배우자 단독명의 전환",
+  "description": "부부 50:50 공동명의 1주택(시가 16억, 기준시가 11.2억). 소유자 지분 전부를 배우자에게 증여해 단독명의로 전환할 때의 세부담. 보유 7년, 거주 7년.",
+  "inputs": {
+    "marketPrice": 1600000000,
+    "officialPrice": 1120000000,
+    "basePrice": 900000000,
+    "loanPrice": 0,
+    "holdPeriod": 7,
+    "stayPeriod": 7,
+    "space": 85,
+    "heavy": 0,
+    "holdOfficialPrice": 0,
+    "holdPeriod2": 7,
+    "ownerAge": 55,
+    "childAge": 25,
+    "spouseAge": 53,
+    "ownerRate": 0.5,
+    "spouseRate": 0.5,
+    "spouseHoldPeriod": 7,
+    "partRate": 0.5,
+    "ownCount": 1,
+    "isAdj": 0
+  }
+}

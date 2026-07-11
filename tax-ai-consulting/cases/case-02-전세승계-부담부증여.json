@@ -1,0 +1,26 @@
+{
+  "scenarioId": 2,
+  "title": "2주택자 — 자녀 일반증여 vs 전세보증금 승계 부담부증여",
+  "description": "시가 14억(기준시가 9.8억) 아파트에 전세보증금 7억이 있는 2주택자. 28세 자녀에게 일반증여할지, 전세보증금을 자녀가 승계하는 부담부증여로 할지 비교. 비조정지역, 취득가 6억, 보유 8년.",
+  "inputs": {
+    "marketPrice": 1400000000,
+    "officialPrice": 980000000,
+    "basePrice": 600000000,
+    "loanPrice": 700000000,
+    "holdPeriod": 8,
+    "stayPeriod": 3,
+    "space": 85,
+    "heavy": 0,
+    "holdOfficialPrice": 850000000,
+    "holdPeriod2": 6,
+    "ownerAge": 58,
+    "childAge": 28,
+    "spouseAge": 55,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "partRate": 1,
+    "ownCount": 2,
+    "isAdj": 0
+  }
+}
