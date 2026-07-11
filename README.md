@@ -108,6 +108,16 @@ export ANTHROPIC_API_KEY=sk-ant-...            # macOS / Linux
 
 항상 유지하려면 `~/.bashrc`(또는 `~/.zshrc`)에 export 줄을 추가하세요.
 
+**방법 3 — GitHub Actions에서 실행 (Secrets 사용)**
+
+내 컴퓨터가 아닌 GitHub 서버에서 실행할 때는 저장소의 Secrets 금고에 키를 등록합니다.
+
+1. GitHub 저장소 → **Settings** → **Secrets and variables** → **Actions**
+2. **New repository secret** 클릭
+3. Name: `ANTHROPIC_API_KEY`, Secret: 실제 키 입력 후 저장
+
+등록한 키는 누구도(본인 포함) 다시 볼 수 없고 로그에도 `***`로 가려집니다. 이후 **Actions 탭 → "AI 사례 일괄 실행" → Run workflow** 버튼으로 사례 5건을 실행할 수 있으며, 결과 보고서는 실행 페이지 하단 Artifacts에서 zip으로 내려받습니다. (워크플로우 정의: `.github/workflows/run-cases.yml`)
+
 > ⚠️ 실제 키를 코드·README·커밋 메시지에 직접 적지 마세요. 키가 노출됐다면 [Anthropic Console](https://console.anthropic.com/settings/keys)에서 폐기 후 재발급하세요.
 
 ### 전체 파이프라인 실행 (CLI)

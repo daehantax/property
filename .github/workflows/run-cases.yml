@@ -1,0 +1,66 @@
+# 상담 사례 일괄 실행 (계산 → AI 검증 → 보고서)
+#
+# 실행 방법: GitHub 저장소 → Actions 탭 → "AI 사례 일괄 실행" → "Run workflow" 버튼
+# 사전 준비: Settings → Secrets and variables → Actions 에 ANTHROPIC_API_KEY 등록
+#
+# 실행이 끝나면 사례별 보고서·판정 결과가 Artifacts(tuning-results)로 첨부되어
+# 실행 페이지 하단에서 zip으로 내려받을 수 있다.
+
+name: AI 사례 일괄 실행
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: '사례 필터 (예: 01 → case-01만 실행). 비우면 전체 5건 실행'
+        required: false
+        default: ''
+
+jobs:
+  run-cases:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tax-ai-consulting
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tax-ai-consulting/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: API 키 등록 확인
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY Secret이 등록되어 있지 않습니다."
+            echo "::error::저장소 Settings → Secrets and variables → Actions → New repository secret 에서 등록하세요."
+            exit 1
+          fi
+
+      - name: 사례 실행
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CASE_FILTER: ${{ inputs.case }}
+        run: |
+          if [ -n "$CASE_FILTER" ]; then
+            node scripts/run-cases.js --case "$CASE_FILTER"
+          else
+            npm run cases
+          fi
+
+      - name: 결과 업로드 (Artifacts)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tuning-results
+          path: tax-ai-consulting/tuning-results/
+          if-no-files-found: ignore
