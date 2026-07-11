@@ -1,0 +1,59 @@
+name: prompt-tuning-cases
+
+# 상담 사례 5건을 파이프라인(계산 → AI 검증 → 보고서)으로 실행한다.
+# 저장소 시크릿 ANTHROPIC_API_KEY 를 사용하며, 수동 실행(workflow_dispatch) 전용.
+# 결과는 로그에 출력되고 아티팩트(tuning-results)로도 업로드된다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: "특정 사례만 실행 (예: 01). 비우면 전체 실행"
+        required: false
+        default: ""
+
+jobs:
+  run-cases:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tax-ai-consulting
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Run consultation cases
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.case }}" ]; then
+            node scripts/run-cases.js --case "${{ github.event.inputs.case }}"
+          else
+            node scripts/run-cases.js
+          fi
+
+      - name: Print results to log
+        if: always()
+        run: |
+          for d in tuning-results/*/; do
+            echo ""
+            echo "########## ${d}"
+            for f in verdict.json verification.md report.md error.txt; do
+              if [ -f "${d}${f}" ]; then
+                echo "----- ${f} -----"
+                cat "${d}${f}"
+                echo ""
+              fi
+            done
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tuning-results
+          path: tax-ai-consulting/tuning-results/
