@@ -1,2 +1,117 @@
-# property
-property tax
+# property — 부동산 세금 AI 상담 프로그램
+
+부동산 세금(증여세·양도세·취득세·재산세·종합부동산세)을 계산하고, AI가 그 계산을 검증한 뒤, 고객용 요약 문서까지 만들어 주는 프로그램입니다.
+
+## 프로그램 목적 (전체 그림)
+
+이 프로그램은 **3단계 파이프라인**으로 동작하는 것을 목표로 합니다.
+
+```
+[1단계]                [2단계]                    [3단계]
+계산기 로직     →      AI 검증                →   요약 문서 생성
+(코드로 세금 계산)     (계산 과정·결과를           (검증된 결과를 바탕으로
+                       최신 세법 기준으로 검증)     고객용 요약 보고서 작성)
+```
+
+### 1단계 — 계산기 로직 (구현 완료)
+
+코드로 작성된 세금 계산 엔진이 먼저 계산을 수행합니다. AI가 아닌 결정적(deterministic) 로직이므로 같은 입력에는 항상 같은 결과가 나옵니다.
+
+### 2단계 — AI 검증 (구현 완료)
+
+계산기가 **어떻게 계산했는지**(적용 세율, 공제, 중과 여부, 근거 법령)를 Claude AI가 받아서:
+
+- 계산 과정이 올바른지 검증
+- **최신 개정 세법**이 제대로 반영되었는지 웹검색으로 확인 (현재 엔진은 2026.5.10 시행분 기준)
+- 오류나 누락이 있으면 지적하고 `pass / warning / fail` 판정을 반환
+
+### 3단계 — 요약 문서 생성 (구현 완료)
+
+검증까지 끝난 결과를 바탕으로 AI가 **고객 전달용 요약 보고서**(마크다운)를 자동 생성합니다. 케이스별 세부담 비교표, 보유세 변화, 유리한 선택지, 유의사항, 근거 세법을 담습니다. API 키가 없을 때를 위한 템플릿 기반 폴백 보고서(`buildBasicReport`)도 제공합니다.
+
+## 현재 구현 상태
+
+| 단계 | 상태 | 위치 |
+|------|------|------|
+| 1단계 계산기 로직 | ✅ 구현 완료 | `tax-ai-consulting/src/core`, `src/scenario` |
+| 2단계 AI 검증 | ✅ 구현 완료 (Claude API + 웹검색) | `tax-ai-consulting/src/verify` |
+| 3단계 요약 문서 생성 | ✅ 구현 완료 (AI 생성 + 템플릿 폴백) | `tax-ai-consulting/src/report` |
+| 전체 파이프라인 / CLI | ✅ 구현 완료 | `tax-ai-consulting/src/pipeline.js`, `src/cli.js` |
+
+테스트 95개 (계산 엔진 78개 + AI 단계 17개, AI 단계는 mock으로 네트워크 없이 검증).
+
+## 저장소 구조
+
+```
+property/
+└── tax-ai-consulting/
+    ├── src/
+    │   ├── core/               # 1단계: 세금 계산 엔진 (2026.5.10 시행 기준)
+    │   │   ├── gift-tax.js           # 증여세 (calcGiveTax)
+    │   │   ├── acquisition-tax.js    # 취득세 (calcTakingTax, calcGiveTakingEtcTax)
+    │   │   ├── transfer-tax.js       # 양도세 (calcSaleIncomeTax)
+    │   │   ├── property-tax.js       # 재산세 (calcPropertyTax)
+    │   │   ├── comprehensive-tax.js  # 종합부동산세 (calcAggrTax)
+    │   │   └── constants.js          # 세율·공제 상수
+    │   ├── scenario/           # 1단계: 상담 시나리오 10종 (runScenario1 ~ runScenario10)
+    │   ├── ai/client.js        # Claude API 클라이언트 래퍼 (pause_turn 재개, refusal 처리)
+    │   ├── verify/             # 2단계: AI 검증 (verifyCalculation — 웹검색으로 최신 세법 확인)
+    │   ├── report/             # 3단계: 요약 보고서 (generateReport / buildBasicReport)
+    │   ├── pipeline.js         # 계산 → 검증 → 보고서 전체 파이프라인 (runPipeline)
+    │   └── cli.js              # 커맨드라인 실행기
+    └── tests/                  # vitest 테스트 (core / scenario / verify / report)
+```
+
+### 시나리오 목록
+
+| # | 대상 | 비교 내용 |
+|---|------|-----------|
+| 1 | 2주택자 | 자녀에게 증여 vs 타인에게 양도 |
+| 2 | 2주택자 | 자녀에게 일반증여 vs 부담부증여 |
+| 3 | 2주택자 | 자녀 1명에게 증여 vs 여러 명에게 분산증여 |
+| 4 | 2주택자 | 자녀 1명 부담부증여 vs 여러 명 부담부증여 |
+| 5 | 2주택자 | 배우자에게 일반증여 vs 부담부증여 |
+| 6 | 1주택자 | 일부 지분 배우자 일반증여 vs 부담부증여 |
+| 7 | 공동명의 1주택자 | 배우자 단독명의로 전환 |
+| 8 | 2주택자 | 배우자에게 증여 vs 타인에게 양도 |
+| 9 | 2주택자 | 배우자에게만 증여 vs 배우자+자녀 분산증여 |
+| 10 | 2주택자 | 배우자에게만 부담부증여 vs 여러 명에게 부담부증여 |
+
+## 실행 방법
+
+```bash
+cd tax-ai-consulting
+npm install
+npm test          # vitest 테스트 실행 (네트워크·API 키 불필요)
+```
+
+### 전체 파이프라인 실행 (CLI)
+
+```bash
+# AI 검증·보고서까지 실행 — ANTHROPIC_API_KEY 환경변수 필요
+export ANTHROPIC_API_KEY=sk-ant-...
+node src/cli.js 1                          # 시나리오 1을 샘플 입력으로 실행
+node src/cli.js 1 inputs.json --out 보고서.md   # 입력 파일 지정, 보고서 파일로 저장
+
+# AI 없이 계산 + 템플릿 보고서만 (API 키 불필요)
+node src/cli.js 1 --no-ai
+```
+
+### 코드에서 사용
+
+```js
+import { runPipeline } from './src/pipeline.js';
+
+const { calculation, verification, report } = await runPipeline(1, inputs);
+// calculation : 1단계 계산 결과 (세액, lawRef 등)
+// verification: 2단계 AI 검증 { verdict, summary, issues, lawChanges, reportText }
+// report      : 3단계 고객용 요약 보고서 (마크다운)
+```
+
+AI 단계는 `claude-opus-4-8` 모델과 웹검색 도구(`web_search`)를 사용해 계산 엔진 기준일(2026.5.10) 이후의 세법 개정 여부까지 확인합니다.
+
+## 앞으로 할 일 (로드맵)
+
+1. 보고서 PDF/DOCX 변환 등 출력 형식 확장
+2. 실제 상담 사례로 AI 검증 정확도 평가 및 프롬프트 튜닝
+3. 세법 개정 시 `src/core/constants.js` 및 계산 로직 업데이트 절차 정리
