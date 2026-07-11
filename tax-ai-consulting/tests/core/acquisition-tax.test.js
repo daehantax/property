@@ -103,3 +103,22 @@ describe('calcGiveTakingEtcTax', () => {
     expect(r.breakdown.takeRate).toBe(0.12);
   });
 });
+
+describe('calcBurdenedGiveTakingTax (부담부증여 유상·무상 구분)', () => {
+  it('유상분(채무)은 매매세율, 무상분은 증여세율로 분리 과세한다', async () => {
+    const { calcBurdenedGiveTakingTax, calcTakingTax } = await import('../../src/core/acquisition-tax.js');
+    // 시가 12억, 채무 4억, 비조정: 유상 4억×1% + 무상 8억×3.5% (+교육세)
+    const r = calcBurdenedGiveTakingTax(1_200_000_000, 400_000_000, 85, 0);
+    const onerous = calcTakingTax('normal', 400_000_000, 0, 0, 85, 0);
+    const gratuitous = calcTakingTax('give', 800_000_000, 0, 0, 85, 0);
+    expect(r.total).toBe(onerous.total + gratuitous.total);
+    expect(r.total).toBeLessThan(calcTakingTax('give', 1_200_000_000, 0, 0, 85, 0).total);
+    expect(r.lawRef).toContain('지방세법 §7⑪·⑫(부담부증여 유상·무상 구분)');
+  });
+
+  it('채무가 0이면 전액 증여 취득세와 같다', async () => {
+    const { calcBurdenedGiveTakingTax, calcTakingTax } = await import('../../src/core/acquisition-tax.js');
+    const r = calcBurdenedGiveTakingTax(1_000_000_000, 0, 85, 0);
+    expect(r.total).toBe(calcTakingTax('give', 1_000_000_000, 0, 0, 85, 0).total);
+  });
+});

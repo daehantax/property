@@ -134,6 +134,10 @@ export function runScenario8(inputs) {
       holdingChangeCase1: holdingTax.changeCase1,
       holdingChangeCase2: holdingTax.changeCase2,
     },
-    lawRef: [],
+    lawRef: [...new Set([
+      ...giftResult.lawRef,
+      ...acqResult.lawRef,
+      ...transferResult.lawRef,
+    ])],
   };
 }

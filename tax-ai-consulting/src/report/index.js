@@ -73,6 +73,7 @@ export async function generateReport(scenarioResult, verification = null, option
     model,
     max_tokens: maxTokens,
     thinking: { type: 'adaptive' },
+    output_config: { effort: 'medium' },
     system: REPORT_SYSTEM,
     messages: [{ role: 'user', content: buildReportPrompt(scenarioResult, verification) }],
   });

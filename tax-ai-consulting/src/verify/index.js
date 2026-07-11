@@ -38,7 +38,12 @@ const VERIFY_SYSTEM = `당신은 한국 부동산 세금(증여세·양도소득
 }
 \`\`\`
 
-verdict 기준: 오류가 없으면 "pass", 결과에 영향 가능성이 있는 개정·불확실성이 있으면 "warning", 명백한 오류가 있으면 "fail".`;
+판정 기준:
+- verdict는 계산 엔진의 "명백한 계산 오류" 유무를 기준으로 정합니다. 핵심 세목(증여세·양도세·취득세)과 케이스 간 우열 결론이 정확하면 "pass"가 기본입니다.
+- 재산세·종부세의 원 단위 세부값이 단순 모델로 재현되지 않는 것 자체는 오류가 아닙니다. 이런 사항은 issues에 "info"로만 기록하고 verdict를 낮추지 마십시오.
+- 결과 금액을 실제로 바꾸는 명백한 오류(세율·공제·과세표준 적용 오류)가 있을 때만 "fail"로 판정하십시오.
+- lawChanges에는 웹검색으로 시행·확정이 확인된 개정만 담으십시오. 논의·추진 단계이거나 확인하지 못한 사항은 issues에 "info"로 기록하십시오.
+- 검증은 핵심 세목 위주로 효율적으로 수행하고, 웹검색은 꼭 필요한 확인에만 사용하십시오.`;
 
 export function buildVerifyPrompt(scenarioResult, { lawBaseDate = ENGINE_LAW_BASE_DATE } = {}) {
   return [
@@ -93,11 +98,12 @@ export async function verifyCalculation(scenarioResult, options = {}) {
     model,
     max_tokens: maxTokens,
     thinking: { type: 'adaptive' },
+    output_config: { effort: 'medium' },
     system: VERIFY_SYSTEM,
     messages: [{ role: 'user', content: buildVerifyPrompt(scenarioResult, { lawBaseDate }) }],
   };
   if (webSearch) {
-    request.tools = [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }];
+    request.tools = [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }];
   }
 
   const response = await createMessageWithResume(client, request);

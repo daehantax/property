@@ -161,6 +161,9 @@ export function runScenario9(inputs) {
       case2Total: case2.total,
       saving: case1.total - case2.total,
     },
-    lawRef: [],
+    lawRef: [...new Set([
+      ...c1GiftResult.lawRef,
+      ...c1AcqResult.lawRef,
+    ])],
   };
 }
