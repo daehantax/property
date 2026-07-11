@@ -110,8 +110,22 @@ const { calculation, verification, report } = await runPipeline(1, inputs);
 
 AI 단계는 `claude-opus-4-8` 모델과 웹검색 도구(`web_search`)를 사용해 계산 엔진 기준일(2026.5.10) 이후의 세법 개정 여부까지 확인합니다.
 
+## 프롬프트 튜닝 (사례 일괄 실행)
+
+`tax-ai-consulting/cases/`에 실제 상담 사례 5건이 준비되어 있습니다. API 키를 설정한 뒤 일괄 실행하면 사례별 검증 판정과 보고서가 `tuning-results/`에 저장됩니다.
+
+```bash
+cd tax-ai-consulting
+export ANTHROPIC_API_KEY=sk-ant-...
+npm run cases          # 사례 5건 전체를 계산→검증→보고서로 실행
+npm run cases:dry      # AI 없이 계산만 (키 불필요, 입력값 점검용)
+node scripts/run-cases.js --case 01   # 특정 사례만 실행
+```
+
+튜닝 절차: ① `npm run cases` 실행 → ② `tuning-results/*/verdict.json`과 `verification.md`에서 이상한 판정(과잉 warning, 놓친 오류 등) 확인 → ③ `src/verify/index.js`의 `VERIFY_SYSTEM` / `src/report/index.js`의 `REPORT_SYSTEM` 지시문 수정 → ④ 다시 실행해 비교. 사례 추가는 `cases/`에 JSON 파일(`scenarioId`, `title`, `description`, `inputs`)을 넣으면 됩니다.
+
 ## 앞으로 할 일 (로드맵)
 
-1. 보고서 PDF/DOCX 변환 등 출력 형식 확장
-2. 실제 상담 사례로 AI 검증 정확도 평가 및 프롬프트 튜닝
+1. 실제 상담 사례로 AI 검증 정확도 평가 및 프롬프트 튜닝 (사례·실행기 준비 완료, API 키 필요)
+2. 보고서 PDF/DOCX 변환 등 출력 형식 확장
 3. 세법 개정 시 `src/core/constants.js` 및 계산 로직 업데이트 절차 정리

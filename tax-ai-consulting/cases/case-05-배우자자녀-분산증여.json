@@ -1,0 +1,31 @@
+{
+  "scenarioId": 9,
+  "title": "2주택자 — 배우자 단독 증여 vs 배우자+자녀 분산증여",
+  "description": "시가 15억(기준시가 10.5억) 아파트를 배우자에게만 증여할지, 배우자 7억 + 성년 자녀 둘에게 각 4억씩 나눠 증여할지 비교. 미성년 자녀 둘은 제외. 비조정지역, 보유 9년.",
+  "inputs": {
+    "marketPrice": 1500000000,
+    "officialPrice": 1050000000,
+    "basePrice": 700000000,
+    "loanPrice": 0,
+    "holdPeriod": 9,
+    "stayPeriod": 4,
+    "space": 85,
+    "heavy": 0,
+    "holdOfficialPrice": 800000000,
+    "holdPeriod2": 7,
+    "ownerAge": 61,
+    "childAge": 27,
+    "spouseAge": 58,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "partRate": 1,
+    "ownCount": 2,
+    "isAdj": 0,
+    "spouse": { "price": 700000000, "age": 58 },
+    "child1": { "price": 400000000, "age": 27 },
+    "child2": { "price": 400000000, "age": 24 },
+    "child3": { "price": 0, "age": 17 },
+    "child4": { "price": 0, "age": 14 }
+  }
+}

@@ -6,7 +6,9 @@
   "description": "부동산 세금 계산·시나리오 상담 엔진 (2026.5.10 시행 기준)",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "cases": "node scripts/run-cases.js",
+    "cases:dry": "node scripts/run-cases.js --no-ai"
   },
   "devDependencies": {
     "vitest": "^2.1.9"
