@@ -12,6 +12,7 @@
  *   node scripts/run-cases.js --case 01    # 이름에 "01"이 들어간 사례만 실행
  */
 
+import '../src/env.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,7 +28,8 @@ const caseFilter = args.includes('--case') ? args[args.indexOf('--case') + 1] : 
 
 if (useAi && !process.env.ANTHROPIC_API_KEY) {
   console.error('오류: ANTHROPIC_API_KEY가 설정되어 있지 않습니다.');
-  console.error('키를 설정하거나, 입력값 점검만 하려면 --no-ai 로 실행하세요.');
+  console.error('셸에서 export 하거나 프로젝트 루트 .env 파일에 저장하세요 (.env.example 참고).');
+  console.error('입력값 점검만 하려면 --no-ai 로 실행하세요.');
   process.exit(1);
 }
 

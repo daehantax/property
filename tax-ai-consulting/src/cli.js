@@ -10,8 +10,10 @@
  *   - --out     : 보고서를 파일로 저장 (생략 시 stdout 출력)
  *
  * AI 단계를 사용하려면 ANTHROPIC_API_KEY 환경변수가 필요하다.
+ * (셸에서 export 하거나 프로젝트 루트의 .env 파일에 저장 — .env.example 참고)
  */
 
+import './env.js';
 import fs from 'node:fs';
 import { runPipeline } from './pipeline.js';
 
