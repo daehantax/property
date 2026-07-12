@@ -107,3 +107,12 @@ describe('runPipeline', () => {
     await expect(runPipeline(99, SAMPLE_INPUTS, { ai: false })).rejects.toThrow(/시나리오 ID/);
   });
 });
+
+describe('buildReportPrompt — 계산 내역 근거 전달', () => {
+  it('검증 reportText가 있으면 검증 상세로 포함한다', () => {
+    const result = runScenario1(SAMPLE_INPUTS);
+    const prompt = buildReportPrompt(result, { ...VERIFICATION, reportText: '증여세 재현: 5.4억 × 97%' });
+    expect(prompt).toContain('검증 상세');
+    expect(prompt).toContain('증여세 재현');
+  });
+});
