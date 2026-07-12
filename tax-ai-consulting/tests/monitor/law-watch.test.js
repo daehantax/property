@@ -4,7 +4,8 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import {
-  checkLawChanges, parseFindings, renderLawWatch, buildWatchPrompt, ENGINE_ASSUMPTIONS,
+  checkLawChanges, parseFindings, renderLawWatch, buildWatchPrompt,
+  countActionable, ENGINE_ASSUMPTIONS,
 } from '../../src/monitor/law-watch.js';
 
 const WATCH_TEXT = `확인 결과입니다.
@@ -64,8 +65,29 @@ describe('checkLawChanges', () => {
     expect(rate.where).toBe('constants.AGGR_FAIR_MARKET_RATE');
     expect(rate.engineValue).toBe('60%');
     expect(watch.asOfDate).toBe('2026-07-12');
-    // 웹검색 도구 포함
-    expect(client.messages.create.mock.calls[0][0].tools[0].type).toBe('web_search_20260209');
+    // 웹검색 도구 포함, 기본 허용 횟수 10회 (독립 실행 기준)
+    const tool = client.messages.create.mock.calls[0][0].tools[0];
+    expect(tool.type).toBe('web_search_20260209');
+    expect(tool.max_uses).toBe(10);
+  });
+
+  it('webSearchMaxUses 옵션으로 검색 횟수를 조절한다', async () => {
+    const client = mockClient(WATCH_TEXT);
+    await checkLawChanges({ client, asOfDate: '2026-07-12', webSearchMaxUses: 3 });
+    expect(client.messages.create.mock.calls[0][0].tools[0].max_uses).toBe(3);
+  });
+});
+
+describe('countActionable', () => {
+  it('changed·scheduled 항목만 센다', () => {
+    const watch = {
+      findings: [
+        { status: 'current' }, { status: 'changed' },
+        { status: 'scheduled' }, { status: 'uncertain' },
+      ],
+    };
+    expect(countActionable(watch)).toBe(2);
+    expect(countActionable(null)).toBe(0);
   });
 });
 

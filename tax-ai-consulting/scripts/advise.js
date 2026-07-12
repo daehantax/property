@@ -9,6 +9,8 @@
  *   node scripts/advise.js --scenario 2 input.json
  *   node scripts/advise.js --case 01 --no-ai      # 민감도 분석만 (API 키 불필요)
  *   node scripts/advise.js --case 01 --law-watch  # 세법 개정 감시 포함 (느림)
+ *                                                 # ※ 개정 감시는 케이스와 무관하므로
+ *                                                 #   scripts/law-watch.js 단독 실행을 권장
  *   node scripts/advise.js --case 01 --out out.md
  *
  * AI 장치(리스크·대안·개정감시)는 ANTHROPIC_API_KEY 가 필요하다.

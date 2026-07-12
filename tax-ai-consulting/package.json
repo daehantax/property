@@ -10,7 +10,8 @@
     "cases": "node scripts/run-cases.js",
     "cases:dry": "node scripts/run-cases.js --no-ai",
     "advise": "node scripts/advise.js",
-    "advise:dry": "node scripts/advise.js --no-ai"
+    "advise:dry": "node scripts/advise.js --no-ai",
+    "law-watch": "node scripts/law-watch.js"
   },
   "devDependencies": {
     "vitest": "^2.1.9"

@@ -111,6 +111,38 @@ describe('alternatives', () => {
     const sim = simulateIdeas(2, INPUTS, [{ title: 'x', inputPatch: { marketPrice: 'not-a-number' } }]);
     // 계산은 NaN을 만들 수 있으나 throw하지 않으면 simulated가 채워짐 — 최소한 크래시하지 않음
     expect(sim).toHaveLength(1);
+    expect(sim[0].simulated).toBeNull(); // NaN 결과는 simulateError로 걸러짐
+  });
+
+  it('altScenarioId로 다른 시나리오 엔진으로 재계산한다 (시나리오1 → 2 부담부증여)', () => {
+    // 시나리오 1(증여vs양도) 케이스에서 부담부증여 대안 → 시나리오 2로 매핑
+    const scenario1Inputs = { ...INPUTS, ownCount: 2, isAdj: 1 };
+    const sim = simulateIdeas(1, scenario1Inputs, [
+      { title: '부담부증여 전환', altScenarioId: 2, inputPatch: { loanPrice: 600_000_000 } },
+    ]);
+    expect(sim[0].simulated).not.toBeNull();
+    expect(sim[0].simulated.scenarioId).toBe(2);
+    expect(sim[0].simulated.scenarioTitle).toContain('부담부증여');
+    expect(Number.isFinite(sim[0].simulated.bestTotal)).toBe(true);
+  });
+
+  it('존재하지 않는 altScenarioId는 simulateError', () => {
+    const sim = simulateIdeas(2, INPUTS, [{ title: 'x', altScenarioId: 99, inputPatch: { loanPrice: 1 } }]);
+    expect(sim[0].simulated).toBeNull();
+    expect(sim[0].simulateError).toContain('99');
+  });
+
+  it('renderAlternatives가 타 시나리오 재계산을 표기한다', () => {
+    const alt = {
+      summary: 's',
+      ideas: [{
+        title: '부담부증여',
+        simulated: { scenarioId: 2, scenarioTitle: '자녀에게 일반증여할까? 부담부증여할까?', bestTotal: 500_000_000, bestLabel: '부담부증여', savingVsBase: 70_000_000 },
+      }],
+    };
+    const md = renderAlternatives(alt);
+    expect(md).toContain('시나리오 2');
+    expect(md).toContain('절감');
   });
 
   it('generateAlternatives가 아이디어를 생성하고 계산 가능한 것을 검증한다', async () => {

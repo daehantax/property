@@ -3,3 +3,4 @@ coverage/
 .vitest-cache/
 tuning-results/
 advisory-results/
+law-watch-results/

@@ -1,0 +1,49 @@
+name: law-watch
+
+# 세법 개정 감시 정기 실행 (장치 4 독립 실행)
+# 엔진의 세법 가정 8종(공정시장가액비율·공제금액·중과 부활일 등)을 웹검색으로 대조한다.
+# 개정·시행예정 항목이 발견되면 --strict 로 인해 잡이 실패(빨간불)하여 알림 역할을 한다.
+# 저장소 시크릿 이름 "property"를 ANTHROPIC_API_KEY 로 매핑.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 매주 월요일 06:00 KST (일요일 21:00 UTC)
+    - cron: "0 21 * * 0"
+
+jobs:
+  law-watch:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tax-ai-consulting
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Run law watch (strict — 개정 발견 시 실패로 알림)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.property }}
+        run: node scripts/law-watch.js --strict
+
+      - name: Print report to log
+        if: always()
+        run: |
+          for f in law-watch-results/*.md; do
+            [ -f "$f" ] || continue
+            echo ""
+            echo "########## ${f}"
+            cat "$f"
+            echo ""
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: law-watch-results
+          path: tax-ai-consulting/law-watch-results/

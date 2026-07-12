@@ -97,6 +97,7 @@ export function parseFindings(text) {
  * @param {object} [options]
  * @param {string} [options.asOfDate]     확인 기준일 (기본: 오늘). Date.now 미사용 위해 주입 권장.
  * @param {Array}  [options.assumptions]  점검 대상 (기본: ENGINE_ASSUMPTIONS)
+ * @param {number} [options.webSearchMaxUses] 웹검색 허용 횟수 (기본 10 — 가정 8종을 근거 있게 확인하려면 넉넉해야 함)
  * @param {object} [options.client] { model, maxTokens }
  * @returns {Promise<{asOfDate, summary, findings, reportText, usage}>}
  */
@@ -107,6 +108,7 @@ export async function checkLawChanges(options = {}) {
     maxTokens = 16000,
     assumptions = ENGINE_ASSUMPTIONS,
     asOfDate = new Date().toISOString().slice(0, 10),
+    webSearchMaxUses = 10,
   } = options;
 
   const request = {
@@ -116,7 +118,7 @@ export async function checkLawChanges(options = {}) {
     output_config: { effort: 'medium' },
     system: WATCH_SYSTEM,
     messages: [{ role: 'user', content: buildWatchPrompt(assumptions, asOfDate) }],
-    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
+    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: webSearchMaxUses }],
   };
 
   const response = await createMessageWithResume(client, request);
@@ -133,6 +135,12 @@ export async function checkLawChanges(options = {}) {
   }));
 
   return { asOfDate, summary: parsed.summary, findings, reportText, usage: response.usage };
+}
+
+/** 조치가 필요한(이미 개정됐거나 시행 예정인) 항목 수 */
+export function countActionable(watch) {
+  if (!watch || !Array.isArray(watch.findings)) return 0;
+  return watch.findings.filter((f) => f.status === 'changed' || f.status === 'scheduled').length;
 }
 
 const STATUS_LABEL = {
