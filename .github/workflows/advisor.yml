@@ -1,0 +1,66 @@
+name: advisory-deep-dive
+
+# 상담 심화 검토(민감도·리스크·대안·개정감시)를 케이스에 실행한다.
+# 저장소 시크릿 이름 "property"를 ANTHROPIC_API_KEY 로 매핑한다. 수동 실행 전용.
+# 결과는 로그에 출력되고 아티팩트(advisory-results)로 업로드된다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: "심화 검토할 사례 필터 (예: 01). 비우면 전체 사례"
+        required: false
+        default: ""
+      lawWatch:
+        description: "세법 개정 감시 포함 (true/false, 느림)"
+        required: false
+        default: "false"
+
+jobs:
+  advise:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tax-ai-consulting
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Run advisory deep-dive
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.property }}
+          LAW_WATCH: ${{ github.event.inputs.lawWatch }}
+        run: |
+          EXTRA=""
+          if [ "${LAW_WATCH}" = "true" ]; then EXTRA="--law-watch"; fi
+          if [ -n "${{ github.event.inputs.case }}" ]; then
+            node scripts/advise.js --case "${{ github.event.inputs.case }}" $EXTRA
+          else
+            for f in cases/*.json; do
+              name=$(basename "$f" .json)
+              echo "▶▶ ${name}"
+              node scripts/advise.js --case "$name" $EXTRA || true
+            done
+          fi
+
+      - name: Print advisory reports to log
+        if: always()
+        run: |
+          for f in advisory-results/*.md; do
+            [ -f "$f" ] || continue
+            echo ""
+            echo "########## ${f}"
+            cat "$f"
+            echo ""
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: advisory-results
+          path: tax-ai-consulting/advisory-results/

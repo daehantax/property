@@ -27,7 +27,18 @@
 
 ### 3단계 — 요약 문서 생성 (구현 완료)
 
-검증까지 끝난 결과를 바탕으로 AI가 **고객 전달용 요약 보고서**(마크다운)를 자동 생성합니다. 케이스별 세부담 비교표, 보유세 변화, 유리한 선택지, 유의사항, 근거 세법을 담습니다. API 키가 없을 때를 위한 템플릿 기반 폴백 보고서(`buildBasicReport`)도 제공합니다.
+검증까지 끝난 결과를 바탕으로 AI가 **고객 전달용 요약 보고서**(마크다운)를 자동 생성합니다. 케이스별 세부담 비교표, 세목별 계산 내역, 보유세 변화, 유리한 선택지, 유의사항, 근거 세법을 담습니다. API 키가 없을 때를 위한 템플릿 기반 폴백 보고서(`buildBasicReport`)도 제공합니다.
+
+### 심화 검토 보조 장치 (구현 완료)
+
+계산·검증·보고서(3단계)가 "정해진 케이스를 정확히" 다룬다면, 그 **바깥의 다양한 상황·문제점·추가 아이디어**를 다루기 위한 4가지 보조 장치를 얹었습니다.
+
+1. **절세 대안 생성기** (`src/advisor/alternatives.js`) — AI가 고정 케이스 밖의 절세 대안을 제안하고, 입력값 조정으로 표현 가능한 대안은 **실제 계산 엔진에 통과시켜 검증된 세액**을 붙입니다(AI가 지어낸 숫자가 아님).
+2. **리스크·함정 스캐너** (`src/advisor/risk-scan.js`) — 과세관청 시각에서 이월과세·부당행위계산부인·저가양도·자금출처·취득세 중과 함정 등 **거래 구조의 세무 리스크**를 위험도·근거법령·확인사항 체크리스트로 뽑습니다.
+3. **민감도·손익분기 분석** (`src/analysis/sensitivity.js`) — 핵심 변수(대출 승계액·취득가액·보유기간 등)를 범위로 스윕해 **유불리가 뒤바뀌는 손익분기점**을 찾습니다. 순수 엔진 계산이라 AI·네트워크가 필요 없습니다.
+4. **세법 개정 감시** (`src/monitor/law-watch.js`) — 엔진이 박아둔 세법 가정(공정시장가액비율·공제금액·중과 부활일 등)을 웹검색으로 대조해 **바뀐 항목과 고쳐야 할 상수 위치**를 경고합니다.
+
+네 장치는 `adviseCase()`로 한 번에 실행해 하나의 심화 리포트로 합칠 수 있습니다(`src/advisor/index.js`).
 
 ## 현재 구현 상태
 
@@ -37,8 +48,9 @@
 | 2단계 AI 검증 | ✅ 구현 완료 (Claude API + 웹검색) | `tax-ai-consulting/src/verify` |
 | 3단계 요약 문서 생성 | ✅ 구현 완료 (AI 생성 + 템플릿 폴백) | `tax-ai-consulting/src/report` |
 | 전체 파이프라인 / CLI | ✅ 구현 완료 | `tax-ai-consulting/src/pipeline.js`, `src/cli.js` |
+| 심화 검토 장치 (대안·리스크·민감도·개정감시) | ✅ 구현 완료 | `tax-ai-consulting/src/advisor`, `src/analysis`, `src/monitor` |
 
-테스트 95개 (계산 엔진 78개 + AI 단계 17개, AI 단계는 mock으로 네트워크 없이 검증).
+테스트 127개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -57,9 +69,13 @@ property/
     │   ├── ai/client.js        # Claude API 클라이언트 래퍼 (pause_turn 재개, refusal 처리)
     │   ├── verify/             # 2단계: AI 검증 (verifyCalculation — 웹검색으로 최신 세법 확인)
     │   ├── report/             # 3단계: 요약 보고서 (generateReport / buildBasicReport)
+    │   ├── analysis/           # 장치3: 민감도·손익분기 분석 (sweep — 순수 엔진)
+    │   ├── advisor/            # 장치1·2 + 통합: 절세 대안 생성 / 리스크 스캐너 / adviseCase
+    │   ├── monitor/            # 장치4: 세법 개정 감시 (checkLawChanges — 웹검색)
     │   ├── pipeline.js         # 계산 → 검증 → 보고서 전체 파이프라인 (runPipeline)
     │   └── cli.js              # 커맨드라인 실행기
-    └── tests/                  # vitest 테스트 (core / scenario / verify / report)
+    ├── scripts/                # run-cases.js (튜닝), advise.js (심화 검토)
+    └── tests/                  # vitest 테스트 (core / scenario / verify / report / analysis / advisor / monitor)
 ```
 
 ### 시나리오 목록
@@ -110,6 +126,23 @@ const { calculation, verification, report } = await runPipeline(1, inputs);
 
 AI 단계는 `claude-opus-4-8` 모델과 웹검색 도구(`web_search`)를 사용해 계산 엔진 기준일(2026.5.10) 이후의 세법 개정 여부까지 확인합니다.
 
+### 심화 검토 실행 (대안·리스크·민감도·개정감시)
+
+```bash
+cd tax-ai-consulting
+
+# 민감도·손익분기 분석만 — API 키 불필요
+npm run advise:dry -- --case 01
+
+# 4가지 장치 전부 (대안·리스크는 AI) — ANTHROPIC_API_KEY 필요
+export ANTHROPIC_API_KEY=sk-ant-...
+node scripts/advise.js --case 01                 # 케이스 01 심화 리포트
+node scripts/advise.js --case 01 --law-watch     # 세법 개정 감시까지 포함(느림)
+node scripts/advise.js --scenario 2 inputs.json --out advisory.md
+```
+
+결과는 `advisory-results/<사례명>.md`로 저장됩니다. 코드에서는 `adviseCase(scenarioId, inputs, { ai, lawWatch })` → `renderAdvisory(result)`로 사용합니다. GitHub Actions에서는 `advisory-deep-dive` 워크플로(수동 실행)로 돌릴 수 있습니다.
+
 ## 프롬프트 튜닝 (사례 일괄 실행)
 
 `tax-ai-consulting/cases/`에 실제 상담 사례 5건이 준비되어 있습니다. API 키를 설정한 뒤 일괄 실행하면 사례별 검증 판정과 보고서가 `tuning-results/`에 저장됩니다.
@@ -135,4 +168,5 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 
 1. 사례 추가 확충(조정지역·고가·상속 연계 등)으로 검증 커버리지 확대
 2. 보고서 PDF/DOCX 변환 등 출력 형식 확장
-3. 세법 개정 시 `src/core/constants.js` 및 계산 로직 업데이트 절차 정리
+3. 세법 개정 감시(`advisory-deep-dive`)를 정기 스케줄로 돌려 상수 갱신 알림 자동화
+4. 웹 입력폼 → 보고서·심화검토 UI (프런트엔드)
