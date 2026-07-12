@@ -24,6 +24,8 @@ const REPORT_SYSTEM = `당신은 한국 세무법인의 부동산 세금 상담 
    - "세금 계산 내역" 블록이 제공되지 않은 경우에만, 계산 결과 JSON과 검증 상세에 근거해
      직접 단계를 작성하되 근거 없는 수치를 새로 만들지 마십시오.
 3. 보유세(재산세+종부세) 변화가 있으면 그 비교
+   - 함께 제공되는 "### 보유세 계산 내역" 블록이 있으면 보유세 비교표 아래에 **그대로 삽입**하십시오
+     (재산세: 공시가격→과세표준→세율, 종부세: 공제→과세표준→세액). 숫자를 바꾸지 마십시오.
 4. 결론 — 어떤 선택이 세금상 유리한지와 그 금액 차이
 5. 유의사항 — 검증에서 지적된 사항, 세법 개정 관련 참고사항, 근거 법령
 6. 말미에 "본 보고서는 참고용이며, 실제 신고 전 세무 전문가 확인이 필요합니다." 문구
@@ -44,8 +46,16 @@ export function buildReportPrompt(scenarioResult, verification) {
   if (calcSteps) {
     parts.push(
       '',
-      '## 세금 계산 내역 (엔진 산출 — 비교표 아래에 그대로 삽입할 것)',
+      '## 세금 계산 내역 (엔진 산출 — 비교표(2번) 아래에 그대로 삽입할 것)',
       calcSteps,
+    );
+  }
+  const holdingSteps = renderCalcSteps(scenarioResult.holdingComputations, { heading: '### 보유세 계산 내역' });
+  if (holdingSteps) {
+    parts.push(
+      '',
+      '## 보유세 계산 내역 (엔진 산출 — 보유세 비교(3번) 아래에 그대로 삽입할 것)',
+      holdingSteps,
     );
   }
   if (verification) {
@@ -134,6 +144,11 @@ export function buildBasicReport(scenarioResult, verification = null) {
   const calcSteps = renderCalcSteps(scenarioResult.computations);
   if (calcSteps) {
     lines.push('', calcSteps);
+  }
+
+  const holdingSteps = renderCalcSteps(scenarioResult.holdingComputations, { heading: '## 보유세 계산 내역' });
+  if (holdingSteps) {
+    lines.push('', holdingSteps);
   }
 
   if (Array.isArray(scenarioResult.lawRef) && scenarioResult.lawRef.length > 0) {

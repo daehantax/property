@@ -140,6 +140,13 @@ export function runScenario1(inputs) {
       { caseNo: 1, caseLabel: '케이스1 — 자녀에게 증여', kind: 'acq', label: '취득세(증여취득)', result: acqTaxResult },
       { caseNo: 2, caseLabel: '케이스2 — 타인에게 양도', kind: 'transfer', label: '양도소득세', result: transferResult },
     ],
+    holdingComputations: [
+      { caseNo: 'b', caseLabel: '처분 전 — 소유자 2주택', kind: 'property', label: '재산세 ① 대상주택', result: sPropertyTax },
+      { caseNo: 'b', caseLabel: '처분 전 — 소유자 2주택', kind: 'property', label: '재산세 ② 계속보유주택', result: hPropertyTax },
+      { caseNo: 'b', caseLabel: '처분 전 — 소유자 2주택', kind: 'aggr', label: '종합부동산세 (2주택 합산)', result: beforeAggrTax },
+      { caseNo: 'r', caseLabel: '증여 후 — 자녀(수증자) 1주택', kind: 'property', label: '재산세', result: recipientPropertyTax },
+      { caseNo: 'r', caseLabel: '증여 후 — 자녀(수증자) 1주택', kind: 'aggr', label: '종합부동산세', result: recipientAggrTax },
+    ],
     summary: {
       case1Total: case1.recipientTotal,
       case2Total: case2.sellerTotal,

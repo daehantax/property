@@ -39,3 +39,16 @@ describe('renderCalcSteps', () => {
     expect(md).toContain('#### 케이스2 — 타인에게 양도');
   });
 });
+
+describe('보유세 계산 내역 (재산세·종부세)', () => {
+  it('holdingComputations를 재산세·종부세 단계로 렌더링', () => {
+    const md = renderCalcSteps(runScenario1(INPUTS).holdingComputations, { heading: '### 보유세 계산 내역' });
+    // 재산세: 공정시장가액비율·합계
+    expect(md).toContain('공정시장가액비율');
+    expect(md).toContain('3,931,200원');       // 대상주택 재산세 합계
+    // 종부세: 공제·과세표준·합계
+    expect(md).toContain('공제금액: △900,000,000원');
+    expect(md).toContain('4,870,753원');        // 2주택 합산 종부세 합계
+    expect(md).toContain('673,920원');          // 자녀 종부세 합계
+  });
+});
