@@ -160,6 +160,15 @@ export function runScenario9(inputs) {
       { caseNo: 1, caseLabel: '케이스1 — 배우자에게만 증여', kind: 'gift', label: '증여세', result: c1GiftResult },
       { caseNo: 1, caseLabel: '케이스1 — 배우자에게만 증여', kind: 'acq', label: '취득세', result: c1AcqResult },
     ],
+    holdingComputations: [
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 2주택', kind: 'property', label: '재산세 ① 대상주택', result: sPropertyTax },
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 2주택', kind: 'property', label: '재산세 ② 계속보유주택', result: hPropertyTax },
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 2주택', kind: 'aggr', label: '종합부동산세 (2주택 합산)', result: beforeAggrTax },
+      { caseNo: 'o', caseLabel: '증여 후 — 소유자(계속보유주택 1주택)', kind: 'property', label: '재산세', result: afterOwnerPropTax },
+      { caseNo: 'o', caseLabel: '증여 후 — 소유자(계속보유주택 1주택)', kind: 'aggr', label: '종합부동산세', result: afterOwnerAggrTax },
+      { caseNo: 's', caseLabel: '케이스1 증여 후 — 배우자(전체 수증)', kind: 'property', label: '재산세', result: c1SpousePropTax },
+      { caseNo: 's', caseLabel: '케이스1 증여 후 — 배우자(전체 수증)', kind: 'aggr', label: '종합부동산세', result: c1SpouseAggrTax },
+    ],
     summary: {
       case1Total: case1.total,
       case2Total: case2.total,
