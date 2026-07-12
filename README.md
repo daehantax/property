@@ -49,8 +49,9 @@
 | 3단계 요약 문서 생성 | ✅ 구현 완료 (AI 생성 + 템플릿 폴백) | `tax-ai-consulting/src/report` |
 | 전체 파이프라인 / CLI | ✅ 구현 완료 | `tax-ai-consulting/src/pipeline.js`, `src/cli.js` |
 | 심화 검토 장치 (대안·리스크·민감도·개정감시) | ✅ 구현 완료 | `tax-ai-consulting/src/advisor`, `src/analysis`, `src/monitor` |
+| 웹 입력폼 + 보고서 (Word·PDF 내보내기) | ✅ 구현 완료 | `tax-ai-consulting/src/web` |
 
-테스트 127개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 145개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -72,6 +73,7 @@ property/
     │   ├── analysis/           # 장치3: 민감도·손익분기 분석 (sweep — 순수 엔진)
     │   ├── advisor/            # 장치1·2 + 통합: 절세 대안 생성 / 리스크 스캐너 / adviseCase
     │   ├── monitor/            # 장치4: 세법 개정 감시 (checkLawChanges — 웹검색)
+    │   ├── web/                # 웹 입력폼 + 보고서 서버 (Word·PDF·인쇄 내보내기)
     │   ├── pipeline.js         # 계산 → 검증 → 보고서 전체 파이프라인 (runPipeline)
     │   └── cli.js              # 커맨드라인 실행기
     ├── scripts/                # run-cases.js (튜닝), advise.js (심화 검토)
@@ -126,6 +128,26 @@ const { calculation, verification, report } = await runPipeline(1, inputs);
 
 AI 단계는 `claude-opus-4-8` 모델과 웹검색 도구(`web_search`)를 사용해 계산 엔진 기준일(2026.5.10) 이후의 세법 개정 여부까지 확인합니다.
 
+### 웹 입력폼 + 보고서 (Word·PDF)
+
+```bash
+cd tax-ai-consulting
+npm run web            # http://localhost:3000 (PORT 환경변수로 변경)
+```
+
+브라우저에서 시나리오를 고르고 입력값을 넣으면 **보고서가 즉시 생성**됩니다
+(AI·API 키 불필요 — 계산 엔진만 사용, 동일 입력 = 동일 결과).
+
+- 금액 입력 시 콤마와 억/만 단위 힌트가 자동 표시됩니다.
+- **Word 저장**: 실제 .docx 파일 다운로드 (MS 워드에서 편집 가능)
+- **PDF 저장**: 서버의 Chromium/Chrome으로 A4 PDF 생성. Chrome이 없는 환경이면
+  안내 메시지가 뜨며, 그 경우 **인쇄** 버튼 → 브라우저 인쇄에서 "PDF로 저장"을 쓰면 됩니다.
+  (`CHROMIUM_PATH` 환경변수로 Chrome 실행 파일 경로 지정 가능)
+- 보고서 구성: 입력값 요약 → 케이스별 세부담 비교표 → 세금 계산 내역(엔진 산출 단계별) →
+  보유세 변화·계산 내역 → 결론 → 근거 법령
+
+AI 검증·AI 보고서가 필요한 경우는 기존 CLI(`node src/cli.js`)나 CI 워크플로를 사용합니다.
+
 ### 심화 검토 실행 (대안·리스크·민감도·개정감시)
 
 ```bash
@@ -175,6 +197,5 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 ## 앞으로 할 일 (로드맵)
 
 1. 사례 추가 확충(조정지역·고가·상속 연계 등)으로 검증 커버리지 확대
-2. 보고서 PDF/DOCX 변환 등 출력 형식 확장
-3. 세법 개정 감시(`advisory-deep-dive`)를 정기 스케줄로 돌려 상수 갱신 알림 자동화
-4. 웹 입력폼 → 보고서·심화검토 UI (프런트엔드)
+2. 웹 UI에 AI 검증·심화 검토(리스크·대안) 버튼 연동
+3. 다주택 중과 경과규정(5/9까지 계약 체결 시 잔금 유예) 로직 반영 검토
