@@ -1,0 +1,26 @@
+{
+  "scenarioId": 6,
+  "title": "1주택자 — 배우자에게 지분 50% 일반증여 vs 부담부증여",
+  "description": "시가 14억(기준시가 9.8억, 취득가 6억) 단독명의 1주택. 전세보증금 5억이 있는 상태에서 배우자에게 지분 50%를 일반증여할지 부담부증여할지 비교. 부담부증여 시 승계채무분(지분 비례)에 대한 1세대1주택 양도세와 배우자 증여공제 6억 활용을 검증. 조정지역, 보유 7년·거주 5년.",
+  "inputs": {
+    "marketPrice": 1400000000,
+    "officialPrice": 980000000,
+    "basePrice": 600000000,
+    "loanPrice": 500000000,
+    "partRate": 0.5,
+    "holdPeriod": 7,
+    "stayPeriod": 5,
+    "space": 85,
+    "heavy": 1,
+    "holdOfficialPrice": 0,
+    "holdPeriod2": 0,
+    "ownerAge": 55,
+    "spouseAge": 53,
+    "childAge": 0,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "ownCount": 1,
+    "isAdj": 1
+  }
+}

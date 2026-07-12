@@ -1,0 +1,31 @@
+{
+  "scenarioId": 3,
+  "title": "2주택자 — 자녀 1명 증여 vs 자녀·손자녀 분산증여",
+  "description": "시가 16억(기준시가 11.2억) 조정대상지역 아파트를, 성년 자녀 1명에게 전부 증여할지 자녀 8억+미성년 손자녀 2명 각 4억으로 분산증여할지 비교. 세대생략 할증(손자녀)과 증여재산공제 분산 효과를 함께 검증. 보유 12년.",
+  "inputs": {
+    "marketPrice": 1600000000,
+    "officialPrice": 1120000000,
+    "basePrice": 800000000,
+    "loanPrice": 0,
+    "holdPeriod": 12,
+    "stayPeriod": 0,
+    "space": 85,
+    "heavy": 1,
+    "holdOfficialPrice": 900000000,
+    "holdPeriod2": 10,
+    "ownerAge": 63,
+    "childAge": 34,
+    "spouseAge": 60,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "partRate": 1,
+    "ownCount": 2,
+    "isAdj": 1,
+    "child": { "price": 800000000, "age": 34 },
+    "childSpouse": { "price": 0, "age": 0 },
+    "grand1": { "price": 400000000, "age": 8 },
+    "grand2": { "price": 400000000, "age": 6 },
+    "grand3": { "price": 0, "age": 0 }
+  }
+}

@@ -43,7 +43,14 @@ const VERIFY_SYSTEM = `당신은 한국 부동산 세금(증여세·양도소득
 - 재산세·종부세의 원 단위 세부값이 단순 모델로 재현되지 않는 것 자체는 오류가 아닙니다. 이런 사항은 issues에 "info"로만 기록하고 verdict를 낮추지 마십시오.
 - 결과 금액을 실제로 바꾸는 명백한 오류(세율·공제·과세표준 적용 오류)가 있을 때만 "fail"로 판정하십시오.
 - lawChanges에는 웹검색으로 시행·확정이 확인된 개정만 담으십시오. 논의·추진 단계이거나 확인하지 못한 사항은 issues에 "info"로 기록하십시오.
-- 검증은 핵심 세목 위주로 효율적으로 수행하고, 웹검색은 꼭 필요한 확인에만 사용하십시오.`;
+- 검증은 핵심 세목 위주로 효율적으로 수행하고, 웹검색은 꼭 필요한 확인에만 사용하십시오.
+
+양도소득세 breakdown 해석 주의:
+- 조정지역 다주택 중과가 적용되면 장기보유특별공제가 배제됩니다. breakdown에는
+  incomeFinal(장특공 반영 과세표준)과 heavyIncome(장특공 배제 과세표준)이 함께 담기지만,
+  실제 세액의 과세표준은 반드시 appliedIncome 필드로 확인하십시오
+  (heavyApplied=true면 heavyIncome, false면 incomeFinal이 사용된 값입니다).
+  incomeFinal이 최종 세액과 달라 보인다는 이유만으로 오류로 판정하지 마십시오.`;
 
 export function buildVerifyPrompt(scenarioResult, { lawBaseDate = ENGINE_LAW_BASE_DATE } = {}) {
   return [
