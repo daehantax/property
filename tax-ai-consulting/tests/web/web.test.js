@@ -148,3 +148,129 @@ describe('server API', () => {
     expect(buf.subarray(0, 5).toString()).toBe('%PDF-');
   }, 60000);
 });
+
+// ── AI 작업 (mock 클라이언트, 네트워크 없음) ─────────────────
+const AI_TEXT = `분석 내용입니다.
+
+\`\`\`json
+{
+  "verdict": "pass", "summary": "핵심 세목 모두 정확", "issues": [], "lawChanges": [],
+  "risks": [{ "severity": "high", "title": "이월과세", "description": "10년 내 양도 시 취득가액 이월", "lawRef": "소득세법 §97의2", "checkpoint": "보유 계획 확인" }],
+  "ideas": [{ "title": "부담부증여 전환", "rationale": "채무만큼 증여세 축소", "caveat": "", "altScenarioId": 2, "inputPatch": { "loanPrice": 600000000 } }]
+}
+\`\`\``;
+
+const mockAiClient = () => ({
+  messages: {
+    create: async () => ({
+      content: [{ type: 'text', text: AI_TEXT }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 10, output_tokens: 10 },
+    }),
+  },
+});
+
+async function waitJob(base, jobId, timeoutMs = 5000) {
+  const t0 = Date.now();
+  for (;;) {
+    const res = await fetch(`${base}/api/jobs/${jobId}`);
+    const j = await res.json();
+    if (j.status !== 'running') return j;
+    if (Date.now() - t0 > timeoutMs) throw new Error('작업 폴링 타임아웃');
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
+describe('AI 작업 API (mock 클라이언트)', () => {
+  let server; let base;
+
+  beforeAll(async () => {
+    const app = createApp({ aiClient: mockAiClient() });
+    await new Promise((resolve) => { server = app.listen(0, () => resolve()); });
+    base = `http://127.0.0.1:${server.address().port}`;
+  });
+
+  afterAll(() => new Promise((resolve) => server.close(resolve)));
+
+  it('verified-report 작업: 검증 판정 배지 + AI 보고서 HTML', async () => {
+    const res = await fetch(`${base}/api/jobs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'verified-report', scenarioId: 1, inputs: buildDefaults(1) }),
+    });
+    expect(res.ok).toBe(true);
+    const { jobId } = await res.json();
+    const job = await waitJob(base, jobId);
+    expect(job.status).toBe('done');
+    expect(job.html).toContain('AI 검증 판정');
+    expect(job.html).toContain('통과');
+    expect(job.html).toContain('분석 내용입니다');
+  });
+
+  it('advisory 작업: 민감도·리스크·대안이 포함된 심화 리포트', async () => {
+    const res = await fetch(`${base}/api/jobs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'advisory', scenarioId: 1, inputs: buildDefaults(1) }),
+    });
+    const { jobId } = await res.json();
+    const job = await waitJob(base, jobId);
+    expect(job.status).toBe('done');
+    expect(job.html).toContain('민감도·손익분기');
+    expect(job.html).toContain('이월과세');           // 리스크 (mock)
+    expect(job.html).toContain('부담부증여 전환');    // 대안 (mock)
+    expect(job.html).toContain('엔진 재계산');        // altScenarioId=2 재계산 수행
+  });
+
+  it('완료된 작업을 Word로 내보낸다', async () => {
+    const res = await fetch(`${base}/api/jobs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'verified-report', scenarioId: 1, inputs: buildDefaults(1) }),
+    });
+    const { jobId } = await res.json();
+    await waitJob(base, jobId);
+    const dl = await fetch(`${base}/api/jobs/${jobId}/export/docx`);
+    expect(dl.ok).toBe(true);
+    const buf = Buffer.from(await dl.arrayBuffer());
+    expect(buf.subarray(0, 2).toString()).toBe('PK');
+    expect(dl.headers.get('content-disposition')).toContain('AI');
+  }, 30000);
+
+  it('알 수 없는 작업 종류는 400', async () => {
+    const res = await fetch(`${base}/api/jobs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'nope', scenarioId: 1, inputs: {} }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('없는 작업 조회는 404', async () => {
+    const res = await fetch(`${base}/api/jobs/job-9999`);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('AI 작업 — API 키 없음', () => {
+  let server; let base; let savedKey;
+
+  beforeAll(async () => {
+    savedKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    const app = createApp(); // aiClient 미주입
+    await new Promise((resolve) => { server = app.listen(0, () => resolve()); });
+    base = `http://127.0.0.1:${server.address().port}`;
+  });
+
+  afterAll(() => {
+    if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+    return new Promise((resolve) => server.close(resolve));
+  });
+
+  it('키가 없으면 503과 설정 안내를 준다', async () => {
+    const res = await fetch(`${base}/api/jobs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'advisory', scenarioId: 1, inputs: buildDefaults(1) }),
+    });
+    expect(res.status).toBe(503);
+    const data = await res.json();
+    expect(data.error).toContain('ANTHROPIC_API_KEY');
+  });
+});

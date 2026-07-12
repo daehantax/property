@@ -45,6 +45,12 @@
   .export { background: #eaf2f8; color: var(--navy); border: 1px solid #aed6f1; }
   .export:hover { background: #d4e6f1; }
   .export:disabled { opacity: .45; cursor: not-allowed; }
+  .ai-btns { margin-top: 8px; }
+  .ai { background: #145a32; color: #fff; flex: 1; }
+  .ai:hover { background: #0e4023; }
+  .ai:disabled { opacity: .55; cursor: wait; }
+  .ai-note { font-size: 11px; color: #78909c; margin-top: 6px; line-height: 1.5; }
+  .ai-note code { background: #eceff1; padding: 1px 4px; border-radius: 3px; }
   #status { font-size: 12.5px; margin-top: 10px; color: #7d6608; min-height: 16px; }
   #status.err { color: #b03a2e; }
   iframe { width: 100%; flex: 1; border: 1px solid var(--line); border-radius: 6px; background: #fff; min-height: 600px; }
@@ -69,6 +75,12 @@
       <button class="export" id="pdfBtn" disabled>PDF 저장</button>
       <button class="export" id="printBtn" disabled>인쇄</button>
     </div>
+    <div class="btns ai-btns">
+      <button class="ai" id="aiReportBtn">AI 정밀 보고서</button>
+      <button class="ai" id="advisoryBtn">심화 검토 (리스크·대안)</button>
+    </div>
+    <div class="ai-note">AI 버튼은 최신 세법 웹검색·리스크 분석을 수행하므로 2~5분 걸립니다.
+      서버에 <code>ANTHROPIC_API_KEY</code>가 설정되어 있어야 합니다.</div>
     <div id="status"></div>
   </div>
 
@@ -166,6 +178,22 @@ function setStatus(msg, isErr = false) {
   $('status').className = isErr ? 'err' : '';
 }
 
+// 현재 표시 중인 문서의 내보내기 대상: null = 기본 보고서, 문자열 = AI 작업 ID
+let exportJobId = null;
+let pollTimer = null;
+
+function showHtml(html) {
+  $('placeholder').style.display = 'none';
+  const frame = $('report');
+  frame.style.display = 'block';
+  frame.srcdoc = html;
+  ['docxBtn', 'pdfBtn', 'printBtn'].forEach((id) => { $(id).disabled = false; });
+}
+
+function setAiBusy(busy) {
+  ['aiReportBtn', 'advisoryBtn', 'runBtn'].forEach((id) => { $(id).disabled = busy; });
+}
+
 async function generate() {
   setStatus('계산 중…');
   try {
@@ -175,13 +203,54 @@ async function generate() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || res.statusText);
-    $('placeholder').style.display = 'none';
-    const frame = $('report');
-    frame.style.display = 'block';
-    frame.srcdoc = data.html;
-    ['docxBtn', 'pdfBtn', 'printBtn'].forEach((id) => { $(id).disabled = false; });
+    exportJobId = null;
+    showHtml(data.html);
     setStatus('보고서가 생성되었습니다.');
   } catch (e) {
+    setStatus('오류: ' + e.message, true);
+  }
+}
+
+async function runAiJob(kind, label) {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  setAiBusy(true);
+  setStatus(label + ' 요청 중…');
+  try {
+    const res = await fetch('/api/jobs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, ...collectInputs() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    const jobId = data.jobId;
+
+    pollTimer = setInterval(async () => {
+      try {
+        const r = await fetch('/api/jobs/' + jobId);
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        const min = Math.floor(j.elapsedSec / 60), sec = j.elapsedSec % 60;
+        if (j.status === 'running') {
+          setStatus(label + ' — ' + j.progress + ' (경과 ' + min + '분 ' + sec + '초)');
+          return;
+        }
+        clearInterval(pollTimer); pollTimer = null;
+        setAiBusy(false);
+        if (j.status === 'done') {
+          exportJobId = jobId;
+          showHtml(j.html);
+          setStatus(label + ' 완료 (' + min + '분 ' + sec + '초). Word/PDF 저장 버튼은 이 문서를 저장합니다.');
+        } else {
+          setStatus(j.error || label + ' 실패', true);
+        }
+      } catch (e) {
+        clearInterval(pollTimer); pollTimer = null;
+        setAiBusy(false);
+        setStatus('오류: ' + e.message, true);
+      }
+    }, 3000);
+  } catch (e) {
+    setAiBusy(false);
     setStatus('오류: ' + e.message, true);
   }
 }
@@ -189,10 +258,12 @@ async function generate() {
 async function download(kind) {
   setStatus(kind.toUpperCase() + ' 변환 중…');
   try {
-    const res = await fetch('/export/' + kind, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(collectInputs()),
-    });
+    const res = exportJobId
+      ? await fetch('/api/jobs/' + exportJobId + '/export/' + kind)
+      : await fetch('/export/' + kind, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(collectInputs()),
+        });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || res.statusText);
@@ -213,6 +284,8 @@ async function download(kind) {
 }
 
 $('runBtn').addEventListener('click', generate);
+$('aiReportBtn').addEventListener('click', () => runAiJob('verified-report', 'AI 정밀 보고서'));
+$('advisoryBtn').addEventListener('click', () => runAiJob('advisory', '심화 검토'));
 $('docxBtn').addEventListener('click', () => download('docx'));
 $('pdfBtn').addEventListener('click', () => download('pdf'));
 $('printBtn').addEventListener('click', () => {
