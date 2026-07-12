@@ -144,10 +144,11 @@ export function calcSaleIncomeTax(
   const totalTax1 = incomeFinal * r1;
 
   // 경합2: 조정지역 다주택 중과 (2026.5.10 부활) / 비사업토지 중과
-  let r2 = 0, totalTax2 = 0;
+  let r2 = 0, totalTax2 = 0, dc2 = baseDc; // dc2: 경합2 세액에 실제 사용된 누진공제
   if (type === '비사업토지') {
     r2 = baseR + 0.1;
-    totalTax2 = Math.max(incomeFinal * r2 - baseDc, 0);
+    dc2 = baseDc;
+    totalTax2 = Math.max(incomeFinal * r2 - dc2, 0);
   } else if (type === '주택' && isAdj === 1 && ownCount >= 2) {
     let landtradeExempt = false;
     if (isLandtradeApply === 1 && saleDate !== '') {
@@ -159,7 +160,8 @@ export function calcSaleIncomeTax(
       heavyIncome = Math.max(taxableIncome - 2_500_000, 0);
       const heavyBracket = baseBracket(heavyIncome);
       r2 = ownCount === 2 ? heavyBracket.baseR + 0.2 : heavyBracket.baseR + 0.3;
-      totalTax2 = Math.max(heavyIncome * r2 - heavyBracket.baseDc, 0);
+      dc2 = heavyBracket.baseDc; // 중과 과세표준(heavyIncome) 기준 누진공제
+      totalTax2 = Math.max(heavyIncome * r2 - dc2, 0);
     }
   }
 
@@ -168,7 +170,7 @@ export function calcSaleIncomeTax(
   let chosenTax = baseTax;
   if (totalTax1 !== 0 || totalTax2 !== 0) {
     if (totalTax1 > totalTax2) { chosenTax = totalTax1; finalRate = r1; finalDc = 0; }
-    else                        { chosenTax = totalTax2; finalRate = r2; }
+    else                        { chosenTax = totalTax2; finalRate = r2; finalDc = dc2; }
   }
 
   const transferTax  = Math.floor(chosenTax);

@@ -120,3 +120,29 @@ describe('시나리오 1 — 자녀 증여 vs 타인 양도', () => {
     expect(r.holdingTax.afterCase2.total).toBeLessThan(r.holdingTax.before.total);
   });
 });
+
+describe('부담부증여 다주택 중과 (조정지역) — 채무 양도분', () => {
+  // 시나리오 2·4·5·10: 2주택자의 부담부증여 채무 승계분 양도세는
+  // 조정지역(heavy=1)이면 다주택 중과(장특공 배제 + 세율 가산)가 적용되어야 한다.
+  const heavyInputs = (id) => ({ ...scenarioInputs[id], heavy: 1, holdPeriod: 12 });
+  const transferOf = (r) => (r.computations ?? []).find((c) => c.kind === 'transfer')?.result;
+
+  for (const id of [2, 4, 5, 10]) {
+    it(`시나리오 ${id}: 조정지역이면 채무 양도분에 중과 적용(heavyApplied=true)`, () => {
+      const r = scenarios[`runScenario${id}`](heavyInputs(id));
+      const t = transferOf(r);
+      expect(t, `시나리오 ${id} transfer computation`).toBeDefined();
+      expect(t.breakdown.heavyApplied).toBe(true);
+      // 중과 세율은 기본세율보다 최소 20%p 높다
+      expect(t.breakdown.appliedR).toBeGreaterThanOrEqual(t.breakdown.baseR + 0.2 - 1e-9);
+      // 장특공 배제 → 적용 과세표준(appliedIncome)은 장특공 반영값(incomeFinal) 이상
+      expect(t.breakdown.appliedIncome).toBeGreaterThanOrEqual(t.breakdown.incomeFinal);
+    });
+
+    it(`시나리오 ${id}: 비조정지역이면 중과 미적용(heavyApplied=false)`, () => {
+      const r = scenarios[`runScenario${id}`]({ ...scenarioInputs[id], heavy: 0, holdPeriod: 12 });
+      const t = transferOf(r);
+      expect(t.breakdown.heavyApplied).toBe(false);
+    });
+  }
+});

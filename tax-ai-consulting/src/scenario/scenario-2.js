@@ -64,7 +64,8 @@ export function runScenario2(inputs) {
   const loanBasePrice = basePrice * loanPrice / marketPrice;
   const transfer2Result = calcSaleIncomeTax(
     loanPrice, loanBasePrice, holdPeriod, stayPeriod,
-    '다주택', '주택'
+    '다주택', '주택',
+    2, heavy   // 2주택자 + 조정지역(heavy=1)이면 부담부증여 채무 양도분에 다주택 중과 적용
   );
 
   const case2 = {
