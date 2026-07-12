@@ -145,6 +145,13 @@ export function runScenario7(inputs) {
       { caseNo: 2, caseLabel: '케이스2 — 부담부증여', kind: 'burdenAcq', label: '취득세', result: c2AcqResult },
       { caseNo: 2, caseLabel: '케이스2 — 부담부증여', kind: 'transfer', label: '양도소득세(대출 승계분)', result: transferResult },
     ],
+    holdingComputations: [
+      { caseNo: 'b', caseLabel: '증여 전 — 공동명의 1주택', kind: 'property', label: '재산세 (주택 전체 누진산출 후 지분 배분)', result: wholePropTax },
+      { caseNo: 'b', caseLabel: '증여 전 — 공동명의 1주택', kind: 'aggr', label: `종합부동산세 — 소유자 지분(${Math.round(ownerRate * 100)}%)`, result: beforeOwnerAggrTax },
+      { caseNo: 'b', caseLabel: '증여 전 — 공동명의 1주택', kind: 'aggr', label: `종합부동산세 — 배우자 지분(${Math.round(spouseRate * 100)}%)`, result: beforeSpouseAggrTax },
+      { caseNo: 'a', caseLabel: '증여 후 — 배우자 단독 1주택', kind: 'property', label: '재산세', result: afterSpousePropTax },
+      { caseNo: 'a', caseLabel: '증여 후 — 배우자 단독 1주택', kind: 'aggr', label: '종합부동산세', result: afterSpouseAggrTax },
+    ],
     summary: {
       case1GrandTotal: case1.grandTotal,
       case2GrandTotal: case2.grandTotal,

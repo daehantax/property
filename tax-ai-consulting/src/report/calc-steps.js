@@ -85,11 +85,50 @@ function transferSteps(result) {
   return lines;
 }
 
+/** 재산세 단계 */
+function propertySteps(result) {
+  const b = result.breakdown;
+  return [
+    `- 공시가격: ${won(b.gongsi)}`,
+    `- 과세표준: ${won(b.gongsi)} × 공정시장가액비율 ${pct(b.fairMarketRatio)} = ${won(b.taxBase)}`,
+    `- 재산세 본세: ${won(result.propertyTax)}`,
+    `- 도시지역분(과세표준 × 0.14%): ${won(result.dosiTax)}`,
+    `- 지방교육세(재산세 × 20%): ${won(result.pEduTax)}`,
+    `- **재산세 합계: ${won(result.total)}**`,
+  ];
+}
+
+/** 종합부동산세 단계 */
+function aggrSteps(result) {
+  const b = result.breakdown;
+  const lines = [
+    `- 공시가격 합계: ${won(b.gongsi)}`,
+    `- 공제금액: △${won(b.deductAmt)} (${b.oneOOne === '1세대1주택' ? '1세대1주택 12억' : '다주택·기타 9억'})`,
+  ];
+  if (b.aggrTaxBase <= 0) {
+    lines.push('- 과세표준: 0원 → **종합부동산세: 0원** (공시가격이 공제금액 이하)');
+    return lines;
+  }
+  lines.push(
+    `- 과세표준: (${won(b.gongsi)} − ${won(b.deductAmt)}) × 공정시장가액비율 ${pct(b.fairMarketRate)} = ${won(b.aggrTaxBase)}`,
+    `- 종부세 산출세액(재산세 중복분 공제 전): ${won(b.aggrTaxBeforeDc)}`,
+  );
+  if (b.propertyTaxDc > 0) lines.push(`- 재산세 중복분 공제: △${won(b.propertyTaxDc)}`);
+  if (b.combinedDc > 0) lines.push(`- 장기보유·연령 세액공제: ${pct(b.combinedDc)}`);
+  lines.push(
+    `- **종합부동산세: ${won(result.aggrTax)}**` + (result.ruralTax > 0 ? `, 농어촌특별세(20%): ${won(result.ruralTax)}` : ''),
+    `- **합계: ${won(result.total)}**`,
+  );
+  return lines;
+}
+
 const STEP_FN = {
   gift: giftSteps,
   acq: acqSteps,
   burdenAcq: burdenAcqSteps,
   transfer: transferSteps,
+  property: propertySteps,
+  aggr: aggrSteps,
 };
 
 const KIND_TITLE = {
@@ -97,13 +136,17 @@ const KIND_TITLE = {
   acq: '취득세',
   burdenAcq: '취득세(부담부증여)',
   transfer: '양도소득세',
+  property: '재산세',
+  aggr: '종합부동산세',
 };
 
 /**
- * computations 배열을 "세금 계산 내역" 마크다운으로 렌더링.
+ * computations 배열을 계산 내역 마크다운으로 렌더링.
+ * @param {Array} computations [{ caseNo, caseLabel, kind, label, result }]
+ * @param {object} [opts] { heading } — 최상위 소제목 (기본 "### 세금 계산 내역")
  * @returns {string} 마크다운 (computations가 없으면 빈 문자열)
  */
-export function renderCalcSteps(computations) {
+export function renderCalcSteps(computations, { heading = '### 세금 계산 내역' } = {}) {
   if (!Array.isArray(computations) || computations.length === 0) return '';
 
   // caseNo별 그룹화 (등장 순서 유지)
@@ -114,7 +157,7 @@ export function renderCalcSteps(computations) {
     groups.get(key).items.push(comp);
   }
 
-  const out = ['### 세금 계산 내역'];
+  const out = [heading];
   for (const [, group] of groups) {
     if (group.label) out.push('', `#### ${group.label}`);
     for (const comp of group.items) {

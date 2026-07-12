@@ -133,6 +133,13 @@ export function runScenario2(inputs) {
       { caseNo: 2, caseLabel: '케이스2 — 자녀에게 부담부증여', kind: 'burdenAcq', label: '취득세', result: acq2Result },
       { caseNo: 2, caseLabel: '케이스2 — 자녀에게 부담부증여', kind: 'transfer', label: '양도소득세(대출 승계분)', result: transfer2Result },
     ],
+    holdingComputations: [
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 2주택', kind: 'property', label: '재산세 ① 대상주택', result: sPropertyTax },
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 2주택', kind: 'property', label: '재산세 ② 계속보유주택', result: hPropertyTax },
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 2주택', kind: 'aggr', label: '종합부동산세 (2주택 합산)', result: beforeAggrTax },
+      { caseNo: 'r', caseLabel: '증여 후 — 자녀(수증자) 1주택', kind: 'property', label: '재산세', result: recipientPropTax },
+      { caseNo: 'r', caseLabel: '증여 후 — 자녀(수증자) 1주택', kind: 'aggr', label: '종합부동산세', result: recipientAggrTax },
+    ],
     summary: {
       case1GrandTotal: case1.grandTotal,
       case2GrandTotal: case2.grandTotal,

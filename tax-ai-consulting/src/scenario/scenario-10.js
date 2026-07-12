@@ -185,6 +185,11 @@ export function runScenario10(inputs) {
     case1,
     case2,
     holdingTax,
+    computations: [
+      { caseNo: 1, caseLabel: '케이스1 — 배우자에게만 부담부증여', kind: 'gift', label: '증여세(시가−대출)', result: c1GiftResult },
+      { caseNo: 1, caseLabel: '케이스1 — 배우자에게만 부담부증여', kind: 'burdenAcq', label: '취득세', result: c1AcqResult },
+      { caseNo: 1, caseLabel: '케이스1 — 배우자에게만 부담부증여', kind: 'transfer', label: '양도소득세(대출 승계분)', result: transferResult },
+    ],
     summary: {
       case1GrandTotal: case1.grandTotal,
       case2GrandTotal: case2.grandTotal,
