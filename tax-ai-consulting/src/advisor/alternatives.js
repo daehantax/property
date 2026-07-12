@@ -8,6 +8,10 @@
  *
  * 흐름: 결과+입력 제시 → AI가 아이디어 목록 생성(일부는 inputPatch 포함)
  *      → inputPatch가 있는 아이디어는 엔진으로 재계산 → 검증된 숫자 부착.
+ *
+ * 타 시나리오 매핑: 현재 시나리오의 입력 조정만으로 표현할 수 없는 대안
+ * (예: "증여 vs 양도" 케이스에서 부담부증여 대안)은 altScenarioId 로
+ * 다른 시나리오를 지정해 그 엔진으로 재계산할 수 있다.
  */
 
 import {
@@ -16,6 +20,23 @@ import {
 import { ENGINE_LAW_BASE_DATE } from '../verify/index.js';
 import * as scenarios from '../scenario/index.js';
 import { defaultCompare } from '../analysis/sensitivity.js';
+
+/**
+ * 시나리오 카탈로그 — AI가 altScenarioId 로 다른 시나리오를 지정할 때 참조.
+ * extraInputs: 그 시나리오가 추가로 요구하는 입력 필드 (없으면 inputPatch로 채워야 함)
+ */
+export const SCENARIO_CATALOG = [
+  { id: 1, title: '2주택자: 자녀에게 증여 vs 타인에게 양도', extraInputs: 'childAge, ownCount, isAdj' },
+  { id: 2, title: '2주택자: 자녀에게 일반증여 vs 부담부증여', extraInputs: 'loanPrice(승계 채무), childAge' },
+  { id: 3, title: '2주택자: 자녀 1명에게 증여 vs 여러 명에게 분산증여', extraInputs: 'child/childSpouse/grand1~3 = { price, age }' },
+  { id: 4, title: '2주택자: 자녀 1명 부담부증여 vs 여러 명 부담부증여', extraInputs: 'loanPrice, child/childSpouse/grand1~3 = { price, age }' },
+  { id: 5, title: '2주택자: 배우자에게 일반증여 vs 부담부증여', extraInputs: 'loanPrice, spouseAge' },
+  { id: 6, title: '1주택자: 일부 지분 배우자 일반증여 vs 부담부증여', extraInputs: 'partRate(지분율), loanPrice, spouseAge' },
+  { id: 7, title: '공동명의 1주택: 배우자 단독명의 전환 (일반 vs 부담부)', extraInputs: 'ownerRate, spouseRate, spouseHoldPeriod, loanPrice' },
+  { id: 8, title: '2주택자: 배우자에게 증여 vs 타인에게 양도', extraInputs: 'spouseAge, ownCount, isAdj' },
+  { id: 9, title: '2주택자: 배우자에게만 증여 vs 배우자+자녀 분산증여', extraInputs: 'spouse/child1~4 = { price, age }' },
+  { id: 10, title: '2주택자: 배우자에게만 부담부증여 vs 여러 명 부담부증여', extraInputs: 'loanPrice, spouse/childSpouse/child2~4 = { price, age }' },
+];
 
 const ALT_SYSTEM = `당신은 한국 부동산 절세 전략을 설계하는 세무사입니다.
 제시된 케이스(계산 엔진 결과 + 입력값)를 보고, 고객이 고려해볼 만한 추가 절세
@@ -27,11 +48,16 @@ const ALT_SYSTEM = `당신은 한국 부동산 절세 전략을 설계하는 세
 - 취득·양도 시점(조정지역 지정/해제, 중과 유예) 조절, 일시적 2주택 활용
 - 공동명의 전환, 임대주택 등록 등
 
-각 아이디어에 대해, "같은 상황에서 이 입력값만 바꾼 것"으로 표현할 수 있으면
-inputPatch로 나타내십시오. inputPatch의 키는 제시된 입력값(inputs)에 이미 존재하는
-필드명이어야 하며(중첩은 "spouse.age" 같은 점 표기), 값은 숫자/문자열입니다.
-그러면 시스템이 그 값을 실제 계산 엔진에 넣어 세액을 재계산해 검증합니다.
-입력값 조정으로 표현할 수 없는 아이디어(예: 감정평가, 임대등록)는 inputPatch 없이 개념만 제시하십시오.
+각 아이디어를 계산 엔진으로 검증할 수 있도록 다음 중 하나로 표현하십시오.
+1) 같은 시나리오의 입력값 조정으로 표현 가능 → inputPatch만 지정
+2) 다른 시나리오로 표현 가능(예: 증여vs양도 케이스의 부담부증여 대안은 시나리오 2)
+   → altScenarioId 로 시나리오 번호를 지정하고, 그 시나리오가 요구하는 추가 입력을
+     inputPatch 로 채우십시오 (아래 시나리오 카탈로그의 extraInputs 참고).
+3) 엔진으로 표현 불가(감정평가·임대등록·시점 조절 등) → inputPatch 없이 개념만 제시
+
+inputPatch의 키는 입력 필드명이며 중첩은 "spouse.age"처럼 점 표기, 값은 숫자만
+사용하십시오. 시스템이 실제 계산 엔진으로 세액을 재계산해 검증하므로,
+근거 없는 수치를 직접 쓰지 마십시오(숫자는 엔진이 채웁니다).
 
 응답 형식:
 - 먼저 마크다운으로 핵심 대안을 간단히 서술하십시오.
@@ -45,20 +71,24 @@ inputPatch로 나타내십시오. inputPatch의 키는 제시된 입력값(input
       "title": "대안 이름",
       "rationale": "왜 절세가 되는지 / 언제 유효한지",
       "caveat": "주의점·전제(없으면 빈 문자열)",
+      "altScenarioId": 2,
       "inputPatch": { "필드명": 값 }
     }
   ]
 }
 \`\`\`
 
-inputPatch가 없으면 생략하거나 빈 객체로 두십시오. 근거 없는 수치는 쓰지 마십시오(숫자는 엔진이 채웁니다).`;
+altScenarioId는 다른 시나리오로 계산할 때만 지정하십시오(같은 시나리오면 생략).`;
 
 export function buildAlternativesPrompt(scenarioResult, baseInputs, { lawBaseDate = ENGINE_LAW_BASE_DATE } = {}) {
   return [
     `세법 기준일: ${lawBaseDate} 시행분`,
     `시나리오 ID: ${scenarioResult.scenarioId} — ${scenarioResult.title}`,
     '',
-    '## 현재 케이스 입력값 (inputPatch의 키는 여기 존재하는 필드명이어야 함)',
+    '## 시나리오 카탈로그 (altScenarioId 지정용)',
+    ...SCENARIO_CATALOG.map((s) => `- ${s.id}: ${s.title} (추가 입력: ${s.extraInputs})`),
+    '',
+    '## 현재 케이스 입력값 (inputPatch 의 기준)',
     '```json',
     JSON.stringify(baseInputs, null, 2),
     '```',
@@ -107,6 +137,10 @@ export function parseIdeas(text) {
 /**
  * inputPatch가 있는 아이디어를 실제 엔진으로 재계산해 세액을 부착한다.
  * 기준 케이스의 총액(더 유리한 쪽)과 비교해 절감액을 계산한다.
+ *
+ * altScenarioId 가 있으면 그 시나리오의 엔진으로 재계산한다 — 현재 시나리오의
+ * 입력 조정만으로 표현할 수 없는 대안(예: 증여vs양도 케이스의 부담부증여)을
+ * 다른 시나리오로 매핑해 검증하기 위함이다.
  */
 export function simulateIdeas(scenarioId, baseInputs, ideas) {
   const run = scenarios[`runScenario${scenarioId}`];
@@ -116,15 +150,27 @@ export function simulateIdeas(scenarioId, baseInputs, ideas) {
 
   return ideas.map((idea) => {
     const patch = idea.inputPatch;
-    if (!patch || Object.keys(patch).length === 0) return { ...idea, simulated: null };
+    const altId = Number.isInteger(idea.altScenarioId) ? idea.altScenarioId : null;
+    const hasPatch = patch && Object.keys(patch).length > 0;
+    if (!hasPatch && !altId) return { ...idea, simulated: null };
     try {
-      const patched = applyPatch(baseInputs, patch);
-      const result = run(patched);
+      const targetId = altId ?? scenarioId;
+      const targetRun = scenarios[`runScenario${targetId}`];
+      if (typeof targetRun !== 'function') {
+        return { ...idea, simulated: null, simulateError: `알 수 없는 시나리오 ID: ${idea.altScenarioId}` };
+      }
+      const patched = applyPatch(baseInputs, patch ?? {});
+      const result = targetRun(patched);
       const cmp = defaultCompare(result);
       const best = Math.min(cmp.a.total, cmp.b.total);
+      if (!Number.isFinite(best)) {
+        return { ...idea, simulated: null, simulateError: '재계산 결과가 유효한 숫자가 아닙니다 (입력 누락 가능성)' };
+      }
       return {
         ...idea,
         simulated: {
+          scenarioId: targetId,
+          scenarioTitle: targetId === scenarioId ? null : result.title,
           bestTotal: best,
           bestLabel: cmp.a.total <= cmp.b.total ? cmp.a.label : cmp.b.label,
           savingVsBase: baseBest - best, // >0 이면 기준 최선보다 절감
@@ -189,7 +235,10 @@ export function renderAlternatives(alt, { heading = '## 추가 절세 대안' } 
         : s.savingVsBase < 0
           ? `기준 대비 약 ${won(-s.savingVsBase)} 증가`
           : '기준과 동일';
-      out.push('', `- **엔진 재계산**: 「${s.bestLabel}」 기준 총 ${won(s.bestTotal)} — ${dir}`);
+      const via = s.scenarioTitle ? ` _(시나리오 ${s.scenarioId} 「${s.scenarioTitle}」로 재계산)_` : '';
+      out.push('', `- **엔진 재계산**: 「${s.bestLabel}」 기준 총 ${won(s.bestTotal)} — ${dir}${via}`);
+    } else if (idea.simulateError) {
+      out.push('', `- (엔진 재계산 실패: ${idea.simulateError})`);
     } else if (idea.inputPatch && Object.keys(idea.inputPatch).length > 0) {
       out.push('', '- (엔진 재계산 실패 — 입력 조정을 확인하세요)');
     } else {
