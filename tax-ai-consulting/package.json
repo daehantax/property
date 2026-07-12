@@ -11,12 +11,17 @@
     "cases:dry": "node scripts/run-cases.js --no-ai",
     "advise": "node scripts/advise.js",
     "advise:dry": "node scripts/advise.js --no-ai",
-    "law-watch": "node scripts/law-watch.js"
+    "law-watch": "node scripts/law-watch.js",
+    "web": "node src/web/server.js"
   },
   "devDependencies": {
     "vitest": "^2.1.9"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.111.0"
+    "@anthropic-ai/sdk": "^0.111.0",
+    "express": "^5.2.1",
+    "html-to-docx": "^1.8.0",
+    "marked": "^18.0.6",
+    "playwright-core": "^1.61.1"
   }
 }
