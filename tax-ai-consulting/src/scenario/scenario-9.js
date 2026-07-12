@@ -156,6 +156,10 @@ export function runScenario9(inputs) {
     case1,
     case2,
     holdingTax,
+    computations: [
+      { caseNo: 1, caseLabel: '케이스1 — 배우자에게만 증여', kind: 'gift', label: '증여세', result: c1GiftResult },
+      { caseNo: 1, caseLabel: '케이스1 — 배우자에게만 증여', kind: 'acq', label: '취득세', result: c1AcqResult },
+    ],
     summary: {
       case1Total: case1.total,
       case2Total: case2.total,
