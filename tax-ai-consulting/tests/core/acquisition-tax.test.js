@@ -121,4 +121,20 @@ describe('calcBurdenedGiveTakingTax (부담부증여 유상·무상 구분)', ()
     const r = calcBurdenedGiveTakingTax(1_000_000_000, 0, 85, 0);
     expect(r.total).toBe(calcTakingTax('give', 1_000_000_000, 0, 0, 85, 0).total);
   });
+
+  it('조정지역: 무상분 과세표준이 3억 미만이어도 취득 주택가액이 3억 이상이면 무상분 12% 중과', async () => {
+    const { calcBurdenedGiveTakingTax } = await import('../../src/core/acquisition-tax.js');
+    // 지분 시가 4.5억, 승계채무 1.75억 → 무상분 2.75억(<3억)이지만 취득 주택가액 4.5억(≥3억)
+    const r = calcBurdenedGiveTakingTax(450_000_000, 175_000_000, 85, 1);
+    expect(r.breakdown.gratuitous.takeRate).toBe(0.12); // 3.5% 아님
+    expect(r.breakdown.onerous.takeRate).toBe(0.01);    // 유상분은 매매 1%
+    // 무상분 2.75억 × 12.4%(취득세12%+교육세0.4%) + 유상분 1.75억 × 1.1%
+    expect(Math.round(r.total)).toBe(36_025_000);
+  });
+
+  it('조정지역: 취득 주택가액이 3억 미만이면 무상분은 3.5% (중과 아님)', async () => {
+    const { calcBurdenedGiveTakingTax } = await import('../../src/core/acquisition-tax.js');
+    const r = calcBurdenedGiveTakingTax(250_000_000, 50_000_000, 85, 1); // 지분 2.5억 < 3억
+    expect(r.breakdown.gratuitous.takeRate).toBe(0.035);
+  });
 });

@@ -25,9 +25,13 @@ const LAW_REF = [
  * @param {number} inheritHouse 상속 주택수 코드 (0=1주택, 1=다주택)
  * @param {number} space 전용면적 코드 (85=국민주택규모, 86=초과)
  * @param {number} heavy 조정지역 여부 (0=비조정, 1=조정)
+ * @param {number} [heavyBase=price] 증여취득 중과(12%) 판정 기준액 [원].
+ *   지방세법 §13의2 판정은 취득 주택(지분)의 시가표준액 기준이므로,
+ *   부담부증여 무상분처럼 과세표준(price)이 채무만큼 줄어든 경우 이 값으로 3억 기준을 판정한다.
+ *   생략 시 price와 동일(일반 증여취득은 과세표준=취득 주택가액이라 차이 없음).
  * @returns {{ takeTax: number, agTax: number, eduTax: number, total: number, breakdown: object, lawRef: string[] }}
  */
-export function calcTakingTax(type, price, newHouse, inheritHouse, space, heavy) {
+export function calcTakingTax(type, price, newHouse, inheritHouse, space, heavy, heavyBase = price) {
   let takeRate, eduRate;
   let agRate = 0.002;  // 농어촌특별세 기본
 
@@ -60,8 +64,9 @@ export function calcTakingTax(type, price, newHouse, inheritHouse, space, heavy)
     eduRate = 0.0016;
 
   } else if (type === 'give') {
-    // 증여: 조정지역 3억 이상 → 12%
-    if (heavy === 1 && price >= 300_000_000) {
+    // 증여: 조정지역 + 취득 주택 시가표준액 3억 이상 → 12% 중과 (지방세법 §13의2)
+    // 판정 기준은 heavyBase(취득 주택가액), 과세표준(price)이 아님 — 부담부증여 무상분 정정
+    if (heavy === 1 && heavyBase >= 300_000_000) {
       takeRate = 0.12;
       eduRate = 0.004;
       agRate = 0.01;
@@ -120,7 +125,9 @@ export function calcGiveTakingEtcTax(price, space, heavy) {
  */
 export function calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, giveType = 'give') {
   const onerous    = calcTakingTax('normal', loanPrice, 0, 0, space, heavy);
-  const gratuitous = calcTakingTax(giveType, marketPrice - loanPrice, 0, 0, space, heavy);
+  // 무상분 증여취득 중과 판정은 취득 주택(지분) 전체 시가(marketPrice) 기준.
+  // 과세표준은 무상분(marketPrice − loanPrice)이지만 3억 중과 판정은 marketPrice로 한다.
+  const gratuitous = calcTakingTax(giveType, marketPrice - loanPrice, 0, 0, space, heavy, marketPrice);
 
   return {
     takeTax: onerous.takeTax + gratuitous.takeTax,
