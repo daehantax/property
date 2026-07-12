@@ -93,18 +93,21 @@ export function runScenario7(inputs) {
 
   // ── 보유세 변화 ────────────────────────────────────────
   // 증여 전: 공동명의 1주택
-  const beforeOwnerPropTax = calcPropertyTax('1세대1주택', ownerOfficialPrice);
+  // 재산세는 주택 전체 가액 기준 누진세율로 산출한 뒤 지분 비율로 배분한다
+  // (지분별 개별 누진 계산은 세부담 과소 산출 — AI 검증 지적 반영)
+  const wholePropTax = calcPropertyTax('1세대1주택', officialPrice);
+  const beforeOwnerPropTotal  = wholePropTax.total * ownerRate;
+  const beforeSpousePropTotal = wholePropTax.total * spouseRate;
   const beforeOwnerAggrTax = calcAggrTax(
     '공동명의1주택', heavyStr, ownerOfficialPrice, holdPeriod, ownerAge,
-    beforeOwnerPropTax.propertyTax
+    wholePropTax.propertyTax * ownerRate
   );
-  const beforeSpousePropTax = calcPropertyTax('1세대1주택', spouseOfficialPrice);
   const beforeSpouseAggrTax = calcAggrTax(
     '공동명의1주택', heavyStr, spouseOfficialPrice, spouseHoldPeriod, spouseAge,
-    beforeSpousePropTax.propertyTax
+    wholePropTax.propertyTax * spouseRate
   );
-  const beforeTotal = beforeOwnerPropTax.total + beforeOwnerAggrTax.total +
-    beforeSpousePropTax.total + beforeSpouseAggrTax.total;
+  const beforeTotal = beforeOwnerPropTotal + beforeOwnerAggrTax.total +
+    beforeSpousePropTotal + beforeSpouseAggrTax.total;
 
   // 증여 후: 배우자 단독 1주택
   const afterSpousePropTax = calcPropertyTax('1세대1주택', officialPrice);
@@ -116,8 +119,8 @@ export function runScenario7(inputs) {
 
   const holdingTax = {
     before: {
-      ownerTotal:  beforeOwnerPropTax.total + beforeOwnerAggrTax.total,
-      spouseTotal: beforeSpousePropTax.total + beforeSpouseAggrTax.total,
+      ownerTotal:  beforeOwnerPropTotal + beforeOwnerAggrTax.total,
+      spouseTotal: beforeSpousePropTotal + beforeSpouseAggrTax.total,
       grandTotal:  beforeTotal,
     },
     after: {

@@ -19,11 +19,22 @@ import {
 
 const LAW_REF = [
   '소득세법 §89(양도소득 비과세 — 1세대1주택 12억)',
-  '소득세법 §95(장기보유특별공제)',
-  '소득세법 §104(양도소득세율)',
+  '소득세법 §95(장기보유특별공제 — 중과 대상 배제)',
+  '소득세법 §104(양도소득세율·조정대상지역 다주택 중과 2026.5.10 부활)',
   '소득세법시행령 §154(1세대1주택 요건)',
-  '조세특례제한법 §71(조정대상지역 다주택 중과 2026.5.10 부활)',
 ];
+
+/** 종합소득 과세표준 구간별 기본세율·누진공제 */
+function baseBracket(income) {
+  if      (income <= 14_000_000)   return { baseR: 0.06, baseDc: 0 };
+  else if (income <= 50_000_000)   return { baseR: 0.15, baseDc: 1_260_000 };
+  else if (income <= 88_000_000)   return { baseR: 0.24, baseDc: 5_760_000 };
+  else if (income <= 150_000_000)  return { baseR: 0.35, baseDc: 15_440_000 };
+  else if (income <= 300_000_000)  return { baseR: 0.38, baseDc: 19_940_000 };
+  else if (income <= 500_000_000)  return { baseR: 0.40, baseDc: 25_940_000 };
+  else if (income <= 1_000_000_000) return { baseR: 0.42, baseDc: 35_940_000 };
+  else                              return { baseR: 0.45, baseDc: 65_940_000 };
+}
 
 /**
  * 양도소득세 및 지방소득세 계산
@@ -114,19 +125,12 @@ export function calcSaleIncomeTax(
     0
   );
 
-  // 기본세율
-  let baseR, baseDc;
-  if      (incomeFinal <= 14_000_000)  { baseR = 0.06; baseDc = 0; }
-  else if (incomeFinal <= 50_000_000)  { baseR = 0.15; baseDc = 1_260_000; }
-  else if (incomeFinal <= 88_000_000)  { baseR = 0.24; baseDc = 5_760_000; }
-  else if (incomeFinal <= 150_000_000) { baseR = 0.35; baseDc = 15_440_000; }
-  else if (incomeFinal <= 300_000_000) { baseR = 0.38; baseDc = 19_940_000; }
-  else if (incomeFinal <= 500_000_000) { baseR = 0.40; baseDc = 25_940_000; }
-  else if (incomeFinal <= 1_000_000_000){ baseR = 0.42; baseDc = 35_940_000; }
-  else                                  { baseR = 0.45; baseDc = 65_940_000; }
+  // 기본세율 (장특공 적용 과세표준 기준)
+  const { baseR, baseDc } = baseBracket(incomeFinal);
 
   let finalRate = baseR;
   let finalDc   = baseDc;
+  let heavyIncome = 0;
 
   // 경합1: 보유기간 2년 미만 단일중과세율
   let r1 = 0;
@@ -140,9 +144,10 @@ export function calcSaleIncomeTax(
   const totalTax1 = incomeFinal * r1;
 
   // 경합2: 조정지역 다주택 중과 (2026.5.10 부활) / 비사업토지 중과
-  let r2 = 0;
+  let r2 = 0, totalTax2 = 0;
   if (type === '비사업토지') {
     r2 = baseR + 0.1;
+    totalTax2 = Math.max(incomeFinal * r2 - baseDc, 0);
   } else if (type === '주택' && isAdj === 1 && ownCount >= 2) {
     let landtradeExempt = false;
     if (isLandtradeApply === 1 && saleDate !== '') {
@@ -150,18 +155,23 @@ export function calcSaleIncomeTax(
       if (saleDate <= deadline) landtradeExempt = true;
     }
     if (!landtradeExempt) {
-      r2 = ownCount === 2 ? baseR + 0.2 : baseR + 0.3;
+      // 중과 대상은 장기보유특별공제 배제 (소득세법 §95②) → 공제 없는 과세표준으로 재계산
+      heavyIncome = Math.max(taxableIncome - 2_500_000, 0);
+      const heavyBracket = baseBracket(heavyIncome);
+      r2 = ownCount === 2 ? heavyBracket.baseR + 0.2 : heavyBracket.baseR + 0.3;
+      totalTax2 = Math.max(heavyIncome * r2 - heavyBracket.baseDc, 0);
     }
   }
-  const totalTax2 = Math.max(incomeFinal * r2 - finalDc, 0);
 
-  // 경합 처리
+  // 경합 처리: 단기·중과 세액이 있으면 그중 큰 세액, 없으면 기본세율 세액
+  const baseTax = Math.max(incomeFinal * baseR - baseDc, 0);
+  let chosenTax = baseTax;
   if (totalTax1 !== 0 || totalTax2 !== 0) {
-    if (totalTax1 > totalTax2) { finalRate = r1; finalDc = 0; }
-    else                        { finalRate = r2; }
+    if (totalTax1 > totalTax2) { chosenTax = totalTax1; finalRate = r1; finalDc = 0; }
+    else                        { chosenTax = totalTax2; finalRate = r2; }
   }
 
-  const transferTax  = Math.floor(Math.max(incomeFinal * finalRate - finalDc, 0));
+  const transferTax  = Math.floor(chosenTax);
   const localTax     = Math.floor(transferTax * 0.1);
 
   return {
@@ -172,7 +182,7 @@ export function calcSaleIncomeTax(
       marketPrice, basePrice, transferIncome,
       taxableIncome, incomeFinal,
       holdDeductRate, stayDeductRate, totalDeductRate,
-      baseR, baseDc, finalRate, finalDc,
+      baseR, baseDc, finalRate, finalDc, heavyIncome,
       r1, r2, appliedR: finalRate,
       nonTaxThreshold: SINGLE_HH_NONTAX_THRESHOLD,
       isAdj, ownCount, isLandtradeApply,
