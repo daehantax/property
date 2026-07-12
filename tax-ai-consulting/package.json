@@ -12,9 +12,11 @@
     "advise": "node scripts/advise.js",
     "advise:dry": "node scripts/advise.js --no-ai",
     "law-watch": "node scripts/law-watch.js",
-    "web": "node src/web/server.js"
+    "web": "node src/web/server.js",
+    "build:static": "node scripts/build-static.js"
   },
   "devDependencies": {
+    "esbuild": "^0.28.1",
     "vitest": "^2.1.9"
   },
   "dependencies": {

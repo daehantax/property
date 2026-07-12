@@ -1,0 +1,45 @@
+name: deploy-pages
+
+# 정적 계산기(브라우저에서 엔진 직접 실행)를 GitHub Pages에 배포한다.
+# main에 push 될 때마다 자동 배포. 주소: https://daehantax.github.io/property/
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tax-ai-consulting
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node scripts/build-static.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: tax-ai-consulting/dist/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

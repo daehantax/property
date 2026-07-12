@@ -4,3 +4,4 @@ coverage/
 tuning-results/
 advisory-results/
 law-watch-results/
+dist/
