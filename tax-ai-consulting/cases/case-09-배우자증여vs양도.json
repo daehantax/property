@@ -1,0 +1,26 @@
+{
+  "scenarioId": 8,
+  "title": "2주택자 — 배우자에게 증여 vs 제3자 양도 (조정지역 중과)",
+  "description": "시가 19억(기준시가 13.3억, 취득가 8억) 조정대상지역 아파트를 배우자에게 증여할지 제3자에게 양도할지 비교. 양도 시 2주택 중과(기본세율+20%p)와 장기보유특별공제 배제가 적용되며, 배우자 증여 시 6억 공제 후 취득세를 부담. 이월과세(배우자 증여 후 10년) 리스크가 큰 케이스. 보유 11년.",
+  "inputs": {
+    "marketPrice": 1900000000,
+    "officialPrice": 1330000000,
+    "basePrice": 800000000,
+    "loanPrice": 0,
+    "holdPeriod": 11,
+    "stayPeriod": 0,
+    "space": 85,
+    "heavy": 1,
+    "holdOfficialPrice": 950000000,
+    "holdPeriod2": 9,
+    "ownerAge": 64,
+    "spouseAge": 61,
+    "childAge": 0,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "partRate": 1,
+    "ownCount": 2,
+    "isAdj": 1
+  }
+}

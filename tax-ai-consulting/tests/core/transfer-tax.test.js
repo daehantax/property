@@ -77,6 +77,30 @@ describe('calcSaleIncomeTax — 양도소득세', () => {
       expect(r.breakdown.r2).toBeCloseTo(r.breakdown.baseR + 0.3, 5);
     });
 
+    it('중과 적용 시 appliedIncome=heavyIncome(장특공 배제), 세액 근거가 명확하다', () => {
+      const r = calcSaleIncomeTax(
+        1_000_000_000, 500_000_000, 10, 0, '다주택', '주택',
+        2, 1, 0, '2026-06-01', 0
+      );
+      // 보유 10년이라 incomeFinal에는 장특공 20%가 반영되지만, 중과 대상이라 배제됨
+      expect(r.breakdown.heavyApplied).toBe(true);
+      expect(r.breakdown.appliedIncome).toBe(r.breakdown.heavyIncome);
+      expect(r.breakdown.appliedIncome).toBeGreaterThan(r.breakdown.incomeFinal);
+      // 실제 세액이 appliedIncome × 중과세율 − 누진공제와 일치
+      const b = r.breakdown;
+      const expected = Math.floor(b.appliedIncome * b.appliedR - b.finalDc);
+      expect(r.transferTax).toBe(expected);
+    });
+
+    it('중과 미적용(비조정)이면 appliedIncome=incomeFinal', () => {
+      const r = calcSaleIncomeTax(
+        1_000_000_000, 500_000_000, 10, 0, '다주택', '주택',
+        2, 0, 0, '2026-06-01', 0
+      );
+      expect(r.breakdown.heavyApplied).toBe(false);
+      expect(r.breakdown.appliedIncome).toBe(r.breakdown.incomeFinal);
+    });
+
     it('비조정지역(isAdj=0): 중과 없음', () => {
       const r = calcSaleIncomeTax(
         1_000_000_000, 500_000_000, 5, 0, '다주택', '주택',

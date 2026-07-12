@@ -1,0 +1,31 @@
+{
+  "scenarioId": 4,
+  "title": "2주택자 — 자녀 1명 부담부증여 vs 여러 명 부담부증여",
+  "description": "시가 20억(기준시가 14억, 취득가 11억) 아파트에 전세보증금 8억을 승계시키는 부담부증여. 성년 자녀 1명 단독으로 할지, 자녀 10억+자녀의 배우자 5억+미성년 손자녀 5억으로 분산할지 비교. 유상분(승계채무) 양도세와 무상분 증여세 분리과세를 검증. 비조정지역, 보유 8년.",
+  "inputs": {
+    "marketPrice": 2000000000,
+    "officialPrice": 1400000000,
+    "basePrice": 1100000000,
+    "loanPrice": 800000000,
+    "holdPeriod": 8,
+    "stayPeriod": 0,
+    "space": 86,
+    "heavy": 0,
+    "holdOfficialPrice": 1000000000,
+    "holdPeriod2": 6,
+    "ownerAge": 65,
+    "childAge": 36,
+    "spouseAge": 62,
+    "ownerRate": 1,
+    "spouseRate": 0,
+    "spouseHoldPeriod": 0,
+    "partRate": 1,
+    "ownCount": 2,
+    "isAdj": 0,
+    "child": { "price": 1000000000, "age": 36 },
+    "childSpouse": { "price": 500000000, "age": 34 },
+    "grand1": { "price": 500000000, "age": 9 },
+    "grand2": { "price": 0, "age": 0 },
+    "grand3": { "price": 0, "age": 0 }
+  }
+}

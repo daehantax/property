@@ -174,6 +174,17 @@ export function calcSaleIncomeTax(
   const transferTax  = Math.floor(chosenTax);
   const localTax     = Math.floor(transferTax * 0.1);
 
+  // 실제 과세에 사용된 과세표준을 명확히 표기한다.
+  //  - 중과 적용 시: heavyIncome(장특공 배제) 사용
+  //  - 단기(2년 미만) 단일세율: incomeFinal에 r1 적용 (누진공제 없음)
+  //  - 그 외 기본세율: incomeFinal 사용
+  // incomeFinal(장특공 반영)과 heavyIncome(장특공 배제)이 함께 담기므로,
+  // 최종 세액의 근거가 되는 과세표준은 appliedIncome 하나로 확인한다.
+  // 주택 다주택 중과가 실제로 적용된 경우에만 장특공 배제 과세표준(heavyIncome)을 쓴다.
+  // (비사업토지 중과는 장특공을 배제하지 않으므로 incomeFinal 유지)
+  const heavyApplied = type === '주택' && r2 > 0 && finalRate === r2;
+  const appliedIncome = heavyApplied ? heavyIncome : incomeFinal;
+
   return {
     transferTax,
     localTax,
@@ -184,6 +195,7 @@ export function calcSaleIncomeTax(
       holdDeductRate, stayDeductRate, totalDeductRate,
       baseR, baseDc, finalRate, finalDc, heavyIncome,
       r1, r2, appliedR: finalRate,
+      heavyApplied, appliedIncome,
       nonTaxThreshold: SINGLE_HH_NONTAX_THRESHOLD,
       isAdj, ownCount, isLandtradeApply,
     },

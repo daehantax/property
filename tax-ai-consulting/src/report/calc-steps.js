@@ -68,7 +68,7 @@ function transferSteps(result) {
     `- 취득가액(필요경비): △${won(b.basePrice)}`,
     `- 양도차익: ${won(b.transferIncome)}`,
   ];
-  const heavyApplied = b.r2 > 0 && b.appliedR === b.r2;
+  const heavyApplied = b.heavyApplied ?? (b.r2 > 0 && b.appliedR === b.r2);
   if (heavyApplied) {
     lines.push('- 장기보유특별공제: **배제** (조정대상지역 다주택 중과 대상, 소득세법 §95②)');
     lines.push(`- 과세표준: ${won(b.heavyIncome)} (양도차익 − 기본공제 250만원)`);
