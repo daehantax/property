@@ -213,3 +213,13 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 
 1. 사례 추가 확충(조정지역·고가·상속 연계 등)으로 검증 커버리지 확대
 2. 다주택 중과 경과규정(5/9까지 계약 체결 시 잔금 유예) 로직 반영 검토
+
+## 온라인 계산기 (GitHub Pages)
+
+정적 버전 계산기가 GitHub Pages에 자동 배포됩니다: **https://daehantax.github.io/property/**
+
+- 계산 엔진이 브라우저 안에서 직접 실행되므로 **입력값이 서버로 전송되지 않습니다**.
+- 보고서 생성 → Word 저장(.doc) → 인쇄/PDF(브라우저 인쇄) 지원.
+- AI 정밀 보고서·심화 검토와 정식 .docx/서버 PDF는 로컬 서버(`npm run web`) 전용입니다.
+- main 브랜치에 push 될 때마다 `deploy-pages` 워크플로가 자동으로 재배포합니다
+  (저장소 Settings → Pages → Source가 "GitHub Actions"로 설정되어 있어야 함 — 완료됨).
