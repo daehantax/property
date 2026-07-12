@@ -8,7 +8,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "cases": "node scripts/run-cases.js",
-    "cases:dry": "node scripts/run-cases.js --no-ai"
+    "cases:dry": "node scripts/run-cases.js --no-ai",
+    "advise": "node scripts/advise.js",
+    "advise:dry": "node scripts/advise.js --no-ai"
   },
   "devDependencies": {
     "vitest": "^2.1.9"

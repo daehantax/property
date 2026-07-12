@@ -2,3 +2,4 @@ node_modules/
 coverage/
 .vitest-cache/
 tuning-results/
+advisory-results/
