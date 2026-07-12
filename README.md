@@ -124,8 +124,15 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 
 튜닝 절차: ① `npm run cases` 실행 → ② `tuning-results/*/verdict.json`과 `verification.md`에서 이상한 판정(과잉 warning, 놓친 오류 등) 확인 → ③ `src/verify/index.js`의 `VERIFY_SYSTEM` / `src/report/index.js`의 `REPORT_SYSTEM` 지시문 수정 → ④ 다시 실행해 비교. 사례 추가는 `cases/`에 JSON 파일(`scenarioId`, `title`, `description`, `inputs`)을 넣으면 됩니다.
 
+## 프롬프트 튜닝 이력
+
+사례 5건 기반 튜닝 2라운드 완료 (2026.7). 최종 상태: **5건 전부 pass**, 사례당 실행 2~4분.
+
+- 1라운드: 검증 AI가 부담부증여 취득세 유상·무상 미분리 버그 발견 → `calcBurdenedGiveTakingTax` 추가로 수정. AI 호출 스트리밍 전환(타임아웃 해소), effort medium·웹검색 3회로 속도 개선, 판정 기준 프롬프트 명문화.
+- 2라운드: 조정지역 다주택 중과 시 장기보유특별공제 미배제 버그(양도세 1.2억 과소), 공동명의 재산세 지분별 누진 계산 오류 발견 → 수정 후 재검증 pass 확인.
+
 ## 앞으로 할 일 (로드맵)
 
-1. 실제 상담 사례로 AI 검증 정확도 평가 및 프롬프트 튜닝 (사례·실행기 준비 완료, API 키 필요)
+1. 사례 추가 확충(조정지역·고가·상속 연계 등)으로 검증 커버리지 확대
 2. 보고서 PDF/DOCX 변환 등 출력 형식 확장
 3. 세법 개정 시 `src/core/constants.js` 및 계산 로직 업데이트 절차 정리
