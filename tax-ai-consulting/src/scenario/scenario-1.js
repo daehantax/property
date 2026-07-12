@@ -135,6 +135,11 @@ export function runScenario1(inputs) {
     case1,
     case2,
     holdingTax,
+    computations: [
+      { caseNo: 1, caseLabel: '케이스1 — 자녀에게 증여', kind: 'gift', label: '증여세', result: giftTaxResult },
+      { caseNo: 1, caseLabel: '케이스1 — 자녀에게 증여', kind: 'acq', label: '취득세(증여취득)', result: acqTaxResult },
+      { caseNo: 2, caseLabel: '케이스2 — 타인에게 양도', kind: 'transfer', label: '양도소득세', result: transferResult },
+    ],
     summary: {
       case1Total: case1.recipientTotal,
       case2Total: case2.sellerTotal,
