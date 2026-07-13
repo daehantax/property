@@ -24,7 +24,7 @@ const dist = path.join(root, 'dist');
 const PAGES = [
   { entry: 'calculators.js', html: 'index.html' },
   { entry: 'scenarios.js', html: 'scenarios.html' },
-  { entry: 'heavy-judge.js', html: 'heavy-judge.html' },
+  { entry: 'transfer-heavy.js', html: 'transfer-heavy.html' },
 ];
 const ASSETS = ['styles.css'];
 

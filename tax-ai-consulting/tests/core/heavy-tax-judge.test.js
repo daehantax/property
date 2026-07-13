@@ -106,18 +106,20 @@ describe('양도세 중과 주택수 산정', () => {
 });
 
 describe('judgeTransferHeavy — 양도세 중과', () => {
-  it('조정지역 2주택: +20%p 중과, 장특공 배제', () => {
+  it('조정지역 2주택: +20%p 중과, 장특공 배제, heavyType=2주택 중과', () => {
     const r = judgeTransferHeavy({ target: house('양도'), others: [house('기존')] });
     expect(r.houseCount).toBe(2);
     expect(r.isHeavy).toBe(true);
     expect(r.surcharge).toBe(0.20);
     expect(r.ltdExcluded).toBe(true);
+    expect(r.heavyType).toBe('2주택 중과');
   });
 
-  it('조정지역 3주택: +30%p 중과', () => {
+  it('조정지역 3주택: +30%p 중과, heavyType=3주택 이상 중과', () => {
     const r = judgeTransferHeavy({ target: house('양도'), others: [house('a'), house('b')] });
     expect(r.surcharge).toBe(0.30);
     expect(r.isHeavy).toBe(true);
+    expect(r.heavyType).toBe('3주택 이상 중과');
   });
 
   it('비조정지역 양도: 중과 없음', () => {
