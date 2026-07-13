@@ -66,7 +66,8 @@ export function runScenario9(inputs) {
   let c2TotalGift = 0, c2TotalAcq = 0;
   const c2Recipients = allRecipients.map(({ label, rel, r }) => {
     const giftResult = calcGiveTax(rel, SKIP_F, r.price, r.age);
-    const acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy);
+    // 증여취득 12% 중과 판정은 지분액이 아닌 주택 전체 시가(marketPrice) 기준
+    const acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy, marketPrice);
     c2TotalGift += giftResult.tax;
     c2TotalAcq  += acqResult.total;
     return { label, price: r.price, age: r.age, giftTax: giftResult.tax, acqTax: acqResult.total };

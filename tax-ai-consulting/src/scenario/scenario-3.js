@@ -73,12 +73,13 @@ export function runScenario3(inputs) {
   const case2Recipients = recipients.map(({ label, rel, skip, r }) => {
     let giftResult, acqResult;
     // 자녀의 배우자(EXT_REL)는 calcGiveTakingEtcTax 사용
+    // 증여취득 12% 중과 판정은 지분액(r.price)이 아닌 주택 전체 시가(marketPrice) 기준
     if (rel === EXT_REL) {
       giftResult = calcGiveTax(EXT_REL, SKIP_F, r.price, r.age);
-      acqResult  = calcGiveTakingEtcTax(r.price, space, heavy);
+      acqResult  = calcGiveTakingEtcTax(r.price, space, heavy, marketPrice);
     } else {
       giftResult = calcGiveTax(rel, skip, r.price, r.age);
-      acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy);
+      acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy, marketPrice);
     }
     case2TotalGift += giftResult.tax;
     case2TotalAcq  += acqResult.total;

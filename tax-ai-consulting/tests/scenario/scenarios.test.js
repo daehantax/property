@@ -121,7 +121,42 @@ describe('시나리오 1 — 자녀 증여 vs 타인 양도', () => {
   });
 });
 
-describe('부담부증여 다주택 중과 (조정지역) — 채무 양도분', () => {
+describe('분산증여 증여취득세 중과 — 주택 전체 시가 기준 판정', () => {
+  // 지분이 3억 미만이어도 주택 전체가 3억 이상이면 조정지역 증여취득 12% 중과가 적용되어야 한다.
+  // (지방세법 §13의2: 판정 기준은 취득 지분액이 아니라 주택의 시가표준액)
+  it('시나리오 3: 소액 지분 수증자도 주택 전체≥3억이면 12% 중과', () => {
+    const r = scenarios.runScenario3({
+      ...scenarioInputs[3],
+      marketPrice: 1_200_000_000, // 주택 전체 12억
+      heavy: 1,                   // 조정지역
+      // 지분 각 2억(<3억)씩 6명? → 여기선 소액 지분 2명으로 구성
+      child:       recipient(200_000_000, 30),
+      childSpouse: recipient(200_000_000, 30),
+      grand1:      recipient(0, 0),
+      grand2:      recipient(0, 0),
+      grand3:      recipient(0, 0),
+    });
+    // 케이스2 수증자별 취득세가 지분×12.4%(중과)로 계산되었는지 — 지분 2억 기준 3.5%였다면 700만, 12%면 2480만
+    const perRecipientAcq = r.case2.recipients[0].acqTax;
+    expect(perRecipientAcq).toBeGreaterThan(200_000_000 * 0.12); // 최소 12% 본세 이상
+  });
+
+  it('시나리오 9: 소액 지분 수증자도 주택 전체≥3억이면 12% 중과', () => {
+    const r = scenarios.runScenario9({
+      ...scenarioInputs[9],
+      marketPrice: 1_200_000_000,
+      heavy: 1,
+      spouse: recipient(200_000_000, 55),
+      child1: recipient(200_000_000, 30),
+      child2: recipient(0, 0),
+      child3: recipient(0, 0),
+      child4: recipient(0, 0),
+    });
+    expect(r.case2.recipients[0].acqTax).toBeGreaterThan(200_000_000 * 0.12);
+  });
+});
+
+describe('부담부증여 다주택 중과 (조정지역) — 채무 양도분', () =>{
   // 시나리오 2·4·5·10: 2주택자의 부담부증여 채무 승계분 양도세는
   // 조정지역(heavy=1)이면 다주택 중과(장특공 배제 + 세율 가산)가 적용되어야 한다.
   const heavyInputs = (id) => ({ ...scenarioInputs[id], heavy: 1, holdPeriod: 12 });

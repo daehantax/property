@@ -89,7 +89,8 @@ export function runScenario10(inputs) {
     const netPrice = r.price - partLoan;
 
     // 취득세: 지분 시가 중 승계채무(유상)·나머지(무상) 구분 과세
-    const acqResult = calcBurdenedGiveTakingTax(r.price, partLoan, space, heavy);
+    // 무상분 12% 중과 판정은 지분이 아닌 주택 전체 시가(marketPrice) 기준
+    const acqResult = calcBurdenedGiveTakingTax(r.price, partLoan, space, heavy, 'give', marketPrice);
     const giftResult = calcGiveTax(rel === EXT_REL ? EXT_REL : rel, SKIP_F, netPrice, r.age);
     c2TotalGift += giftResult.tax;
     c2TotalAcq  += acqResult.total;
