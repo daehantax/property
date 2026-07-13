@@ -107,9 +107,15 @@ export function calcTakingTax(type, price, newHouse, inheritHouse, space, heavy,
 /**
  * 기타(ETC) 관계 수증자 증여 취득세 (family 여부 무관, give와 동일 로직)
  * result3·4에서 자녀의 배우자(6촌 이내 혈족 외) 사용
+ *
+ * @param {number} price 취득(지분) 과세표준 [원]
+ * @param {number} space 전용면적 코드
+ * @param {number} heavy 조정지역 여부
+ * @param {number} [heavyBase=price] 12% 중과 판정 기준액(취득 주택 전체 시가표준액).
+ *   지분 증여 시 지분액(price)이 아닌 주택 전체 가액으로 3억 기준을 판정한다.
  */
-export function calcGiveTakingEtcTax(price, space, heavy) {
-  return calcTakingTax('give', price, 0, 0, space, heavy);
+export function calcGiveTakingEtcTax(price, space, heavy, heavyBase = price) {
+  return calcTakingTax('give', price, 0, 0, space, heavy, heavyBase);
 }
 
 /**
@@ -122,12 +128,15 @@ export function calcGiveTakingEtcTax(price, space, heavy) {
  * @param {number} space 전용면적 코드 (85/86)
  * @param {number} heavy 조정지역 여부 (0/1)
  * @param {string} [giveType='give'] 무상분 세율 유형 ('give' | 'give1s1h')
+ * @param {number} [heavyBasePrice=marketPrice] 무상분 12% 중과 판정 기준액
+ *   (취득 주택 전체 시가표준액). 지분 부담부증여 시 지분 시가(marketPrice 인자)가
+ *   아닌 주택 전체 가액으로 3억 기준을 판정하려면 이 값을 전달한다.
  */
-export function calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, giveType = 'give') {
+export function calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, giveType = 'give', heavyBasePrice = marketPrice) {
   const onerous    = calcTakingTax('normal', loanPrice, 0, 0, space, heavy);
-  // 무상분 증여취득 중과 판정은 취득 주택(지분) 전체 시가(marketPrice) 기준.
-  // 과세표준은 무상분(marketPrice − loanPrice)이지만 3억 중과 판정은 marketPrice로 한다.
-  const gratuitous = calcTakingTax(giveType, marketPrice - loanPrice, 0, 0, space, heavy, marketPrice);
+  // 무상분 증여취득 중과 판정은 취득 주택 전체 시가표준액(heavyBasePrice) 기준.
+  // 과세표준은 무상분(marketPrice − loanPrice)이지만 3억 중과 판정은 heavyBasePrice로 한다.
+  const gratuitous = calcTakingTax(giveType, marketPrice - loanPrice, 0, 0, space, heavy, heavyBasePrice);
 
   return {
     takeTax: onerous.takeTax + gratuitous.takeTax,

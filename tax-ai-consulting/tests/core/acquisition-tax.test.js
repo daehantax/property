@@ -137,4 +137,23 @@ describe('calcBurdenedGiveTakingTax (부담부증여 유상·무상 구분)', ()
     const r = calcBurdenedGiveTakingTax(250_000_000, 50_000_000, 85, 1); // 지분 2.5억 < 3억
     expect(r.breakdown.gratuitous.takeRate).toBe(0.035);
   });
+
+  it('조정지역: 지분 시가는 3억 미만이어도 주택 전체가 3억 이상이면 12% 중과 (전체 기준)', async () => {
+    const { calcBurdenedGiveTakingTax } = await import('../../src/core/acquisition-tax.js');
+    // 지분 시가 2.5억(<3억), 채무 1억 → 무상분 1.5억. 그러나 주택 전체 15억 → 중과 판정 성립
+    const r = calcBurdenedGiveTakingTax(250_000_000, 100_000_000, 85, 1, 'give', 1_500_000_000);
+    expect(r.breakdown.gratuitous.takeRate).toBe(0.12);
+    // 주택 전체를 안 넘기면(기본=지분 2.5억) 3.5% — 전체 기준 전달이 판정을 바꾼다
+    const noBase = calcBurdenedGiveTakingTax(250_000_000, 100_000_000, 85, 1);
+    expect(noBase.breakdown.gratuitous.takeRate).toBe(0.035);
+  });
+});
+
+describe('calcGiveTakingEtcTax — 주택 전체 기준 중과 판정', () => {
+  it('지분 증여액<3억이라도 주택 전체≥3억이면 12% (heavyBase 전달)', async () => {
+    const { calcGiveTakingEtcTax } = await import('../../src/core/acquisition-tax.js');
+    // 지분 1.26억(<3억), 주택 전체 12.6억
+    expect(calcGiveTakingEtcTax(126_000_000, 85, 1, 1_260_000_000).breakdown.takeRate).toBe(0.12);
+    expect(calcGiveTakingEtcTax(126_000_000, 85, 1).breakdown.takeRate).toBe(0.035); // 기본=지분액
+  });
 });
