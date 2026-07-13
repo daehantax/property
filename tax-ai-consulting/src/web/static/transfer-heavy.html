@@ -3,15 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>중과세율 판정기 — 주택수 산정</title>
+<title>양도소득세 중과 판정기 — 2주택 vs 3주택 중과</title>
 <link rel="stylesheet" href="styles.css">
 <style>
   .hj-layout { display: flex; gap: 18px; align-items: flex-start; }
   #hjForm { width: 440px; flex-shrink: 0; }
   #hjResult { flex: 1; min-width: 0; min-height: 400px; }
-  .seg { display: flex; gap: 6px; margin-bottom: 4px; }
-  .seg button { flex: 1; padding: 10px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-weight: 700; font-size: 13.5px; cursor: pointer; color: #47606f; font-family: inherit; }
-  .seg button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
   .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
   .card > h4 { margin: 0 0 8px; font-size: 13px; color: var(--navy); }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
@@ -20,19 +17,23 @@
   .row-mini .del { position: absolute; top: 8px; right: 8px; border: none; background: #f5b7b1; color: #7b241c; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-weight: 800; }
   .add-btn { width: 100%; padding: 9px; border: 1px dashed #90a4ae; background: #fff; border-radius: 8px; color: #47606f; font-weight: 700; cursor: pointer; font-family: inherit; }
   .money-hint { font-size: 11px; color: #2874a6; min-height: 13px; }
-  .chk { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; color: #34495e; font-weight: 700; }
-  .chk input { width: auto; }
   .btn-primary { width: 100%; margin-top: 8px; padding: 13px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
   .btn-primary:hover { background: var(--navy-d); }
 
-  .verdict { border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .legend { display: flex; gap: 6px; margin-bottom: 14px; }
+  .legend div { flex: 1; text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 8px 4px; font-size: 11.5px; color: #7b8a97; background: #fff; }
+  .legend div b { display: block; font-size: 13px; color: #34495e; margin-bottom: 2px; }
+  .legend div.on { border-color: var(--navy); background: #eaf2f8; color: var(--navy); box-shadow: 0 0 0 1px var(--navy) inset; }
+  .legend div.on b { color: var(--navy); }
+
+  .verdict { border-radius: 12px; padding: 20px; margin-bottom: 14px; }
   .verdict.heavy { background: #fdecea; border: 1px solid #f5b7b1; }
   .verdict.light { background: #eafaf1; border: 1px solid #abebc6; }
-  .verdict .tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+  .verdict .tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 12px; border-radius: 999px; }
   .verdict.heavy .tag { background: #c0392b; color: #fff; }
   .verdict.light .tag { background: #1e8449; color: #fff; }
-  .verdict .rate { font-size: 27px; font-weight: 800; margin-top: 8px; color: #1a2733; letter-spacing: -0.5px; }
-  .verdict .sub { font-size: 13px; color: #566573; margin-top: 3px; }
+  .verdict .head { font-size: 28px; font-weight: 800; margin-top: 10px; color: #1a2733; letter-spacing: -0.5px; }
+  .verdict .sub { font-size: 13.5px; color: #566573; margin-top: 4px; line-height: 1.6; }
   .count-badge { display: inline-flex; align-items: baseline; gap: 6px; background: #eaf2f8; border: 1px solid #aed6f1; border-radius: 10px; padding: 8px 14px; margin-bottom: 12px; }
   .count-badge b { font-size: 24px; color: var(--navy); }
   .lst { margin: 6px 0 0; padding-left: 18px; }
@@ -53,29 +54,23 @@
   <div class="tabs">
     <a href="index.html">세금 계산기</a>
     <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html" class="active">양도세 중과 판정기</a>
+    <a class="soon">취득세 중과 판정기</a>
     <a class="soon">1세대1주택 비과세 판정기</a>
-    <a href="heavy-judge.html" class="active">중과세율 판정기</a>
   </div>
 </nav>
 
 <div class="container">
   <p class="page-intro">
-    세대가 보유한 주택을 입력하면 <b>주택수를 산정</b>하고 <b>취득세·양도세 중과 여부와 세율</b>을 판정합니다.
-    저가주택(1억)·지방 3억 이하·상속·임대주택 제외, 일시적 2주택, 법인 등 규칙을 반영합니다.
-    계산은 브라우저 안에서만 이뤄집니다.
+    조정대상지역 주택을 양도할 때 <b>1세대 주택수를 산정</b>해 <b>2주택 중과(+20%p)인지, 3주택 이상 중과(+30%p)인지</b>,
+    아니면 중과가 없는지 판정합니다. 비수도권 3억 이하·장기임대·상속주택은 주택수에서 제외되며,
+    중과 시 장기보유특별공제가 배제됩니다. (2026.5.10 조정지역 다주택 중과 부활)
   </p>
 
   <div class="hj-layout">
     <div class="panel" id="hjForm">
-      <label>판정할 세금</label>
-      <div class="seg" id="txSeg">
-        <button data-tx="acquire" class="active">취득세 중과</button>
-        <button data-tx="transfer">양도세 중과</button>
-      </div>
-      <p class="muted" id="txHint" style="margin-top:4px"></p>
-
       <div class="card">
-        <h4 id="targetTitle">이번에 취득하는 주택</h4>
+        <h4>양도하는 주택</h4>
         <div id="targetFields"></div>
       </div>
 
@@ -85,16 +80,16 @@
         <button class="add-btn" id="addBtn">＋ 주택 추가</button>
       </div>
 
-      <button class="btn-primary" id="judgeBtn">중과 여부 판정하기</button>
+      <button class="btn-primary" id="judgeBtn">중과 유형 판정하기</button>
     </div>
 
     <div class="panel" id="hjResult">
-      <div class="result-empty" id="empty">주택을 입력하고 「중과 여부 판정하기」를 누르세요.</div>
+      <div class="result-empty" id="empty">주택을 입력하고 「중과 유형 판정하기」를 누르세요.</div>
       <div id="result" style="display:none"></div>
     </div>
   </div>
 </div>
 
-<script src="heavy-judge.js"></script>
+<script src="transfer-heavy.js"></script>
 </body>
 </html>

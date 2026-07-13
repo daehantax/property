@@ -171,18 +171,23 @@ export function judgeTransferHeavy({ target, others = [] }) {
   let isHeavy = false;
   let surcharge = 0;
   let ltdExcluded = false;
+  let heavyType = null;      // '2주택 중과' | '3주택 이상 중과' | null
+  let exemptReason = null;   // 중과 배제 사유(있으면)
 
   if (region !== 'adjust') {
+    exemptReason = `${regionLabel} 소재 → 조정대상지역이 아니므로 다주택 중과 대상 아님`;
     reasons.push(`${regionLabel} 소재 주택 양도 → 다주택 중과 없음 (기본세율 + 장기보유특별공제 적용)`);
   } else if (excludedByTarget) {
+    exemptReason = excludedByTarget;
     reasons.push(`조정대상지역이나 ${excludedByTarget}`);
   } else if (houseCount >= 3) {
-    isHeavy = true; surcharge = 0.30; ltdExcluded = true;
+    isHeavy = true; surcharge = 0.30; ltdExcluded = true; heavyType = '3주택 이상 중과';
     reasons.push(`조정대상지역 + 1세대 ${houseCount}주택(3주택 이상) → 기본세율 +30%p 중과, 장기보유특별공제 배제 (소득세법 §104⑦·§95②)`);
   } else if (houseCount === 2) {
-    isHeavy = true; surcharge = 0.20; ltdExcluded = true;
+    isHeavy = true; surcharge = 0.20; ltdExcluded = true; heavyType = '2주택 중과';
     reasons.push(`조정대상지역 + 1세대 2주택 → 기본세율 +20%p 중과, 장기보유특별공제 배제`);
   } else {
+    exemptReason = '1세대 1주택(중과 주택수 기준) → 중과 없음';
     reasons.push(`1세대 1주택(중과 주택수 기준) → 중과 없음 (비과세·장특공 별도 판정)`);
   }
 
@@ -190,8 +195,8 @@ export function judgeTransferHeavy({ target, others = [] }) {
     tax: '양도소득세',
     houseCount, region, regionLabel,
     included, excluded,
-    isHeavy, surcharge, ltdExcluded,
-    note: '2026.5.10부터 조정대상지역 다주택 중과 부활. 중과 시 장기보유특별공제 배제.',
+    isHeavy, surcharge, ltdExcluded, heavyType, exemptReason,
+    note: '2026.5.10부터 조정대상지역 다주택 중과 부활. 중과 시 장기보유특별공제 배제. (2026.5.9 이전 매매계약 체결분은 4~6개월 잔금 경과규정 별도 검토)',
     reasons,
     lawRef: ['소득세법 §104⑦(다주택 중과세율)', '소득세법 §95②(장특공 배제)', '소득세법 시행령 §167의3(중과 주택수·제외)'],
   };
