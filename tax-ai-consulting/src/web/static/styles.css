@@ -1,0 +1,81 @@
+:root {
+  --navy: #1a5276; --navy-d: #123a54; --bg: #f4f6f8; --line: #d5dbe0;
+  --accent: #1a5276; --ok: #145a32;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  margin: 0; background: var(--bg); color: #1f2d3a;
+}
+
+/* ── 상단 내비게이션 (도구 허브) ─────────────────── */
+.topnav { background: var(--navy); color: #fff; padding: 0 24px; }
+.topnav .brand { font-size: 17px; font-weight: 800; padding: 14px 0 12px; display: flex; align-items: center; gap: 8px; }
+.topnav .brand small { font-weight: 400; opacity: .8; font-size: 12px; }
+.topnav .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.topnav a {
+  color: #dbe6ef; text-decoration: none; padding: 9px 15px; font-size: 13.5px;
+  font-weight: 700; border-radius: 8px 8px 0 0; border-bottom: 3px solid transparent;
+}
+.topnav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.topnav a.active { background: var(--bg); color: var(--navy); border-bottom-color: var(--bg); }
+.topnav a.soon { opacity: .5; cursor: default; font-weight: 400; }
+.topnav a.soon::after { content: ' (준비중)'; font-size: 10px; }
+
+.container { max-width: 1180px; margin: 0 auto; padding: 20px 24px 40px; }
+.page-intro { color: #47606f; font-size: 13px; margin: 2px 0 18px; line-height: 1.6; }
+
+/* ── 계산기 탭 ─────────────────────────────────── */
+.calc-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.calc-tabs button {
+  padding: 9px 18px; border: 1px solid var(--line); background: #fff; border-radius: 999px;
+  font-size: 13.5px; font-weight: 700; cursor: pointer; color: #47606f; font-family: inherit;
+}
+.calc-tabs button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+.calc-layout { display: flex; gap: 18px; align-items: flex-start; }
+.panel {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+#formPanel { width: 380px; flex-shrink: 0; }
+#resultPanel { flex: 1; min-width: 0; min-height: 360px; }
+
+label { display: block; font-size: 12px; color: #47606f; margin: 12px 0 3px; font-weight: 700; }
+label:first-child { margin-top: 0; }
+select, input {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px;
+  font-size: 14px; font-family: inherit;
+}
+input:focus, select:focus { outline: 2px solid #7fb3d5; border-color: var(--navy); }
+.money-hint { font-size: 11.5px; color: #2874a6; margin-top: 2px; min-height: 14px; }
+
+.btn-primary {
+  width: 100%; margin-top: 18px; padding: 12px; border: none; border-radius: 8px;
+  background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit;
+}
+.btn-primary:hover { background: var(--navy-d); }
+
+/* ── 결과 ─────────────────────────────────────── */
+.result-headline {
+  background: #eaf2f8; border: 1px solid #aed6f1; border-radius: 10px; padding: 16px 18px; margin-bottom: 14px;
+}
+.result-headline .label { font-size: 13px; color: #21618c; font-weight: 700; }
+.result-headline .amount { font-size: 30px; font-weight: 800; color: var(--navy); margin-top: 2px; letter-spacing: -0.5px; }
+.result-headline .sub { font-size: 12.5px; color: #566573; margin-top: 4px; }
+.result-empty { color: #90a4ae; text-align: center; margin-top: 130px; font-size: 14px; }
+
+.steps h3, .steps h4 { color: #21618c; }
+.steps ul { padding-left: 20px; }
+.steps li { margin: 3px 0; font-size: 13.5px; line-height: 1.6; }
+.steps strong { color: #0b3d5c; }
+.steps p { font-size: 13px; }
+
+.lawref { margin-top: 14px; font-size: 11.5px; color: #7b8a97; border-top: 1px solid var(--line); padding-top: 10px; }
+.lawref b { color: #566573; }
+.disclaimer { margin-top: 16px; font-size: 11.5px; color: #90a4ae; }
+
+@media (max-width: 860px) {
+  .calc-layout { flex-direction: column; }
+  #formPanel { width: 100%; }
+}

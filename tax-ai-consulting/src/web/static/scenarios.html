@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>부동산 세금 상담 시나리오</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .sc-layout { display: flex; gap: 18px; align-items: flex-start; }
+  #scFormPanel { width: 400px; flex-shrink: 0; }
+  #scReportPanel { flex: 1; min-width: 0; min-height: 620px; display: flex; flex-direction: column; }
+  .person-row { display: flex; gap: 8px; }
+  .person-row > div { flex: 1; }
+  .person-row .sub { font-size: 10.5px; color: #7b8a97; font-weight: 400; }
+  .sc-btns { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+  .sc-btns button { padding: 10px 14px; border: none; border-radius: 7px; cursor: pointer; font-size: 13.5px; font-weight: 700; font-family: inherit; }
+  #runBtn { background: var(--navy); color: #fff; flex: 1; }
+  #runBtn:hover { background: var(--navy-d); }
+  .export { background: #eaf2f8; color: var(--navy); border: 1px solid #aed6f1; }
+  .export:hover { background: #d4e6f1; }
+  .export:disabled { opacity: .45; cursor: not-allowed; }
+  #status { font-size: 12.5px; margin-top: 10px; color: #7d6608; min-height: 16px; }
+  #status.err { color: #b03a2e; }
+  iframe { width: 100%; flex: 1; border: 1px solid var(--line); border-radius: 6px; background: #fff; min-height: 580px; }
+  .placeholder { color: #90a4ae; font-size: 14px; text-align: center; margin-top: 220px; }
+  .ai-note { font-size: 11px; color: #78909c; margin-top: 10px; line-height: 1.6; background: #f8f9fa; border: 1px solid #eceff1; border-radius: 6px; padding: 8px 10px; }
+  .ai-note code { background: #eceff1; padding: 1px 4px; border-radius: 3px; }
+  @media (max-width: 900px) { .sc-layout { flex-direction: column; } #scFormPanel { width: 100%; } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="scenarios.html" class="active">상담 시나리오</a>
+    <a class="soon">1세대1주택 비과세 판정기</a>
+    <a class="soon">중과세율 판정기</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    2주택자 증여 vs 양도, 부담부증여, 분산증여, 공동명의 전환 등 상담 시나리오 10종을 비교합니다.
+    입력값을 넣고 「보고서 생성」을 누르면 세부담 비교·계산 내역·보유세 변화 보고서가 만들어집니다.
+    계산은 브라우저 안에서만 이뤄집니다.
+  </p>
+
+  <div class="sc-layout">
+    <div class="panel" id="scFormPanel">
+      <label for="scenario">상담 시나리오</label>
+      <select id="scenario"></select>
+      <div id="fields"></div>
+      <div class="sc-btns">
+        <button id="runBtn">보고서 생성</button>
+        <button class="export" id="docBtn" disabled>Word 저장(.doc)</button>
+        <button class="export" id="printBtn" disabled>인쇄 / PDF</button>
+      </div>
+      <div class="ai-note">
+        AI 정밀 보고서·심화 검토(리스크·대안)와 정식 .docx/서버 PDF는 로컬 서버 버전에서 제공됩니다:
+        <code>ANTHROPIC_API_KEY=... npm run web</code>
+      </div>
+      <div id="status"></div>
+    </div>
+    <div class="panel" id="scReportPanel">
+      <div class="placeholder" id="placeholder">왼쪽에서 입력값을 넣고 「보고서 생성」을 누르세요.</div>
+      <iframe id="report" style="display:none" title="보고서"></iframe>
+    </div>
+  </div>
+</div>
+
+<script src="scenarios.js"></script>
+</body>
+</html>

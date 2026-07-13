@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 /**
- * GitHub Pages용 정적 빌드
+ * GitHub Pages용 정적 멀티페이지 빌드
  *
- * 계산 엔진 + 폼 + 보고서 빌더를 esbuild로 하나의 브라우저 번들로 묶고,
- * 정적 셸(index.html)과 함께 dist/ 에 내놓는다.
+ * 세무 도구를 페이지별로 빌드해 dist/ 에 내놓는다. 각 페이지는
+ * 계산 엔진을 브라우저에서 직접 실행한다(서버 불필요).
+ *   index.html      + calculators.js  → 세금 계산기 (메인)
+ *   scenarios.html  + scenarios.js    → 상담 시나리오
+ * 새 도구(예: 비과세 판정기)를 추가하려면 PAGES에 항목 하나만 넣으면 된다.
  *
- * 사용법: npm run build:static   →  dist/index.html, dist/bundle.js
+ * 사용법: npm run build:static
  */
 
 import fs from 'node:fs';
@@ -14,22 +17,33 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const staticDir = path.join(root, 'src/web/static');
 const dist = path.join(root, 'dist');
+
+// { entry: 번들할 JS, html: 복사할 HTML } — 페이지 추가 시 여기에 등록
+const PAGES = [
+  { entry: 'calculators.js', html: 'index.html' },
+  { entry: 'scenarios.js', html: 'scenarios.html' },
+];
+const ASSETS = ['styles.css'];
 
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
 
 await build({
-  entryPoints: [path.join(root, 'src/web/static/main.js')],
+  entryPoints: PAGES.map((p) => path.join(staticDir, p.entry)),
   bundle: true,
   minify: true,
   format: 'iife',
   target: ['es2020'],
-  outfile: path.join(dist, 'bundle.js'),
+  outdir: dist,
   logLevel: 'info',
 });
 
-fs.copyFileSync(path.join(root, 'src/web/static/index.html'), path.join(dist, 'index.html'));
+for (const p of PAGES) fs.copyFileSync(path.join(staticDir, p.html), path.join(dist, p.html));
+for (const a of ASSETS) fs.copyFileSync(path.join(staticDir, a), path.join(dist, a));
 
-const size = (f) => `${(fs.statSync(path.join(dist, f)).size / 1024).toFixed(0)}KB`;
-console.log(`✔ 정적 빌드 완료: dist/index.html, dist/bundle.js (${size('bundle.js')})`);
+const kb = (f) => `${(fs.statSync(path.join(dist, f)).size / 1024).toFixed(0)}KB`;
+console.log('✔ 정적 빌드 완료 (dist/):');
+for (const p of PAGES) console.log(`  - ${p.html}  +  ${p.entry} (${kb(p.entry)})`);
+for (const a of ASSETS) console.log(`  - ${a}`);
