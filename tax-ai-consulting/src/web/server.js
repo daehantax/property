@@ -186,9 +186,20 @@ export function createApp(options = {}) {
     }
   }
 
-  app.get('/', (_req, res) => {
+  // 정적 멀티페이지 사이트(dist/) 서빙: / = 세금 계산기(메인), 그 외 정적 자산
+  // 상담 시나리오는 서버에서 AI 버튼이 포함된 강화판으로 제공한다
+  // (정적 사이트(GitHub Pages)의 scenarios.html은 클라이언트 계산 전용).
+  const distDir = path.join(here, '..', '..', 'dist');
+  app.get(['/scenarios', '/scenarios.html'], (_req, res) => {
     res.sendFile(path.join(here, 'public', 'index.html'));
   });
+  if (fs.existsSync(distDir)) {
+    app.use(express.static(distDir));
+  } else {
+    app.get('/', (_req, res) => res.status(200).type('html').send(
+      '먼저 <code>npm run build:static</code>로 계산기 페이지를 빌드하세요. (<code>npm run web</code>은 자동 빌드합니다)',
+    ));
+  }
 
   app.get('/api/scenarios', (_req, res) => {
     res.json(SCENARIO_FORMS.map((f) => ({

@@ -13,6 +13,14 @@
     font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
     margin: 0; background: var(--bg); color: #1f2d3a;
   }
+  .topnav { background: var(--navy); color: #fff; padding: 0 24px; }
+  .topnav .brand { font-size: 17px; font-weight: 800; padding: 12px 0 10px; }
+  .topnav .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .topnav a { color: #dbe6ef; text-decoration: none; padding: 9px 15px; font-size: 13.5px; font-weight: 700; border-radius: 8px 8px 0 0; border-bottom: 3px solid transparent; }
+  .topnav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .topnav a.active { background: var(--bg); color: var(--navy); border-bottom-color: var(--bg); }
+  .topnav a.soon { opacity: .5; cursor: default; font-weight: 400; }
+  .topnav a.soon::after { content: ' (준비중)'; font-size: 10px; }
   header {
     background: var(--navy); color: #fff; padding: 14px 24px;
   }
@@ -59,9 +67,18 @@
 </style>
 </head>
 <body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 (로컬 서버 · AI 사용 가능)</div>
+  <div class="tabs">
+    <a href="/">세금 계산기</a>
+    <a href="/scenarios.html" class="active">상담 시나리오</a>
+    <a class="soon">1세대1주택 비과세 판정기</a>
+    <a class="soon">중과세율 판정기</a>
+  </div>
+</nav>
 <header>
   <h1>부동산 세금 상담 — 시나리오 계산</h1>
-  <p>입력값을 넣고 [보고서 생성]을 누르면 증여세·양도세·취득세·보유세 비교 보고서가 즉시 만들어집니다. (세법 기준 2026.5.10 시행분)</p>
+  <p>입력값을 넣고 [보고서 생성]을 누르면 증여세·양도세·취득세·보유세 비교 보고서가 즉시 만들어집니다. AI 정밀 보고서·심화 검토도 아래 초록색 버튼으로 실행할 수 있습니다. (세법 기준 2026.5.10 시행분)</p>
 </header>
 
 <div class="wrap">
