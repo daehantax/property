@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>양도소득세 중과 판정기 — 2주택 vs 3주택 중과</title>
+<title>취득세 중과 판정기 — 주택수 × 조정지역</title>
 <link rel="stylesheet" href="styles.css">
 <style>
   .hj-layout { display: flex; gap: 18px; align-items: flex-start; }
@@ -17,14 +17,10 @@
   .row-mini .del { position: absolute; top: 8px; right: 8px; border: none; background: #f5b7b1; color: #7b241c; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-weight: 800; }
   .add-btn { width: 100%; padding: 9px; border: 1px dashed #90a4ae; background: #fff; border-radius: 8px; color: #47606f; font-weight: 700; cursor: pointer; font-family: inherit; }
   .money-hint { font-size: 11px; color: #2874a6; min-height: 13px; }
+  .chk { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; color: #34495e; font-weight: 700; }
+  .chk input { width: auto; }
   .btn-primary { width: 100%; margin-top: 8px; padding: 13px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
   .btn-primary:hover { background: var(--navy-d); }
-
-  .legend { display: flex; gap: 6px; margin-bottom: 14px; }
-  .legend div { flex: 1; text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 8px 4px; font-size: 11.5px; color: #7b8a97; background: #fff; }
-  .legend div b { display: block; font-size: 13px; color: #34495e; margin-bottom: 2px; }
-  .legend div.on { border-color: var(--navy); background: #eaf2f8; color: var(--navy); box-shadow: 0 0 0 1px var(--navy) inset; }
-  .legend div.on b { color: var(--navy); }
 
   .verdict { border-radius: 12px; padding: 20px; margin-bottom: 14px; }
   .verdict.heavy { background: #fdecea; border: 1px solid #f5b7b1; }
@@ -32,10 +28,18 @@
   .verdict .tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 12px; border-radius: 999px; }
   .verdict.heavy .tag { background: #c0392b; color: #fff; }
   .verdict.light .tag { background: #1e8449; color: #fff; }
-  .verdict .head { font-size: 28px; font-weight: 800; margin-top: 10px; color: #1a2733; letter-spacing: -0.5px; }
-  .verdict .sub { font-size: 13.5px; color: #566573; margin-top: 4px; line-height: 1.6; }
+  .verdict .head { font-size: 30px; font-weight: 800; margin-top: 8px; color: #1a2733; letter-spacing: -0.5px; }
+  .verdict .sub { font-size: 13.5px; color: #566573; margin-top: 4px; }
   .count-badge { display: inline-flex; align-items: baseline; gap: 6px; background: #eaf2f8; border: 1px solid #aed6f1; border-radius: 10px; padding: 8px 14px; margin-bottom: 12px; }
   .count-badge b { font-size: 24px; color: var(--navy); }
+
+  table.matrix { border-collapse: collapse; width: 100%; margin: 6px 0 12px; font-size: 12.5px; }
+  table.matrix th, table.matrix td { border: 1px solid #cdd7df; padding: 6px 8px; text-align: center; }
+  table.matrix th { background: #eaf2f8; color: #1a5276; }
+  table.matrix td.on { background: #fdecea; font-weight: 800; color: #c0392b; box-shadow: 0 0 0 2px #c0392b inset; }
+  table.matrix td.on-light { background: #eafaf1; font-weight: 800; color: #1e8449; box-shadow: 0 0 0 2px #1e8449 inset; }
+  table.matrix caption { font-size: 11.5px; color: #7b8a97; text-align: left; margin-bottom: 4px; }
+
   .lst { margin: 6px 0 0; padding-left: 18px; }
   .lst li { margin: 3px 0; font-size: 12.5px; line-height: 1.55; }
   .lst.inc li { color: #1a5276; }
@@ -54,23 +58,23 @@
   <div class="tabs">
     <a href="index.html">세금 계산기</a>
     <a href="scenarios.html">상담 시나리오</a>
-    <a href="transfer-heavy.html" class="active">양도세 중과 판정기</a>
-    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html" class="active">취득세 중과 판정기</a>
     <a class="soon">1세대1주택 비과세 판정기</a>
   </div>
 </nav>
 
 <div class="container">
   <p class="page-intro">
-    조정대상지역 주택을 양도할 때 <b>1세대 주택수를 산정</b>해 <b>2주택 중과(+20%p)인지, 3주택 이상 중과(+30%p)인지</b>,
-    아니면 중과가 없는지 판정합니다. 비수도권 3억 이하·장기임대·상속주택은 주택수에서 제외되며,
-    중과 시 장기보유특별공제가 배제됩니다. (2026.5.10 조정지역 다주택 중과 부활)
+    주택을 유상취득할 때 <b>취득 후 세대 주택수</b>와 <b>취득 주택 소재지(조정/비조정)</b>로 취득세 중과(8%·12%)를 판정합니다.
+    시가표준액 1억 이하·상속(5년) 주택은 주택수에서 제외되고, 일시적 2주택은 일반세율, 법인은 주택수와 무관하게 12%입니다.
+    계산은 브라우저 안에서만 이뤄집니다.
   </p>
 
   <div class="hj-layout">
     <div class="panel" id="hjForm">
       <div class="card">
-        <h4>양도하는 주택</h4>
+        <h4>이번에 취득하는 주택</h4>
         <div id="targetFields"></div>
       </div>
 
@@ -80,16 +84,16 @@
         <button class="add-btn" id="addBtn">＋ 주택 추가</button>
       </div>
 
-      <button class="btn-primary" id="judgeBtn">중과 유형 판정하기</button>
+      <button class="btn-primary" id="judgeBtn">취득세 중과 판정하기</button>
     </div>
 
     <div class="panel" id="hjResult">
-      <div class="result-empty" id="empty">주택을 입력하고 「중과 유형 판정하기」를 누르세요.</div>
+      <div class="result-empty" id="empty">주택을 입력하고 「취득세 중과 판정하기」를 누르세요.</div>
       <div id="result" style="display:none"></div>
     </div>
   </div>
 </div>
 
-<script src="transfer-heavy.js"></script>
+<script src="acq-heavy.js"></script>
 </body>
 </html>

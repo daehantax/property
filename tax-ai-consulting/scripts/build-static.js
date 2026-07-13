@@ -25,6 +25,7 @@ const PAGES = [
   { entry: 'calculators.js', html: 'index.html' },
   { entry: 'scenarios.js', html: 'scenarios.html' },
   { entry: 'transfer-heavy.js', html: 'transfer-heavy.html' },
+  { entry: 'acq-heavy.js', html: 'acq-heavy.html' },
 ];
 const ASSETS = ['styles.css'];
 
