@@ -26,6 +26,7 @@ const PAGES = [
   { entry: 'scenarios.js', html: 'scenarios.html' },
   { entry: 'transfer-heavy.js', html: 'transfer-heavy.html' },
   { entry: 'acq-heavy.js', html: 'acq-heavy.html' },
+  { entry: 'single-exempt.js', html: 'single-exempt.html' },
 ];
 const ASSETS = ['styles.css'];
 

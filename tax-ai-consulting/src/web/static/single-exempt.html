@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1세대 1주택 비과세 판정기</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .hj-layout { display: flex; gap: 18px; align-items: flex-start; }
+  #hjForm { width: 460px; flex-shrink: 0; }
+  #hjResult { flex: 1; min-width: 0; min-height: 400px; }
+  .seg { display: flex; gap: 6px; margin-bottom: 12px; }
+  .seg button { flex: 1; padding: 10px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-weight: 700; font-size: 13.5px; cursor: pointer; color: #47606f; font-family: inherit; }
+  .seg button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .grid2 label { margin: 0 0 2px; }
+  .money-hint { font-size: 11px; color: #2874a6; min-height: 13px; }
+  .chk { display: flex; align-items: flex-start; gap: 6px; margin-top: 10px; font-size: 13px; color: #34495e; font-weight: 700; }
+  .chk input { width: auto; margin-top: 2px; }
+  .sub { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; margin-top: 8px; background: #fbfcfd; }
+  .sub h5 { margin: 0 0 6px; font-size: 12px; color: var(--navy); }
+  .req-note { font-size: 11.5px; color: #7b8a97; line-height: 1.6; margin: 4px 0 8px; }
+  .btn-primary { width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .btn-primary:hover { background: var(--navy-d); }
+
+  .verdict { border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .verdict.exempt { background: #eafaf1; border: 1px solid #abebc6; }
+  .verdict.partial { background: #fef5e7; border: 1px solid #f5cba7; }
+  .verdict.taxable { background: #fdecea; border: 1px solid #f5b7b1; }
+  .verdict .tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 12px; border-radius: 999px; color: #fff; }
+  .verdict.exempt .tag { background: #1e8449; }
+  .verdict.partial .tag { background: #b9770e; }
+  .verdict.taxable .tag { background: #c0392b; }
+  .verdict .head { font-size: 23px; font-weight: 800; margin-top: 8px; color: #1a2733; letter-spacing: -0.5px; }
+
+  .check { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid #eef2f4; }
+  .check .ic { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; }
+  .check.ok .ic { background: #1e8449; }
+  .check.no .ic { background: #c0392b; }
+  .check.warn .ic { background: #b9770e; }
+  .check .lbl { font-size: 13.5px; font-weight: 700; color: #2c3e50; }
+  .check .det { font-size: 12px; color: #7b8a97; margin-top: 1px; line-height: 1.5; }
+  .saeng-box { margin-top: 12px; border: 1px solid #d5dbe0; border-radius: 10px; padding: 12px 14px; }
+  .saeng-box h4 { margin: 0 0 6px; font-size: 12.5px; color: var(--navy); }
+  .reasons { background: #fff9e6; border: 1px solid #f5d97e; border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+  .reasons li { font-size: 12.5px; margin: 4px 0; line-height: 1.6; }
+  .muted { font-size: 12px; color: #7b8a97; margin-top: 10px; line-height: 1.6; }
+  .lawref { margin-top: 12px; font-size: 11.5px; color: #7b8a97; border-top: 1px solid var(--line); padding-top: 8px; }
+  .result-empty { color: #90a4ae; text-align: center; margin-top: 140px; }
+  @media (max-width: 940px) { .hj-layout { flex-direction: column; } #hjForm { width: 100%; } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html" class="active">1세대1주택 비과세 판정기</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    1세대 1주택 양도소득세 <b>비과세 요건</b>을 판정합니다. 보유 2년, 조정대상지역 취득분(2017.8.3 이후)의 <b>2년 거주요건</b>,
+    <b>상생임대주택</b> 거주요건 면제, 고가주택 12억(2021.12.8~) 초과분 과세, 일시적 2주택 3년 처분기한을 반영합니다.
+    (재건축·재개발 조합원입주권 특례는 제외) 계산은 브라우저 안에서만 이뤄집니다.
+  </p>
+
+  <div class="hj-layout">
+    <div class="panel" id="hjForm">
+      <div class="seg" id="modeSeg">
+        <button data-mode="single" class="active">1세대 1주택</button>
+        <button data-mode="temp">일시적 2주택</button>
+      </div>
+      <div id="fields"></div>
+      <button class="btn-primary" id="judgeBtn">비과세 판정하기</button>
+    </div>
+
+    <div class="panel" id="hjResult">
+      <div class="result-empty" id="empty">정보를 입력하고 「비과세 판정하기」를 누르세요.</div>
+      <div id="result" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script src="single-exempt.js"></script>
+</body>
+</html>

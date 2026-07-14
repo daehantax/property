@@ -50,8 +50,9 @@
 | 전체 파이프라인 / CLI | ✅ 구현 완료 | `tax-ai-consulting/src/pipeline.js`, `src/cli.js` |
 | 심화 검토 장치 (대안·리스크·민감도·개정감시) | ✅ 구현 완료 | `tax-ai-consulting/src/advisor`, `src/analysis`, `src/monitor` |
 | 웹 입력폼 + 보고서 (Word·PDF 내보내기) | ✅ 구현 완료 | `tax-ai-consulting/src/web` |
+| 세무 판정기 (양도세·취득세 중과, 1세대1주택 비과세) | ✅ 구현 완료 | `tax-ai-consulting/src/core/heavy-tax-judge.js`, `single-house-exempt.js` |
 
-테스트 153개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 205개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -229,7 +230,9 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 |---|---|---|
 | **세금 계산기 (메인)** | `index.html` + `calculators.js` | 증여세·양도소득세·재산세·종합부동산세 세목별 단독 계산기 (탭 전환, 계산 내역·근거 법령 표시) |
 | **상담 시나리오** | `scenarios.html` + `scenarios.js` | 2주택 증여 vs 양도 등 시나리오 10종 비교 보고서 |
-| (예정) 1세대1주택 비과세 판정기, 중과세율 판정기 | — | 내비게이션에 "준비중"으로 노출 |
+| **양도세 중과 판정기** | `transfer-heavy.html` + `transfer-heavy.js` | 1세대 주택수 산정 → 2주택(+20%p)·3주택 이상(+30%p) 중과·장특공 배제 판정 (`heavy-tax-judge.js`) |
+| **취득세 중과 판정기** | `acq-heavy.html` + `acq-heavy.js` | 취득 후 주택수 × 조정지역 → 8%·12% 중과 판정 (세율 매트릭스 강조) |
+| **1세대1주택 비과세 판정기** | `single-exempt.html` + `single-exempt.js` | 보유·거주요건(2017.8.3 조정지역), 상생임대 면제, 고가주택 12억, 일시적 2주택 판정 (`single-house-exempt.js`, 재건축 제외) |
 
 - 계산 엔진이 **브라우저 안에서 직접 실행**되므로 입력값이 서버로 전송되지 않습니다.
 - 페이지 추가 방법: `src/web/static/`에 `이름.html` + `이름.js`를 만들고 `scripts/build-static.js`의 `PAGES` 배열에 등록하면 됩니다.
