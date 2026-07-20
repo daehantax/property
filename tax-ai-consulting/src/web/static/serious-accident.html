@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>중대재해처벌법 이행 체크리스트 — 반기·수시·상시</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .sa-top { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  .sa-top .fld { flex: 0 0 auto; }
+  .sa-top label { display: block; font-size: 12px; color: #566573; margin-bottom: 3px; font-weight: 700; }
+  .sa-top input, .sa-top select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-family: inherit; font-size: 13.5px; }
+  .apply-badge { font-size: 12.5px; font-weight: 700; padding: 8px 12px; border-radius: 8px; align-self: stretch; display: flex; align-items: center; }
+  .apply-badge.yes { background: #eafaf1; color: #1e6b3a; border: 1px solid #abebc6; }
+  .apply-badge.no { background: #fdecea; color: #a5352a; border: 1px solid #f5b7b1; }
+  .btn-print { margin-left: auto; padding: 9px 14px; border: 1px solid var(--navy); background: #fff; color: var(--navy); border-radius: 8px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; }
+
+  .prog-wrap { background: #f4f8fb; border: 1px solid #d6e4ef; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .prog-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .prog-head b { font-size: 15px; color: var(--navy); }
+  .prog-head .pct { font-size: 22px; font-weight: 800; color: var(--navy); }
+  .prog-bar { height: 10px; background: #dbe6ef; border-radius: 999px; overflow: hidden; }
+  .prog-bar > div { height: 100%; background: linear-gradient(90deg, #2e86c1, #1e8449); transition: width .25s; }
+  .prog-sub { font-size: 11.5px; color: #7b8a97; margin-top: 6px; }
+
+  .cyc { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+  .cyc > h3 { margin: 0; padding: 12px 16px; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .cyc > h3 .n { font-size: 12px; font-weight: 700; opacity: .8; }
+  .cyc > h3 .hint { font-size: 11.5px; font-weight: 500; color: #6b7a87; margin-left: auto; }
+  .cyc.base > h3 { background: #eef4f9; color: #21618c; }
+  .cyc.half > h3 { background: #fdf2e3; color: #9c6512; }
+  .cyc.spot > h3 { background: #eef7f1; color: #1e7a45; }
+  .cyc.event > h3 { background: #fdeceb; color: #a5352a; }
+  .cyc.record > h3 { background: #f0eef7; color: #5b4a8a; }
+
+  .item { display: flex; gap: 12px; padding: 12px 16px; border-top: 1px solid #eef2f4; align-items: flex-start; }
+  .item:first-of-type { border-top: none; }
+  .item.done { background: #f6fbf8; }
+  .item .cbx { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
+  .item .body { flex: 1; min-width: 0; }
+  .item .t { font-size: 14px; font-weight: 700; color: #2c3e50; }
+  .item.done .t { color: #7b8a97; text-decoration: line-through; }
+  .item .basis { display: inline-block; font-size: 11px; font-weight: 700; color: #21618c; background: #eaf2f8; border-radius: 5px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+  .item .d { font-size: 12.5px; color: #667884; line-height: 1.6; margin-top: 4px; }
+  .item .half-ctl { margin-top: 7px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .item .half-ctl label { font-size: 11.5px; color: #7b8a97; font-weight: 700; }
+  .item .half-ctl input { padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; font-family: inherit; font-size: 12.5px; }
+  .st { font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; }
+  .st.done { background: #d5f0e0; color: #1e7a45; }
+  .st.due { background: #fdf2e3; color: #9c6512; }
+  .st.overdue { background: #fadbd8; color: #b03a2e; }
+  .citizen-toggle { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #566573; font-weight: 700; }
+
+  @media print {
+    .topnav, .page-intro, .btn-print, .half-ctl input { display: none !important; }
+    .cyc, .item { break-inside: avoid; }
+  }
+  @media (max-width: 720px) { .sa-top .btn-print { margin-left: 0; } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="serious-accident.html" class="active">중대재해처벌법 체크리스트</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    「중대재해 처벌 등에 관한 법률」상 <b>경영책임자등의 안전보건확보의무</b>를 주기별로 정리한 이행 체크리스트입니다.
+    <b>상시·연간(체계 구축)</b>, <b>반기 1회 이상(정기 점검)</b>, <b>수시(사유 발생 시)</b>, <b>중대재해 발생 시</b>, <b>기록·보고</b>로 나눠
+    시행령 제4조(9개 호)·제5조 및 산업안전보건법 관련 의무를 담았습니다.
+    상시근로자 수를 입력하면 적용 여부와 반기 점검 기한·지연 여부를 계산합니다. 입력값은 브라우저에만 저장됩니다.
+  </p>
+
+  <div class="sa-top">
+    <div class="fld"><label>상시근로자 수</label><input id="workers" inputmode="numeric" value="30" style="width:110px"></div>
+    <div class="fld"><label>기준일(오늘)</label><input type="date" id="today"></div>
+    <div class="apply-badge yes" id="applyBadge">—</div>
+    <div class="fld citizen-toggle"><input type="checkbox" id="citizen"> <label for="citizen" style="margin:0">중대시민재해 대상(공중이용시설·제조물 등)</label></div>
+    <button class="btn-print" id="printBtn">🖨 인쇄</button>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-head"><b>전체 이행률</b><span class="pct" id="pct">0%</span></div>
+    <div class="prog-bar"><div id="bar" style="width:0%"></div></div>
+    <div class="prog-sub" id="progSub">체크박스를 선택하면 이행률이 갱신됩니다. 반기 항목은 최근 이행일을 입력하면 다음 기한을 계산합니다.</div>
+  </div>
+
+  <div id="list"></div>
+
+  <p class="page-intro" style="margin-top:8px;font-size:12px;color:#8a97a2">
+    ※ 본 체크리스트는 참고용 요약입니다. 실제 적용은 사업장 규모·업종·도급구조에 따라 달라지며, 안전·보건 관계 법령의 개별 의무는 별도 확인이 필요합니다.
+    반기 점검은 상반기(1.1~6.30)·하반기(7.1~12.31) 각 1회 이상 실시하고 결과를 문서로 남기세요.
+  </p>
+</div>
+
+<script src="serious-accident.js"></script>
+</body>
+</html>
