@@ -52,8 +52,9 @@
 | 웹 입력폼 + 보고서 (Word·PDF 내보내기) | ✅ 구현 완료 | `tax-ai-consulting/src/web` |
 | 세무 판정기 (양도세·취득세 중과, 1세대1주택 비과세, 재건축·재개발 비과세) | ✅ 구현 완료 | `tax-ai-consulting/src/core/heavy-tax-judge.js`, `single-house-exempt.js`, `redev-exempt.js` |
 | 중대재해처벌법 이행 체크리스트 (반기·수시·상시) | ✅ 구현 완료 | `tax-ai-consulting/src/core/serious-accident-checklist.js` |
+| 점검 달력 (사업장별 정기·수시 점검 일정) | ✅ 구현 완료 | `tax-ai-consulting/src/core/inspection-calendar.js` |
 
-테스트 234개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 247개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -236,6 +237,7 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 | **1세대1주택 비과세 판정기** | `single-exempt.html` + `single-exempt.js` | 보유·거주요건(2017.8.3 조정지역), 상생임대 면제, 고가주택 12억, 일시적 2주택 판정 (`single-house-exempt.js`, 재건축 제외) |
 | **재건축·재개발 비과세 판정기** | `redev-exempt.html` + `redev-exempt.js` | 조합원입주권 양도 비과세(§89①4 가/나목)·대체주택 특례(§156의2⑤) 판정, 고가주택 12억 반영 (`redev-exempt.js`) |
 | **중대재해처벌법 체크리스트** | `serious-accident.html` + `serious-accident.js` | 경영책임자 안전보건확보의무를 주기별(상시·연간/반기 1회 이상/수시/발생 시/기록)로 정리. 시행령 §4·§5, 상시근로자 수 적용 판정, 반기 점검 기한·지연 계산, 이행률·인쇄 (`serious-accident-checklist.js`) |
+| **점검 달력** | `inspection-calendar.html` + `inspection-calendar.js` | 사업장별 정기·수시 점검 일정을 달력으로 관리. 항목(위험성평가·성과평가·기타위험평가)·구분(정기·수시), 반복주기 자동생성, 완료·지연 집계, 사업장별 localStorage 저장 (`inspection-calendar.js`) |
 
 - 계산 엔진이 **브라우저 안에서 직접 실행**되므로 입력값이 서버로 전송되지 않습니다.
 - 페이지 추가 방법: `src/web/static/`에 `이름.html` + `이름.js`를 만들고 `scripts/build-static.js`의 `PAGES` 배열에 등록하면 됩니다.

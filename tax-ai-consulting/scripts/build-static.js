@@ -29,6 +29,7 @@ const PAGES = [
   { entry: 'single-exempt.js', html: 'single-exempt.html' },
   { entry: 'redev-exempt.js', html: 'redev-exempt.html' },
   { entry: 'serious-accident.js', html: 'serious-accident.html' },
+  { entry: 'inspection-calendar.js', html: 'inspection-calendar.html' },
 ];
 const ASSETS = ['styles.css'];
 
