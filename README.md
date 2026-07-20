@@ -51,8 +51,9 @@
 | 심화 검토 장치 (대안·리스크·민감도·개정감시) | ✅ 구현 완료 | `tax-ai-consulting/src/advisor`, `src/analysis`, `src/monitor` |
 | 웹 입력폼 + 보고서 (Word·PDF 내보내기) | ✅ 구현 완료 | `tax-ai-consulting/src/web` |
 | 세무 판정기 (양도세·취득세 중과, 1세대1주택 비과세, 재건축·재개발 비과세) | ✅ 구현 완료 | `tax-ai-consulting/src/core/heavy-tax-judge.js`, `single-house-exempt.js`, `redev-exempt.js` |
+| 중대재해처벌법 이행 체크리스트 (반기·수시·상시) | ✅ 구현 완료 | `tax-ai-consulting/src/core/serious-accident-checklist.js` |
 
-테스트 222개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 234개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -234,6 +235,7 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 | **취득세 중과 판정기** | `acq-heavy.html` + `acq-heavy.js` | 취득 후 주택수 × 조정지역 → 8%·12% 중과 판정 (세율 매트릭스 강조) |
 | **1세대1주택 비과세 판정기** | `single-exempt.html` + `single-exempt.js` | 보유·거주요건(2017.8.3 조정지역), 상생임대 면제, 고가주택 12억, 일시적 2주택 판정 (`single-house-exempt.js`, 재건축 제외) |
 | **재건축·재개발 비과세 판정기** | `redev-exempt.html` + `redev-exempt.js` | 조합원입주권 양도 비과세(§89①4 가/나목)·대체주택 특례(§156의2⑤) 판정, 고가주택 12억 반영 (`redev-exempt.js`) |
+| **중대재해처벌법 체크리스트** | `serious-accident.html` + `serious-accident.js` | 경영책임자 안전보건확보의무를 주기별(상시·연간/반기 1회 이상/수시/발생 시/기록)로 정리. 시행령 §4·§5, 상시근로자 수 적용 판정, 반기 점검 기한·지연 계산, 이행률·인쇄 (`serious-accident-checklist.js`) |
 
 - 계산 엔진이 **브라우저 안에서 직접 실행**되므로 입력값이 서버로 전송되지 않습니다.
 - 페이지 추가 방법: `src/web/static/`에 `이름.html` + `이름.js`를 만들고 `scripts/build-static.js`의 `PAGES` 배열에 등록하면 됩니다.
