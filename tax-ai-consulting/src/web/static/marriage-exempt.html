@@ -3,15 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>재건축·재개발 1세대1주택 비과세 판정기</title>
+<title>혼인 1세대1주택 비과세 판정기 — 주택·입주권·분양권</title>
 <link rel="stylesheet" href="styles.css">
 <style>
   .hj-layout { display: flex; gap: 18px; align-items: flex-start; }
-  #hjForm { width: 480px; flex-shrink: 0; }
+  #hjForm { width: 490px; flex-shrink: 0; }
   #hjResult { flex: 1; min-width: 0; min-height: 400px; }
-  .seg { display: flex; gap: 6px; margin-bottom: 12px; }
-  .seg button { flex: 1; padding: 10px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-weight: 700; font-size: 13.5px; cursor: pointer; color: #47606f; font-family: inherit; }
-  .seg button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
   .grid2 label { margin: 0 0 2px; }
   .grid2 .full { grid-column: 1 / -1; }
@@ -19,9 +16,10 @@
   .chk { display: flex; align-items: flex-start; gap: 6px; margin-top: 10px; font-size: 13px; color: #34495e; font-weight: 700; }
   .chk input { width: auto; margin-top: 2px; }
   .req-note { font-size: 11.5px; color: #7b8a97; line-height: 1.6; margin: 8px 0 0; }
-  .sub-new { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; margin-top: 8px; background: #fbfcfd; }
   .flow-note { font-size: 11.5px; color: #566573; line-height: 1.7; background: #f4f8fb; border: 1px solid #d6e4ef; border-radius: 9px; padding: 10px 12px; margin-bottom: 12px; }
   .flow-note b { color: var(--navy); }
+  .sub-box { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; margin-top: 8px; background: #fbfcfd; }
+  .sub-box h5 { margin: 0 0 6px; font-size: 12px; color: var(--navy); }
   .btn-primary { width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
   .btn-primary:hover { background: var(--navy-d); }
 
@@ -33,7 +31,7 @@
   .verdict.exempt .tag { background: #1e8449; }
   .verdict.partial .tag { background: #b9770e; }
   .verdict.taxable .tag { background: #c0392b; }
-  .verdict .head { font-size: 22px; font-weight: 800; margin-top: 8px; color: #1a2733; letter-spacing: -0.5px; }
+  .verdict .head { font-size: 21px; font-weight: 800; margin-top: 8px; color: #1a2733; letter-spacing: -0.5px; }
 
   .check { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid #eef2f4; }
   .check .ic { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; }
@@ -47,7 +45,7 @@
   .muted { font-size: 12px; color: #7b8a97; margin-top: 10px; line-height: 1.6; }
   .lawref { margin-top: 12px; font-size: 11.5px; color: #7b8a97; border-top: 1px solid var(--line); padding-top: 8px; }
   .result-empty { color: #90a4ae; text-align: center; margin-top: 140px; }
-  @media (max-width: 960px) { .hj-layout { flex-direction: column; } #hjForm { width: 100%; } }
+  @media (max-width: 980px) { .hj-layout { flex-direction: column; } #hjForm { width: 100%; } }
 </style>
 </head>
 <body>
@@ -59,37 +57,37 @@
     <a href="transfer-heavy.html">양도세 중과 판정기</a>
     <a href="acq-heavy.html">취득세 중과 판정기</a>
     <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
-    <a href="redev-exempt.html" class="active">재건축·재개발 비과세 판정기</a>
-    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="marriage-exempt.html" class="active">혼인 비과세 판정기</a>
   </div>
 </nav>
 
 <div class="container">
   <p class="page-intro">
-    재건축·재개발 <b>조합원입주권</b>과 관련한 1세대 1주택 양도소득세 비과세를 판정합니다.
-    ① <b>조합원입주권 양도 비과세</b>(소득세법 §89①4) — 관리처분계획인가로 주택이 입주권으로 전환된 원조합원이 입주권을 양도하는 경우와,
-    ② <b>대체주택 비과세 특례</b>(시행령 §156의2⑤) — 사업시행 중 거주 목적으로 취득한 대체주택을 양도하는 경우를 다룹니다.
-    고가주택 12억(2021.12.8~) 초과분은 과세됩니다. 계산은 브라우저 안에서만 이뤄집니다.
+    <b>혼인</b>으로 1세대가 주택·조합원입주권·분양권을 함께 소유하게 된 경우의 비과세 특례를 판정합니다.
+    시행령 <b>§156의2⑨</b>(1주택+1입주권 ~ 2주택+2입주권 등)에 따라 혼인한 날부터 <b>10년 이내</b>(2024.11.12 이후 양도분, 종전 5년)에
+    먼저 양도하는 주택(최초양도주택)이 <b>제2호·제3호·제4호</b> 중 하나에 해당하면 1세대1주택으로 보아 §154①을 적용합니다.
+    1주택자 간 혼인(2주택)은 <b>§155⑤</b>로 함께 판정합니다. 계산은 브라우저 안에서만 이뤄집니다.
   </p>
 
   <div class="hj-layout">
     <div class="panel" id="hjForm">
-      <div class="seg" id="modeSeg">
-        <button data-mode="inway" class="active">조합원입주권 양도</button>
-        <button data-mode="replace">대체주택 특례</button>
+      <div class="flow-note">
+        <b>제1호 해당자끼리의 혼인</b>이어야 합니다 — 각자 혼인 전에 <b>가.</b> 1주택, <b>나.</b> 1입주권·1분양권,
+        <b>다.</b> 1주택+1입주권(분양권) 중 하나만 보유. 최초양도주택 요건: <b>제2호</b> 가목자의 혼인 전 주택,
+        <b>제3호</b> 다목자의 혼인 전 주택(권리 종류별 추가요건), <b>제4호</b> 나목자의 권리가 혼인 후 완공된 신축주택.
       </div>
-      <div id="flowNote"></div>
       <div id="fields"></div>
-      <button class="btn-primary" id="judgeBtn">비과세 판정하기</button>
+      <button class="btn-primary" id="judgeBtn">혼인 특례 판정하기</button>
     </div>
 
     <div class="panel" id="hjResult">
-      <div class="result-empty" id="empty">정보를 입력하고 「비과세 판정하기」를 누르세요.</div>
+      <div class="result-empty" id="empty">정보를 입력하고 「혼인 특례 판정하기」를 누르세요.</div>
       <div id="result" style="display:none"></div>
     </div>
   </div>
 </div>
 
-<script src="redev-exempt.js"></script>
+<script src="marriage-exempt.js"></script>
 </body>
 </html>

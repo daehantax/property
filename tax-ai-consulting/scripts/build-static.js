@@ -28,6 +28,7 @@ const PAGES = [
   { entry: 'acq-heavy.js', html: 'acq-heavy.html' },
   { entry: 'single-exempt.js', html: 'single-exempt.html' },
   { entry: 'redev-exempt.js', html: 'redev-exempt.html' },
+  { entry: 'marriage-exempt.js', html: 'marriage-exempt.html' },
 ];
 const ASSETS = ['styles.css'];
 
