@@ -22,6 +22,27 @@ export const HEAVY_RESUME_DATE = "2026-05-10";           // 다주택 중과 부
 // 1세대1주택 비과세 고가주택 기준 (2022.1.1 이후 12억)
 export const SINGLE_HH_NONTAX_THRESHOLD = 1_200_000_000;
 
+// ── 2026 세제개편안 (2026.8.3 발표 정부안 — 국회 통과 전, 조문 확정 시 재검토) ──
+export const REFORM2026 = {
+  // 조정지역 다주택 중과 한시 완화: 양도연도별 가산폭 (2029년부터 +20%p/+30%p 복귀)
+  HEAVY_SURCHARGE: {
+    2027: { two: 0.05, threePlus: 0.10 },
+    2028: { two: 0.10, threePlus: 0.15 },
+  },
+  HEAVY_SURCHARGE_DEFAULT: { two: 0.20, threePlus: 0.30 },  // 현행 = 2029 복귀
+
+  // 장기보유특별공제 → 장기거주소득공제 전환 (2028.1.1 이후 양도분부터)
+  //  2028: 1주택 보유 연2%(max20%) + 거주 연6%(max60%) / 2029~: 거주만 연8%(max80%)
+  //  다주택: 2년 이상 거주 시 거주기간 연2%(max30%), 보유공제 폐지
+  DEDUCT_CAP: { 2028: 2_000_000_000 },     // 공제금액 한도: 2028년 20억
+  DEDUCT_CAP_FINAL: 1_000_000_000,         // 2029년 이후 10억
+
+  // 1세대1주택 기본공제 확대 (10년 이상 거주 + 양도가액 30억 이하, 2029년 시행 가정)
+  BASIC_DEDUCT_EXPANDED: 25_000_000,
+  BASIC_DEDUCT_STAY_MIN: 10,
+  BASIC_DEDUCT_PRICE_LIMIT: 3_000_000_000,
+};
+
 // 종부세 공제금액
 export const AGGR_DEDUCT_SINGLE = 1_200_000_000;  // 1세대1주택
 export const AGGR_DEDUCT_OTHERS = 900_000_000;    // 다주택·기타

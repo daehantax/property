@@ -7,7 +7,7 @@
  */
 
 import { calcGiveTax }       from '../../core/gift-tax.js';
-import { calcSaleIncomeTax } from '../../core/transfer-tax.js';
+import { calcSaleIncomeTax, compareSaleIncomeTaxReform2026 } from '../../core/transfer-tax.js';
 import { calcPropertyTax }   from '../../core/property-tax.js';
 import { calcAggrTax }       from '../../core/comprehensive-tax.js';
 import { renderCalcSteps }   from '../../report/calc-steps.js';
@@ -92,6 +92,50 @@ const CALCULATORS = [
         sub: `양도소득세 ${won(r.transferTax)} + 지방소득세 ${won(r.localTax)}`
           + (r.breakdown.heavyApplied ? ' · 중과 적용' : ''),
         computation: { kind: 'transfer', label: '양도소득세', result: r },
+      };
+    },
+  },
+  {
+    id: 'transfer-reform', name: '양도세 개정안 비교',
+    intro: '2026 세제개편안(2026.8.3 정부안) 반영 전·후 양도소득세를 비교합니다. '
+      + '다주택 중과 한시 완화(2027~28년 +5~15%p), 장기거주소득공제 전환·공제한도(2028년~), '
+      + '1세대1주택 기본공제 확대를 반영합니다. ※ 국회 통과 전 정부안 기준',
+    fields: [
+      sel('reformYear', '양도(예정)연도', [
+        { value: 2027, label: '2027년 (중과 완화 +5/+10%p)' },
+        { value: 2028, label: '2028년 (중과 +10/+15%p · 공제 중간단계 · 한도 20억)' },
+        { value: 2029, label: '2029년 이후 (중과 복귀 · 거주공제 연8% · 한도 10억)' },
+      ], 2027),
+      money('marketPrice', '양도가액(시가)', 1_500_000_000),
+      money('basePrice', '취득가액', 800_000_000),
+      int('holdPeriod', '보유기간(년)', 10),
+      int('stayPeriod', '거주기간(년)', 0),
+      sel('isWvr', '주택 구분(비과세 판정)', [
+        { value: '다주택', label: '다주택(비과세 아님)' },
+        { value: '1세대1주택', label: '1세대1주택(12억 비과세)' },
+        { value: '기타', label: '기타' },
+      ], '다주택'),
+      int('ownCount', '보유 주택수', 2),
+      sel('isAdj', '조정대상지역', [{ value: 1, label: '조정지역' }, { value: 0, label: '비조정지역' }], 1),
+    ],
+    run: (v) => {
+      const cmp = compareSaleIncomeTaxReform2026(
+        v.reformYear,
+        v.marketPrice, v.basePrice, v.holdPeriod, v.stayPeriod,
+        v.isWvr, '주택', v.ownCount, v.isAdj,
+      );
+      const d = cmp.diff.total;
+      const change = d === 0 ? '변동 없음'
+        : `${won(Math.abs(d))} ${d > 0 ? '증가 ▲' : '감소 ▼'}`;
+      return {
+        headline: cmp.reform.total,
+        headlineLabel: `개편안 적용 세액 (${v.reformYear}년 양도 기준)`,
+        sub: `반영 전(현행) ${won(cmp.current.total)} → 반영 후 ${won(cmp.reform.total)} · ${change}`,
+        computations: [
+          { kind: 'transfer', label: '반영 전 — 현행법 (2026.5.10 시행분)', result: cmp.current },
+          { kind: 'transfer', label: `반영 후 — 2026 세제개편안 (${v.reformYear}년 양도분)`, result: cmp.reform },
+        ],
+        lawRef: cmp.reform.lawRef,
       };
     },
   },
@@ -198,8 +242,12 @@ function collect() {
 function calculate() {
   const calc = CALCULATORS.find((c) => c.id === activeId);
   const out = calc.run(collect());
-  const stepsMd = renderCalcSteps([{ caseNo: 0, ...out.computation }], { heading: '### 계산 내역' });
-  const lawRef = out.computation.result.lawRef ?? [];
+  const comps = out.computations ?? [out.computation];
+  const stepsMd = renderCalcSteps(
+    comps.map((c, i) => ({ caseNo: i, ...c })),
+    { heading: '### 계산 내역' },
+  );
+  const lawRef = out.lawRef ?? out.computation?.result.lawRef ?? [];
 
   $('result').innerHTML = `
     <div class="result-headline">

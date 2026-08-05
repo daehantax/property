@@ -8,4 +8,4 @@ export { calcGiveTax }             from './gift-tax.js';
 export { calcTakingTax, calcGiveTakingEtcTax } from './acquisition-tax.js';
 export { calcPropertyTax }         from './property-tax.js';
 export { calcAggrTax }             from './comprehensive-tax.js';
-export { calcSaleIncomeTax }       from './transfer-tax.js';
+export { calcSaleIncomeTax, compareSaleIncomeTaxReform2026 } from './transfer-tax.js';

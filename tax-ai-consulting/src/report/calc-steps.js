@@ -69,16 +69,24 @@ function transferSteps(result) {
     `- 양도차익: ${won(b.transferIncome)}`,
   ];
   const heavyApplied = b.heavyApplied ?? (b.r2 > 0 && b.appliedR === b.r2);
+  const reform = (b.reformYear ?? 0) > 0;
+  const deductName = reform && b.reformYear >= 2028 ? '장기거주소득공제' : '장기보유특별공제';
+  const basicDeduct = b.basicDeduct ?? 2_500_000;
   if (heavyApplied) {
-    lines.push('- 장기보유특별공제: **배제** (조정대상지역 다주택 중과 대상, 소득세법 §95②)');
-    lines.push(`- 과세표준: ${won(b.heavyIncome)} (양도차익 − 기본공제 250만원)`);
-    lines.push(`- 적용세율: 기본세율 + 중과 가산 = ${pct(b.appliedR)}`);
+    lines.push(`- ${deductName}: **배제** (조정대상지역 다주택 중과 대상, 소득세법 §95②)`);
+    lines.push(`- 과세표준: ${won(b.heavyIncome)} (양도차익 − 기본공제 ${won(basicDeduct)})`);
+    lines.push(`- 적용세율: 기본세율 + 중과 가산 = ${pct(b.appliedR)}`
+      + (reform ? ` (2026 개편안 ${b.reformYear}년 양도분)` : ''));
   } else {
     if (b.totalDeductRate > 0) {
-      lines.push(`- 장기보유특별공제: ${b.totalDeductRate}% 적용`);
+      const capped = (b.deductCap ?? 0) > 0 && b.deductAmt === b.deductCap;
+      lines.push(`- ${deductName}: ${b.totalDeductRate}% 적용`
+        + (b.deductAmt != null ? ` → △${won(b.deductAmt)}` : '')
+        + (capped ? ` (공제한도 ${won(b.deductCap)} 적용)` : ''));
     }
-    lines.push(`- 과세표준: ${won(b.incomeFinal)} (양도차익 − 장특공제 − 기본공제 250만원)`);
-    lines.push(`- 적용세율: ${pct(b.appliedR)}`);
+    lines.push(`- 과세표준: ${won(b.incomeFinal)} (양도차익 − ${deductName} − 기본공제 ${won(basicDeduct)})`);
+    lines.push(`- 적용세율: ${pct(b.appliedR)}`
+      + (reform ? ` (2026 개편안 ${b.reformYear}년 양도분)` : ''));
   }
   lines.push(`- **양도소득세: ${won(result.transferTax)}**, 지방소득세(10%): ${won(result.localTax)}`);
   lines.push(`- **합계: ${won(result.total)}**`);
