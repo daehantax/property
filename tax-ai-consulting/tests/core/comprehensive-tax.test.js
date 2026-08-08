@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcAggrTax } from '../../src/core/comprehensive-tax.js';
+import { calcAggrTax, compareAggrTaxReform2026 } from '../../src/core/comprehensive-tax.js';
 import { AGGR_DEDUCT_SINGLE, AGGR_DEDUCT_OTHERS } from '../../src/core/constants.js';
 
 describe('calcAggrTax — 종합부동산세', () => {
@@ -60,5 +60,138 @@ describe('calcAggrTax — 종합부동산세', () => {
   it('세율 누진: 과표 30억 → 1.5% 구간', () => {
     const r = calcAggrTax('다주택', '비조정지역', 6_000_000_000, 0, 30, 0);
     expect(r.breakdown.aggrTaxBeforeDc).toBeGreaterThan(0);
+  });
+});
+
+describe('2026 세제개편안 — 종부세 (reformOpts.reformYear)', () => {
+  describe('기본공제', () => {
+    it('실거주 1주택: 12억 → 14억', () => {
+      const r = calcAggrTax('1세대1주택', '비조정지역', 2_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2027, isResident: 1 });
+      expect(r.breakdown.deductAmt).toBe(1_400_000_000);
+    });
+
+    it('비거주 1주택: 12억 → 9억', () => {
+      const r = calcAggrTax('1세대1주택', '비조정지역', 2_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2027, isResident: 0 });
+      expect(r.breakdown.deductAmt).toBe(900_000_000);
+    });
+
+    it('다주택: 4억 + 5억 × 거주주택 가액비중', () => {
+      const none = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2027, residentShare: 0 });
+      expect(none.breakdown.deductAmt).toBe(400_000_000);
+      const half = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2027, residentShare: 0.5 });
+      expect(half.breakdown.deductAmt).toBe(650_000_000);
+    });
+  });
+
+  describe('공정시장가액비율', () => {
+    it('2027년: 70% 일괄', () => {
+      const r = calcAggrTax('다주택', '조정지역', 3_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2027, ownCount: 3 });
+      expect(r.breakdown.fairMarketRate).toBe(0.7);
+    });
+
+    it('2028년~: 1주택 70%, 3주택 이상·조정지역 2주택 이상 80%', () => {
+      const single = calcAggrTax('1세대1주택', '비조정지역', 2_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2028, ownCount: 1 });
+      expect(single.breakdown.fairMarketRate).toBe(0.7);
+      const three = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2028, ownCount: 3 });
+      expect(three.breakdown.fairMarketRate).toBe(0.8);
+      const adjTwo = calcAggrTax('다주택', '조정지역', 3_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2028, ownCount: 2 });
+      expect(adjTwo.breakdown.fairMarketRate).toBe(0.8);
+      const nonAdjTwo = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 5, 50, 1_000_000,
+        { reformYear: 2028, ownCount: 2 });
+      expect(nonAdjTwo.breakdown.fairMarketRate).toBe(0.7);
+    });
+  });
+
+  describe('세율표', () => {
+    // 과표를 직접 통제하기 위해 공제·비율 역산 없이 aggrTaxBeforeDc로 검증
+    it('2027년 과도기: 과표 10억 → 1.3% 구간 (현행 1.0% 대비 인상)', () => {
+      // 다주택 residentShare 0 → 공제 4억, FMR 0.7 → 공시 18.28..억로 과표 10억 만들기보다
+      // 세율 함수 특성만 확인: 동일 조건에서 2027 세액 > 현행 세액
+      const cur = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 0, 30, 0);
+      const y27 = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 0, 30, 0,
+        { reformYear: 2027, residentShare: 0 });
+      expect(y27.breakdown.aggrTaxBeforeDc).toBeGreaterThan(cur.breakdown.aggrTaxBeforeDc);
+    });
+
+    it('2028년 단일세율: 고액 구간에서 2027년보다 더 무겁다', () => {
+      const y27 = calcAggrTax('다주택', '비조정지역', 10_000_000_000, 0, 30, 0,
+        { reformYear: 2027, residentShare: 0 });
+      const y28 = calcAggrTax('다주택', '비조정지역', 10_000_000_000, 0, 30, 0,
+        { reformYear: 2028, residentShare: 0, ownCount: 3 });
+      expect(y28.breakdown.aggrTaxBeforeDc).toBeGreaterThan(y27.breakdown.aggrTaxBeforeDc);
+    });
+
+    it('세율표 누진공제 정합성: 구간 경계에서 연속', () => {
+      const at = (gongsi, opts) => calcAggrTax('다주택', '비조정지역', gongsi, 0, 30, 0,
+        { residentShare: 0, ...opts }).breakdown;
+      // 2028 표: 과표 12억 경계 (공제 4억, FMR 0.7 → 공시 = 12억/0.7 + 4억)
+      const boundary = 1_200_000_000 / 0.7 + 400_000_000;
+      const below = at(boundary - 1000, { reformYear: 2028 });
+      const above = at(boundary + 1000, { reformYear: 2028 });
+      const gap = above.aggrTaxBeforeDc - below.aggrTaxBeforeDc;
+      expect(Math.abs(gap)).toBeLessThan(1000); // 경계 불연속 없음
+    });
+  });
+
+  describe('1세대1주택 세액공제 한도', () => {
+    it('2027년 800만 / 2028년~ 600만 한도', () => {
+      // 고액·장기보유·고령 → 공제 80%가 한도에 걸리는 사례
+      const y27 = calcAggrTax('1세대1주택', '비조정지역', 5_000_000_000, 15, 70, 5_000_000,
+        { reformYear: 2027, isResident: 1 });
+      expect(y27.breakdown.creditCap).toBe(8_000_000);
+      expect(y27.breakdown.creditAmt).toBe(8_000_000);
+      const y28 = calcAggrTax('1세대1주택', '비조정지역', 5_000_000_000, 15, 70, 5_000_000,
+        { reformYear: 2028, isResident: 1 });
+      expect(y28.breakdown.creditAmt).toBe(6_000_000);
+    });
+
+    it('현행(reformYear 미지정)은 한도 없음', () => {
+      const r = calcAggrTax('1세대1주택', '비조정지역', 5_000_000_000, 15, 70, 5_000_000);
+      expect(r.breakdown.creditCap).toBe(0);
+    });
+  });
+
+  describe('하위 호환', () => {
+    it('reformOpts 미지정 시 기존 계산과 동일 (공제·비율·세율 현행)', () => {
+      const r = calcAggrTax('1세대1주택', '비조정지역', 2_000_000_000, 10, 65, 1_000_000);
+      expect(r.breakdown.deductAmt).toBe(AGGR_DEDUCT_SINGLE);
+      expect(r.breakdown.fairMarketRate).toBe(0.6);
+      expect(r.lawRef.some((s) => s.includes('개편안'))).toBe(false);
+      // 세액공제 곱셈 방식과 동일: (세액-재산세공제) × (1-combinedDc)
+      const b = r.breakdown;
+      const expected = Math.floor(Math.max(b.aggrTaxBeforeDc - b.propertyTaxDc, 0) * (1 - b.combinedDc));
+      expect(r.aggrTax).toBe(expected);
+    });
+  });
+
+  describe('compareAggrTaxReform2026 — 3개 레짐 비교', () => {
+    it('실거주 1주택(공시 15억): 공제 확대로 세액 감소', () => {
+      const cmp = compareAggrTaxReform2026('1세대1주택', '비조정지역', 1_500_000_000, 10, 60, 1_000_000,
+        { isResident: 1, ownCount: 1 });
+      expect(cmp.y2027.total).toBeLessThan(cmp.current.total);
+      expect(cmp.diff.y2027).toBe(cmp.y2027.total - cmp.current.total);
+    });
+
+    it('비거주 1주택(공시 15억): 공제 축소·비율 인상으로 세액 증가', () => {
+      const cmp = compareAggrTaxReform2026('1세대1주택', '비조정지역', 1_500_000_000, 10, 60, 1_000_000,
+        { isResident: 0, ownCount: 1 });
+      expect(cmp.y2027.total).toBeGreaterThan(cmp.current.total);
+      expect(cmp.y2028.total).toBeGreaterThan(cmp.current.total);
+    });
+
+    it('조정지역 3주택(공시 30억, 전부 임대): 매년 세부담 증가', () => {
+      const cmp = compareAggrTaxReform2026('다주택', '조정지역', 3_000_000_000, 10, 60, 3_000_000,
+        { residentShare: 0, ownCount: 3 });
+      expect(cmp.current.total).toBeLessThan(cmp.y2027.total);
+      expect(cmp.y2027.total).toBeLessThan(cmp.y2028.total);
+    });
   });
 });

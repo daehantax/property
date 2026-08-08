@@ -69,16 +69,24 @@ function transferSteps(result) {
     `- 양도차익: ${won(b.transferIncome)}`,
   ];
   const heavyApplied = b.heavyApplied ?? (b.r2 > 0 && b.appliedR === b.r2);
+  const reform = (b.reformYear ?? 0) > 0;
+  const deductName = reform && b.reformYear >= 2028 ? '장기거주소득공제' : '장기보유특별공제';
+  const basicDeduct = b.basicDeduct ?? 2_500_000;
   if (heavyApplied) {
-    lines.push('- 장기보유특별공제: **배제** (조정대상지역 다주택 중과 대상, 소득세법 §95②)');
-    lines.push(`- 과세표준: ${won(b.heavyIncome)} (양도차익 − 기본공제 250만원)`);
-    lines.push(`- 적용세율: 기본세율 + 중과 가산 = ${pct(b.appliedR)}`);
+    lines.push(`- ${deductName}: **배제** (조정대상지역 다주택 중과 대상, 소득세법 §95②)`);
+    lines.push(`- 과세표준: ${won(b.heavyIncome)} (양도차익 − 기본공제 ${won(basicDeduct)})`);
+    lines.push(`- 적용세율: 기본세율 + 중과 가산 = ${pct(b.appliedR)}`
+      + (reform ? ` (2026 개편안 ${b.reformYear}년 양도분)` : ''));
   } else {
     if (b.totalDeductRate > 0) {
-      lines.push(`- 장기보유특별공제: ${b.totalDeductRate}% 적용`);
+      const capped = (b.deductCap ?? 0) > 0 && b.deductAmt === b.deductCap;
+      lines.push(`- ${deductName}: ${b.totalDeductRate}% 적용`
+        + (b.deductAmt != null ? ` → △${won(b.deductAmt)}` : '')
+        + (capped ? ` (공제한도 ${won(b.deductCap)} 적용)` : ''));
     }
-    lines.push(`- 과세표준: ${won(b.incomeFinal)} (양도차익 − 장특공제 − 기본공제 250만원)`);
-    lines.push(`- 적용세율: ${pct(b.appliedR)}`);
+    lines.push(`- 과세표준: ${won(b.incomeFinal)} (양도차익 − ${deductName} − 기본공제 ${won(basicDeduct)})`);
+    lines.push(`- 적용세율: ${pct(b.appliedR)}`
+      + (reform ? ` (2026 개편안 ${b.reformYear}년 양도분)` : ''));
   }
   lines.push(`- **양도소득세: ${won(result.transferTax)}**, 지방소득세(10%): ${won(result.localTax)}`);
   lines.push(`- **합계: ${won(result.total)}**`);
@@ -101,9 +109,20 @@ function propertySteps(result) {
 /** 종합부동산세 단계 */
 function aggrSteps(result) {
   const b = result.breakdown;
+  const reform = (b.reformYear ?? 0) > 0;
+  let deductLabel;
+  if (!reform) {
+    deductLabel = b.oneOOne === '1세대1주택' ? '1세대1주택 12억' : '다주택·기타 9억';
+  } else if (b.oneOOne === '1세대1주택') {
+    deductLabel = b.isResident ? '실거주 1주택 14억 (개편안)' : '비거주 1주택 9억 (개편안)';
+  } else if (b.oneOOne === '다주택') {
+    deductLabel = '다주택 4억 + 5억 × 거주주택 가액비중 (개편안)';
+  } else {
+    deductLabel = '공동명의 1주택 9억';
+  }
   const lines = [
     `- 공시가격 합계: ${won(b.gongsi)}`,
-    `- 공제금액: △${won(b.deductAmt)} (${b.oneOOne === '1세대1주택' ? '1세대1주택 12억' : '다주택·기타 9억'})`,
+    `- 공제금액: △${won(b.deductAmt)} (${deductLabel})`,
   ];
   if (b.aggrTaxBase <= 0) {
     lines.push('- 과세표준: 0원 → **종합부동산세: 0원** (공시가격이 공제금액 이하)');
@@ -114,7 +133,15 @@ function aggrSteps(result) {
     `- 종부세 산출세액(재산세 중복분 공제 전): ${won(b.aggrTaxBeforeDc)}`,
   );
   if (b.propertyTaxDc > 0) lines.push(`- 재산세 중복분 공제: △${won(b.propertyTaxDc)}`);
-  if (b.combinedDc > 0) lines.push(`- 장기보유·연령 세액공제: ${pct(b.combinedDc)}`);
+  if (b.combinedDc > 0) {
+    const capped = (b.creditCap ?? 0) > 0 && b.creditAmt === b.creditCap;
+    lines.push(`- 장기보유·연령 세액공제: ${pct(b.combinedDc)}`
+      + (capped ? ` → 한도 ${won(b.creditCap)} 적용 (개편안)` : ''));
+  }
+  if ((b.reformYear ?? 0) > 0) {
+    lines.push(`- 적용 기준: 2026 세제개편안 ${b.reformYear === 2027 ? '2027년 과도기(세율 0.5~3.5%)' : '2028년~ 단일세율(0.5~5.0%)'}`
+      + ` · 공정시장가액비율 ${pct(b.fairMarketRate)}`);
+  }
   lines.push(
     `- **종합부동산세: ${won(result.aggrTax)}**` + (result.ruralTax > 0 ? `, 농어촌특별세(20%): ${won(result.ruralTax)}` : ''),
     `- **합계: ${won(result.total)}**`,
