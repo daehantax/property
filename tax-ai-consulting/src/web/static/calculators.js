@@ -9,7 +9,7 @@
 import { calcGiveTax }       from '../../core/gift-tax.js';
 import { calcSaleIncomeTax, compareSaleIncomeTaxReform2026 } from '../../core/transfer-tax.js';
 import { calcPropertyTax }   from '../../core/property-tax.js';
-import { calcAggrTax }       from '../../core/comprehensive-tax.js';
+import { calcAggrTax, compareAggrTaxReform2026 } from '../../core/comprehensive-tax.js';
 import { renderCalcSteps }   from '../../report/calc-steps.js';
 import { marked }            from 'marked';
 
@@ -185,6 +185,82 @@ const CALCULATORS = [
       };
     },
   },
+  {
+    id: 'aggr-reform', name: '종부세 개편안 비교',
+    intro: '2026 세제개편안(2026.8.3 정부안)에 따른 종합부동산세 변화를 현행(2026) → 2027년(과도기) → '
+      + '2028년~(단일세율) 순으로 비교합니다. 기본공제(실거주 14억/비거주 9억/다주택 가액비례), '
+      + '공정시장가액비율(70~80%), 세율 일원화, 세액공제 한도(800만/600만)를 반영합니다. '
+      + '※ 국회 통과 전 정부안 기준',
+    fields: [
+      sel('oneOOne', '주택 유형', [
+        { value: '1세대1주택', label: '1세대1주택' },
+        { value: '공동명의1주택', label: '공동명의 1주택' },
+        { value: '다주택', label: '다주택·기타' },
+      ], '1세대1주택'),
+      sel('isResident', '실거주 여부 (1주택)', [
+        { value: 1, label: '실거주' },
+        { value: 0, label: '비거주(전세·공실 등)' },
+      ], 1),
+      int('residentSharePct', '다주택: 거주주택 가액 비중(%)', 50),
+      int('ownCount', '보유 주택수', 1),
+      sel('heavy', '조정대상지역 (2028~ 비율 판정)', [
+        { value: '비조정지역', label: '비조정지역' },
+        { value: '조정지역', label: '조정지역' },
+      ], '비조정지역'),
+      money('gongsi', '공시가격 합계', 1_500_000_000),
+      int('period', '보유기간(년)', 10),
+      int('age', '소유자 나이(만)', 60),
+    ],
+    run: (v) => {
+      const propertyTax = calcPropertyTax(v.oneOOne, v.gongsi).propertyTax;
+      const cmp = compareAggrTaxReform2026(
+        v.oneOOne, v.heavy, v.gongsi, v.period, v.age, propertyTax,
+        {
+          isResident: v.isResident,
+          residentShare: (v.residentSharePct || 0) / 100,
+          ownCount: v.ownCount,
+        },
+      );
+      const dRow = (d) => d === 0 ? '변동 없음'
+        : `${won(Math.abs(d))} ${d > 0 ? '증가 ▲' : '감소 ▼'}`;
+      const rows = [
+        ['현행 (2026년분)', cmp.current, '—'],
+        ['개편안 2027년분 (과도기)', cmp.y2027, dRow(cmp.diff.y2027)],
+        ['개편안 2028년분~ (단일세율)', cmp.y2028, dRow(cmp.diff.y2028)],
+      ];
+      const extraHtml = `
+        <table class="cmp-table" style="width:100%;border-collapse:collapse;margin:12px 0">
+          <thead><tr>
+            <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px">귀속연도</th>
+            <th style="text-align:right;border-bottom:1px solid #ccc;padding:6px">기본공제</th>
+            <th style="text-align:right;border-bottom:1px solid #ccc;padding:6px">공정시장가액비율</th>
+            <th style="text-align:right;border-bottom:1px solid #ccc;padding:6px">종부세+농특세</th>
+            <th style="text-align:right;border-bottom:1px solid #ccc;padding:6px">현행 대비</th>
+          </tr></thead>
+          <tbody>${rows.map(([label, r, d]) => `
+            <tr>
+              <td style="padding:6px">${label}</td>
+              <td style="text-align:right;padding:6px">${won(r.breakdown.deductAmt)}</td>
+              <td style="text-align:right;padding:6px">${(r.breakdown.fairMarketRate * 100).toFixed(0)}%</td>
+              <td style="text-align:right;padding:6px"><b>${won(r.total)}</b></td>
+              <td style="text-align:right;padding:6px">${d}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+      return {
+        headline: cmp.y2028.total,
+        headlineLabel: '개편안 적용 세액 (2028년분~ 기준, 연간)',
+        sub: `현행 ${won(cmp.current.total)} → 2027년 ${won(cmp.y2027.total)} → 2028년~ ${won(cmp.y2028.total)}`,
+        extraHtml,
+        computations: [
+          { kind: 'aggr', label: '현행 (2026년분)', result: cmp.current },
+          { kind: 'aggr', label: '개편안 2027년분 (과도기)', result: cmp.y2027 },
+          { kind: 'aggr', label: '개편안 2028년분~ (단일세율)', result: cmp.y2028 },
+        ],
+        lawRef: cmp.y2028.lawRef,
+      };
+    },
+  },
 ];
 
 let activeId = CALCULATORS[0].id;
@@ -255,6 +331,7 @@ function calculate() {
       <div class="amount">${won(out.headline)}</div>
       <div class="sub">${out.sub}</div>
     </div>
+    ${out.extraHtml ?? ''}
     <div class="steps">${marked.parse(stepsMd, { async: false })}</div>
     ${lawRef.length ? `<div class="lawref"><b>근거 법령</b><br>${lawRef.join('<br>')}</div>` : ''}
     <div class="disclaimer">※ 참고용 계산이며, 실제 신고 전 세무 전문가 확인이 필요합니다. (기준: 2026.5.10 시행분)</div>

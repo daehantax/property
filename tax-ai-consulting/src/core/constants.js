@@ -48,6 +48,25 @@ export const AGGR_DEDUCT_SINGLE = 1_200_000_000;  // 1세대1주택
 export const AGGR_DEDUCT_OTHERS = 900_000_000;    // 다주택·기타
 export const AGGR_FAIR_MARKET_RATE = 0.6;         // 공정시장가액비율 60% (2026)
 
+// ── 2026 세제개편안 — 종부세 (2026.8.3 정부안, 국회 통과 전) ──
+export const AGGR_REFORM2026 = {
+  // 기본공제 (2027년분부터): 1주택 실거주 14억 / 비거주 9억,
+  // 다주택 4억 + 5억 × (거주주택 공시가격 ÷ 전체 공시가격 합계)
+  DEDUCT_SINGLE_RESIDENT: 1_400_000_000,
+  DEDUCT_SINGLE_NONRESIDENT: 900_000_000,
+  DEDUCT_MULTI_BASE: 400_000_000,
+  DEDUCT_MULTI_RESIDENT_BONUS: 500_000_000,
+
+  // 공정시장가액비율: 2027년 70% 일괄, 2028년~ 1주택 70% / 3주택 이상·조정지역 2주택 이상 80%
+  FAIR_MARKET_RATE_2027: 0.7,
+  FAIR_MARKET_RATE_BASE: 0.7,
+  FAIR_MARKET_RATE_HEAVY: 0.8,
+
+  // 1세대1주택 세액공제(보유·연령) 한도 신설: 2027년 800만 → 2028년~ 600만
+  CREDIT_CAP: { 2027: 8_000_000 },
+  CREDIT_CAP_FINAL: 6_000_000,
+};
+
 // 증여세 공제한도
 export const GIVE_DEDUCT = {
   CHILD_ADULT: 50_000_000,    // 성년 자녀
