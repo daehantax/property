@@ -15,14 +15,14 @@ const REPORT_CSS = `
                  'Noto Sans KR', 'NanumGothic', sans-serif;
     color: #1a1a1a; background: #fff;
     max-width: 200mm; margin: 0 auto; padding: 14mm 10mm;
-    font-size: 10.5pt; line-height: 1.65;
+    font-size: 11.5pt; line-height: 1.7;
   }
-  h1 { font-size: 18pt; border-bottom: 3px solid #1a5276; padding-bottom: 6px; margin: 0 0 10px; color: #1a5276; }
-  h2 { font-size: 13pt; color: #1a5276; border-left: 5px solid #1a5276; padding-left: 8px; margin: 22px 0 8px; }
-  h3 { font-size: 11.5pt; color: #21618c; margin: 16px 0 6px; }
-  h4 { font-size: 10.5pt; color: #2e4053; margin: 12px 0 4px; }
+  h1 { font-size: 19pt; border-bottom: 3px solid #1a5276; padding-bottom: 6px; margin: 0 0 10px; color: #1a5276; }
+  h2 { font-size: 14pt; color: #1a5276; border-left: 5px solid #1a5276; padding-left: 8px; margin: 22px 0 8px; }
+  h3 { font-size: 12.5pt; color: #21618c; margin: 16px 0 6px; }
+  h4 { font-size: 11.5pt; color: #2e4053; margin: 12px 0 4px; }
   p { margin: 6px 0; }
-  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 10pt; page-break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 11pt; page-break-inside: avoid; }
   th, td { border: 1px solid #b0bec5; padding: 5px 9px; }
   th { background: #eaf2f8; color: #1a5276; font-weight: 700; }
   td:not(:first-child) { text-align: right; white-space: nowrap; }
@@ -33,10 +33,10 @@ const REPORT_CSS = `
   blockquote p { margin: 0; }
   hr { border: none; border-top: 1px solid #cfd8dc; margin: 18px 0; }
   strong { color: #0b3d5c; }
-  em { color: #566573; }
+  em { color: #46545f; }
   @page { size: A4; margin: 15mm 12mm; }
   @media print {
-    body { max-width: none; padding: 0; font-size: 10pt; }
+    body { max-width: none; padding: 0; font-size: 10.5pt; }
     h2 { page-break-after: avoid; }
     table, blockquote { page-break-inside: avoid; }
   }
