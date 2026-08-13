@@ -9,7 +9,7 @@
 import { calcGiveTax }       from '../../core/gift-tax.js';
 import { calcSaleIncomeTax, compareSaleIncomeTaxReform2026 } from '../../core/transfer-tax.js';
 import { calcPropertyTax }   from '../../core/property-tax.js';
-import { calcAggrTax, compareAggrTaxReform2026 } from '../../core/comprehensive-tax.js';
+import { calcAggrTax, calcAggrTaxCouple, compareAggrTaxReform2026 } from '../../core/comprehensive-tax.js';
 import { renderCalcSteps }   from '../../report/calc-steps.js';
 import { marked }            from 'marked';
 
@@ -160,20 +160,41 @@ const CALCULATORS = [
   },
   {
     id: 'aggr', name: '종합부동산세',
-    intro: '공시가격 합계에서 공제(1세대1주택 12억 / 그 외 9억)를 빼고, 장기보유·연령 세액공제(1세대1주택)를 반영합니다.',
+    intro: '공시가격 합계에서 공제(1세대1주택 12억 / 그 외 9억)를 빼고, 장기보유·연령 세액공제(1세대1주택)를 반영합니다. '
+      + '공동명의 1주택은 인별 과세 원칙대로 부부 각자 지분에 각자 9억씩 공제해 계산한 뒤 합산합니다.',
     fields: [
       sel('oneOOne', '주택 유형', [
         { value: '1세대1주택', label: '1세대1주택' },
-        { value: '공동명의1주택', label: '공동명의 1주택' },
+        { value: '공동명의1주택', label: '공동명의 1주택 (부부 인별 계산)' },
         { value: '다주택', label: '다주택·기타' },
       ], '1세대1주택'),
       money('gongsi', '공시가격 합계', 1_500_000_000),
+      int('shareA', '공동명의: 본인 지분율(%) — 배우자는 나머지', 50),
       int('period', '보유기간(년)', 10),
       int('age', '소유자 나이(만)', 60),
     ],
     run: (v) => {
       // 종부세는 재산세 중복분 공제를 위해 재산세액이 필요 — 내부에서 먼저 계산
       const propertyTax = calcPropertyTax(v.oneOOne, v.gongsi).propertyTax;
+      if (v.oneOOne === '공동명의1주택') {
+        const shareA = Math.min(Math.max(v.shareA || 50, 0), 100) / 100;
+        const c = calcAggrTaxCouple(v.gongsi, shareA, '비조정지역', propertyTax);
+        const pctA = Math.round(shareA * 100), pctB = 100 - pctA;
+        return {
+          headline: c.total, headlineLabel: '부부합계 (종부세 + 농특세, 연간)',
+          sub: c.total === 0
+            ? '각자 지분 공시가격이 인별 공제 9억 이하 → 부부 모두 종부세 없음'
+            : `본인(${pctA}%) ${won(c.a.total)} + 배우자(${pctB}%) ${won(c.b.total)} — 인별 각자 계산 합산`,
+          extraHtml: '<p style="font-size:12.5px;color:#566573;margin:6px 0 0">종부세는 인별 과세 — 각자 지분에 '
+            + '각자 기본공제 9억(부부 합계 18억)을 적용해 계산했습니다. 특례(1세대1주택 방식) 비교는 '
+            + '<a href="aggr-couple.html">부부 공동명의 전용 계산기</a>에서 확인하세요.</p>',
+          computations: [
+            { kind: 'aggr', label: `본인 지분 ${pctA}%`, result: c.a },
+            { kind: 'aggr', label: `배우자 지분 ${pctB}%`, result: c.b },
+          ],
+          lawRef: c.lawRef,
+        };
+      }
       const r = calcAggrTax(v.oneOOne, '비조정지역', v.gongsi, v.period, v.age, propertyTax);
       const dc = r.breakdown.combinedDc > 0 ? ` · 세액공제 ${(r.breakdown.combinedDc * 100).toFixed(0)}%` : '';
       return {
@@ -194,13 +215,14 @@ const CALCULATORS = [
     fields: [
       sel('oneOOne', '주택 유형', [
         { value: '1세대1주택', label: '1세대1주택' },
-        { value: '공동명의1주택', label: '공동명의 1주택' },
+        { value: '공동명의1주택', label: '공동명의 1주택 (부부 인별 계산)' },
         { value: '다주택', label: '다주택·기타' },
       ], '1세대1주택'),
       sel('isResident', '실거주 여부 (1주택)', [
         { value: 1, label: '실거주' },
         { value: 0, label: '비거주(전세·공실 등)' },
       ], 1),
+      int('shareA', '공동명의: 본인 지분율(%) — 배우자는 나머지', 50),
       int('residentSharePct', '다주택: 거주주택 가액 비중(%)', 50),
       int('ownCount', '보유 주택수', 1),
       sel('heavy', '조정대상지역 (2028~ 비율 판정)', [
@@ -213,22 +235,14 @@ const CALCULATORS = [
     ],
     run: (v) => {
       const propertyTax = calcPropertyTax(v.oneOOne, v.gongsi).propertyTax;
-      const cmp = compareAggrTaxReform2026(
-        v.oneOOne, v.heavy, v.gongsi, v.period, v.age, propertyTax,
-        {
-          isResident: v.isResident,
-          residentShare: (v.residentSharePct || 0) / 100,
-          ownCount: v.ownCount,
-        },
-      );
+      const reformOpts = {
+        isResident: v.isResident,
+        residentShare: (v.residentSharePct || 0) / 100,
+        ownCount: v.ownCount,
+      };
       const dRow = (d) => d === 0 ? '변동 없음'
         : `${won(Math.abs(d))} ${d > 0 ? '증가 ▲' : '감소 ▼'}`;
-      const rows = [
-        ['현행 (2026년분)', cmp.current, '—'],
-        ['개편안 2027년분 (과도기)', cmp.y2027, dRow(cmp.diff.y2027)],
-        ['개편안 2028년분~ (단일세율)', cmp.y2028, dRow(cmp.diff.y2028)],
-      ];
-      const extraHtml = `
+      const cmpTable = (rows) => `
         <table class="cmp-table" style="width:100%;border-collapse:collapse;margin:12px 0">
           <thead><tr>
             <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px">귀속연도</th>
@@ -237,21 +251,61 @@ const CALCULATORS = [
             <th style="text-align:right;border-bottom:1px solid #ccc;padding:6px">종부세+농특세</th>
             <th style="text-align:right;border-bottom:1px solid #ccc;padding:6px">현행 대비</th>
           </tr></thead>
-          <tbody>${rows.map(([label, r, d]) => `
+          <tbody>${rows.map(([label, deduct, fmr, total, d]) => `
             <tr>
               <td style="padding:6px">${label}</td>
-              <td style="text-align:right;padding:6px">${won(r.breakdown.deductAmt)}</td>
-              <td style="text-align:right;padding:6px">${(r.breakdown.fairMarketRate * 100).toFixed(0)}%</td>
-              <td style="text-align:right;padding:6px"><b>${won(r.total)}</b></td>
+              <td style="text-align:right;padding:6px">${deduct}</td>
+              <td style="text-align:right;padding:6px">${(fmr * 100).toFixed(0)}%</td>
+              <td style="text-align:right;padding:6px"><b>${won(total)}</b></td>
               <td style="text-align:right;padding:6px">${d}</td>
             </tr>`).join('')}
           </tbody>
         </table>`;
+
+      if (v.oneOOne === '공동명의1주택') {
+        // 인별 과세: 각 레짐을 부부 각자 지분으로 계산해 합산 비교
+        const shareA = Math.min(Math.max(v.shareA || 50, 0), 100) / 100;
+        const couple = (reformYear) => calcAggrTaxCouple(v.gongsi, shareA, v.heavy, propertyTax,
+          reformYear ? { ...reformOpts, reformYear } : {});
+        const cur = couple(0), y27 = couple(2027), y28 = couple(2028);
+        const pctA = Math.round(shareA * 100), pctB = 100 - pctA;
+        const rows = [
+          ['현행 (2026년분)', `인별 ${won(cur.a.breakdown.deductAmt)}`, cur.a.breakdown.fairMarketRate, cur.total, '—'],
+          ['개편안 2027년분 (과도기)', `인별 ${won(y27.a.breakdown.deductAmt)}`, y27.a.breakdown.fairMarketRate, y27.total, dRow(y27.total - cur.total)],
+          ['개편안 2028년분~ (단일세율)', `인별 ${won(y28.a.breakdown.deductAmt)}`, y28.a.breakdown.fairMarketRate, y28.total, dRow(y28.total - cur.total)],
+        ];
+        return {
+          headline: y28.total,
+          headlineLabel: '부부합계 — 개편안 적용 세액 (2028년분~ 기준, 연간)',
+          sub: `현행 ${won(cur.total)} → 2027년 ${won(y27.total)} → 2028년~ ${won(y28.total)} (부부 각자 계산 합산)`,
+          extraHtml: cmpTable(rows)
+            + '<p style="font-size:12.5px;color:#566573;margin:6px 0 0">종부세는 인별 과세 — 모든 연도를 부부 각자 지분'
+            + `(본인 ${pctA}% / 배우자 ${pctB}%)으로 계산해 합산했습니다. 개편안의 공동명의 인별 공제 변경은 미공표라 인별 9억을 유지합니다.</p>`,
+          computations: [
+            { kind: 'aggr', label: `현행 — 본인 ${pctA}%`, result: cur.a },
+            { kind: 'aggr', label: `현행 — 배우자 ${pctB}%`, result: cur.b },
+            { kind: 'aggr', label: `2027년분 — 본인 ${pctA}%`, result: y27.a },
+            { kind: 'aggr', label: `2027년분 — 배우자 ${pctB}%`, result: y27.b },
+            { kind: 'aggr', label: `2028년분~ — 본인 ${pctA}%`, result: y28.a },
+            { kind: 'aggr', label: `2028년분~ — 배우자 ${pctB}%`, result: y28.b },
+          ],
+          lawRef: y28.lawRef,
+        };
+      }
+
+      const cmp = compareAggrTaxReform2026(
+        v.oneOOne, v.heavy, v.gongsi, v.period, v.age, propertyTax, reformOpts,
+      );
+      const rows = [
+        ['현행 (2026년분)', won(cmp.current.breakdown.deductAmt), cmp.current.breakdown.fairMarketRate, cmp.current.total, '—'],
+        ['개편안 2027년분 (과도기)', won(cmp.y2027.breakdown.deductAmt), cmp.y2027.breakdown.fairMarketRate, cmp.y2027.total, dRow(cmp.diff.y2027)],
+        ['개편안 2028년분~ (단일세율)', won(cmp.y2028.breakdown.deductAmt), cmp.y2028.breakdown.fairMarketRate, cmp.y2028.total, dRow(cmp.diff.y2028)],
+      ];
       return {
         headline: cmp.y2028.total,
         headlineLabel: '개편안 적용 세액 (2028년분~ 기준, 연간)',
         sub: `현행 ${won(cmp.current.total)} → 2027년 ${won(cmp.y2027.total)} → 2028년~ ${won(cmp.y2028.total)}`,
-        extraHtml,
+        extraHtml: cmpTable(rows),
         computations: [
           { kind: 'aggr', label: '현행 (2026년분)', result: cmp.current },
           { kind: 'aggr', label: '개편안 2027년분 (과도기)', result: cmp.y2027 },

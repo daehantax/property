@@ -54,3 +54,33 @@ describe('calcPropertyTax — 재산세', () => {
       .toBeGreaterThan(low.propertyTax / 800_000_000);
   });
 });
+
+describe('공동명의 1주택 — 1세대1주택과 동일 취급 (물건별 과세)', () => {
+  it('공정시장가액비율 43~45% 특례 적용', () => {
+    expect(calcPropertyTax('공동명의1주택', 500_000_000).breakdown.fairMarketRatio).toBe(0.44);
+    expect(calcPropertyTax('공동명의1주택', 1_500_000_000).breakdown.fairMarketRatio).toBe(0.45);
+  });
+
+  it('세액이 단독명의 1세대1주택과 동일', () => {
+    const single = calcPropertyTax('1세대1주택', 800_000_000);
+    const couple = calcPropertyTax('공동명의1주택', 800_000_000);
+    expect(couple.total).toBeCloseTo(single.total, 6);
+  });
+});
+
+describe('특례세율 판정 (지방세법 §111의2)', () => {
+  it('1세대1주택 & 공시 9억 이하 → 특례세율', () => {
+    expect(calcPropertyTax('1세대1주택', 800_000_000).breakdown.specialRate).toBe(true);
+  });
+
+  it('1세대1주택이라도 공시 9억 초과 → 표준세율', () => {
+    expect(calcPropertyTax('1세대1주택', 1_500_000_000).breakdown.specialRate).toBe(false);
+  });
+
+  it('다주택은 공시 9억 이하라도 표준세율', () => {
+    const r = calcPropertyTax('다주택', 500_000_000);
+    expect(r.breakdown.specialRate).toBe(false);
+    // 과표 3억: 표준세율 19.5만 + 1.5억 × 0.25% = 57만
+    expect(r.propertyTax).toBeCloseTo(195_000 + 150_000_000 * 0.0025, 2);
+  });
+});

@@ -110,22 +110,23 @@ function propertySteps(result) {
 function aggrSteps(result) {
   const b = result.breakdown;
   const reform = (b.reformYear ?? 0) > 0;
+  const isCouple = b.oneOOne === '공동명의1주택';
   let deductLabel;
-  if (!reform) {
+  if (isCouple) {
+    deductLabel = '공동명의 1주택 — 인별 기본공제 9억' + (reform ? ' (개편안 인별 공제 변경 미공표 — 현행 유지)' : '');
+  } else if (!reform) {
     deductLabel = b.oneOOne === '1세대1주택' ? '1세대1주택 12억' : '다주택·기타 9억';
   } else if (b.oneOOne === '1세대1주택') {
     deductLabel = b.isResident ? '실거주 1주택 14억 (개편안)' : '비거주 1주택 9억 (개편안)';
-  } else if (b.oneOOne === '다주택') {
-    deductLabel = '다주택 4억 + 5억 × 거주주택 가액비중 (개편안)';
   } else {
-    deductLabel = '공동명의 1주택 9억';
+    deductLabel = '다주택 4억 + 5억 × 거주주택 가액비중 (개편안)';
   }
   const lines = [
-    `- 공시가격 합계: ${won(b.gongsi)}`,
+    `- ${isCouple ? '지분 공시가격' : '공시가격 합계'}: ${won(b.gongsi)}`,
     `- 공제금액: △${won(b.deductAmt)} (${deductLabel})`,
   ];
   if (b.aggrTaxBase <= 0) {
-    lines.push('- 과세표준: 0원 → **종합부동산세: 0원** (공시가격이 공제금액 이하)');
+    lines.push(`- 과세표준: 0원 → **종합부동산세: 0원** (${isCouple ? '지분 공시가격이 인별 공제 9억 이하' : '공시가격이 공제금액 이하'})`);
     return lines;
   }
   lines.push(
@@ -137,6 +138,9 @@ function aggrSteps(result) {
     const capped = (b.creditCap ?? 0) > 0 && b.creditAmt === b.creditCap;
     lines.push(`- 장기보유·연령 세액공제: ${pct(b.combinedDc)}`
       + (capped ? ` → 한도 ${won(b.creditCap)} 적용 (개편안)` : ''));
+  }
+  if ((b.capReduction ?? 0) > 0) {
+    lines.push(`- 세부담상한(§10): 전년도 보유세 ${won(b.prevYearTotal)} × 150% = ${won(b.capLimit)} 한도 → △${won(b.capReduction)}`);
   }
   if ((b.reformYear ?? 0) > 0) {
     lines.push(`- 적용 기준: 2026 세제개편안 ${b.reformYear === 2027 ? '2027년 과도기(세율 0.5~3.5%)' : '2028년~ 단일세율(0.5~5.0%)'}`

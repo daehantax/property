@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재산세 계산기 — 주택분</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .bt-layout { display: flex; gap: 18px; align-items: flex-start; }
+  #btForm { width: 400px; flex-shrink: 0; }
+  #btResult { flex: 1; min-width: 0; min-height: 380px; }
+  .opt-note { font-size: 11.5px; color: #7b8a97; margin-top: 3px; line-height: 1.5; }
+  .crumb { font-size: 12.5px; margin: 0 0 10px; }
+  .crumb a { color: #1a5276; }
+  @media (max-width: 900px) { .bt-layout { flex-direction: column; } #btForm { width: 100%; } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="aggr-home.html" class="active">보유세 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="crumb"><a href="aggr-home.html">← 보유세 계산기</a> · <b>재산세</b> (주택분)</p>
+  <p class="page-intro">
+    주택분 재산세를 계산합니다 — 1세대 1주택 특례(공정시장가액비율 43~45%, 공시 9억 이하 특례세율),
+    표준세율, 도시지역분(0.14%), 지방교육세(재산세의 20%)를 반영합니다.
+    재산세는 <b>물건별 과세</b>라 부부 공동명의라도 주택 전체로 계산한 뒤 지분비율로 나눠 납부합니다(총액 동일).
+    계산 상세의 <b>밑줄 친 항목을 누르면 산식</b>을 볼 수 있습니다.
+  </p>
+
+  <div class="bt-layout">
+    <div class="panel" id="btForm">
+      <label>주택 유형</label>
+      <select id="inType">
+        <option value="1세대1주택" selected>1세대 1주택 (단독·부부 공동명의)</option>
+        <option value="다주택">다주택·기타</option>
+      </select>
+      <label>공시가격</label>
+      <input id="inGongsi" data-kind="money" inputmode="numeric" value="900,000,000"><div class="money-hint"></div>
+      <label>공동명의: 본인 지분율(%) — 단독명의는 100</label>
+      <input id="inShare" inputmode="numeric" value="100">
+      <p class="opt-note">지분율을 입력하면 전체 세액과 함께 본인 부담분을 보여줍니다. 세액 총액은 명의 형태와 무관하게 같습니다.</p>
+      <button class="btn-primary" id="calcBtn">계산하기</button>
+    </div>
+    <div class="panel" id="btResult">
+      <div class="result-empty" id="empty">입력값을 넣고 「계산하기」를 누르세요.</div>
+      <div id="result" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script src="property-calc.js"></script>
+</body>
+</html>
