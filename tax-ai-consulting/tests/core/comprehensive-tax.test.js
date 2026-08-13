@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcAggrTax, compareAggrTaxReform2026 } from '../../src/core/comprehensive-tax.js';
+import { calcAggrTax, calcAggrTaxCouple, compareAggrTaxReform2026 } from '../../src/core/comprehensive-tax.js';
 import { AGGR_DEDUCT_SINGLE, AGGR_DEDUCT_OTHERS } from '../../src/core/constants.js';
 
 describe('calcAggrTax — 종합부동산세', () => {
@@ -193,5 +193,77 @@ describe('2026 세제개편안 — 종부세 (reformOpts.reformYear)', () => {
       expect(cmp.current.total).toBeLessThan(cmp.y2027.total);
       expect(cmp.y2027.total).toBeLessThan(cmp.y2028.total);
     });
+  });
+});
+
+describe('calcAggrTaxCouple — 부부 공동명의 인별 계산', () => {
+
+  it('50:50 공시 15억: 각자 7.5억 < 인별 공제 9억 → 부부 모두 0원', () => {
+    const c = calcAggrTaxCouple(1_500_000_000, 0.5, '비조정지역', 2_000_000);
+    expect(c.a.aggrTax).toBe(0);
+    expect(c.b.aggrTax).toBe(0);
+    expect(c.total).toBe(0);
+  });
+
+  it('부부 합계 = 각자 세액의 합', () => {
+    const c = calcAggrTaxCouple(3_000_000_000, 0.5, '비조정지역', 5_000_000);
+    expect(c.aggrTax).toBe(c.a.aggrTax + c.b.aggrTax);
+    expect(c.ruralTax).toBe(c.a.ruralTax + c.b.ruralTax);
+    expect(c.total).toBe(c.a.total + c.b.total);
+  });
+
+  it('각자 계산은 지분 가액 − 9억 기준 (인별 공제 18억 효과)', () => {
+    const c = calcAggrTaxCouple(3_000_000_000, 0.5, '비조정지역', 5_000_000);
+    // 각자: (15억 − 9억) × 60% = 3.6억 과표
+    expect(c.a.breakdown.aggrTaxBase).toBe(360_000_000);
+    expect(c.a.breakdown.deductAmt).toBe(900_000_000);
+  });
+
+  it('누진 완화: 인별 합산이 합산가액 일괄 계산보다 작다', () => {
+    const couple = calcAggrTaxCouple(3_000_000_000, 0.5, '비조정지역', 5_000_000);
+    const lump = calcAggrTax('공동명의1주택', '비조정지역', 3_000_000_000, 0, 0, 5_000_000);
+    expect(couple.aggrTax).toBeLessThan(lump.aggrTax);
+  });
+
+  it('지분 비대칭(70:30): 각자 지분 가액으로 계산', () => {
+    const c = calcAggrTaxCouple(3_000_000_000, 0.7, '비조정지역', 5_000_000);
+    expect(c.a.breakdown.gongsi).toBe(2_100_000_000);
+    expect(c.b.breakdown.gongsi).toBe(900_000_000);
+    expect(c.b.aggrTax).toBe(0);   // 9억 − 9억 = 0
+  });
+
+  it('인별 방식에는 세액공제 없음', () => {
+    const c = calcAggrTaxCouple(3_000_000_000, 0.5, '비조정지역', 5_000_000);
+    expect(c.a.breakdown.combinedDc).toBe(0);
+  });
+});
+
+describe('세부담상한 (reformOpts.prevYearTotal)', () => {
+  it('미입력(0) 시 상한 미적용', () => {
+    const r = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 0, 30, 3_000_000);
+    expect(r.breakdown.capReduction).toBe(0);
+  });
+
+  it('당해 보유세가 전년 150% 이하면 차감 없음', () => {
+    const r = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 0, 30, 3_000_000,
+      { prevYearTotal: 100_000_000 });
+    expect(r.breakdown.capReduction).toBe(0);
+  });
+
+  it('전년 150% 초과분은 종부세에서 차감', () => {
+    const base = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 0, 30, 3_000_000);
+    const prev = 5_000_000;   // 상한 750만 → 재산세 300만 + 종부세 상한 450만
+    const r = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 0, 30, 3_000_000,
+      { prevYearTotal: prev });
+    expect(r.breakdown.capLimit).toBe(7_500_000);
+    expect(r.aggrTax).toBe(Math.floor(7_500_000 - 3_000_000));
+    expect(r.aggrTax).toBeLessThan(base.aggrTax);
+    expect(r.ruralTax).toBe(Math.floor((7_500_000 - 3_000_000) * 0.2));
+  });
+
+  it('상한이 재산세보다도 작으면 종부세 0까지 차감', () => {
+    const r = calcAggrTax('다주택', '비조정지역', 3_000_000_000, 0, 30, 3_000_000,
+      { prevYearTotal: 1_000_000 });
+    expect(r.aggrTax).toBe(0);
   });
 });

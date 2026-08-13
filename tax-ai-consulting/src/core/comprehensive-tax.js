@@ -28,6 +28,7 @@ const LAW_REF = [
   '종합부동산세법 §8(주택분 과세표준)',
   '종합부동산세법 §9(세율)',
   '종합부동산세법 §9의2(1세대1주택 세액공제 — 장기보유·연령)',
+  '종합부동산세법 §10(세부담의 상한 — 직전연도 보유세 상당액의 150%)',
   '종합부동산세법시행령 §2의4(공정시장가액비율 60%)',
   '농어촌특별세법 §5(종부세분 20%)',
 ];
@@ -78,7 +79,9 @@ function rate2028(base) {
  *
  * @param {string} oneOOne 주택 유형
  *   "1세대1주택"  — 12억 공제, 세액공제(장기/연령) 적용
- *   "공동명의1주택" — 9억 공제 (인별 6억×2), 세액공제 없음
+ *   "공동명의1주택" — 인별 기본공제 9억(2023년~ 현행), 세액공제 없음
+ *     ※ 종부세는 인별 과세 — 부부 공동명의는 부부 합산 가액을 넣지 말고
+ *       calcAggrTaxCouple()로 각자 지분씩 계산해 합산할 것(각자 9억, 부부 합계 18억 공제)
  *   "다주택"       — 9억 공제, 세액공제 없음
  * @param {string} heavy 조정지역 여부 ("조정지역" | "비조정지역")
  *   — 현행법상 세율 동일하나, 개편안 2028년~ 공정시장가액비율(80%) 판정에 사용
@@ -91,11 +94,14 @@ function rate2028(base) {
  *   @param {number} [reformOpts.isResident=1]  1주택 실거주 여부 (0/1) — 공제 14억/9억 판정
  *   @param {number} [reformOpts.residentShare=0] 다주택: 거주주택 공시가격 ÷ 합계 (0~1)
  *   @param {number} [reformOpts.ownCount=1]    보유 주택수 — 2028년~ 공정시장가액비율 판정
+ *   @param {number} [reformOpts.prevYearTotal=0] 직전연도 보유세 상당액(재산세+종부세) [원]
+ *     — 0보다 크면 세부담상한(§10, 150%) 적용: 당해 재산세+종부세가 전년의 150%를
+ *       넘지 않도록 초과분을 종부세에서 차감
  * @returns {{ aggrTax: number, ruralTax: number, total: number, breakdown: object, lawRef: string[] }}
  */
 export function calcAggrTax(oneOOne, heavy, gongsi, period, age, propertyTax, reformOpts = {}) {
   const {
-    reformYear = 0, isResident = 1, residentShare = 0, ownCount = 1,
+    reformYear = 0, isResident = 1, residentShare = 0, ownCount = 1, prevYearTotal = 0,
   } = reformOpts;
   const R = AGGR_REFORM2026;
 
@@ -110,7 +116,7 @@ export function calcAggrTax(oneOOne, heavy, gongsi, period, age, propertyTax, re
     deductAmt = R.DEDUCT_MULTI_BASE
       + R.DEDUCT_MULTI_RESIDENT_BONUS * Math.min(Math.max(residentShare, 0), 1);
   } else {
-    // 공동명의1주택: 개편안 인별 공제 변경 미공표 — 현행 처리 유지
+    // 공동명의1주택(인별 지분 계산): 개편안 인별 공제 변경 미공표 — 현행 9억 유지
     deductAmt = AGGR_DEDUCT_OTHERS;
   }
 
@@ -163,7 +169,19 @@ export function calcAggrTax(oneOOne, heavy, gongsi, period, age, propertyTax, re
     creditCap = R.CREDIT_CAP[reformYear] ?? R.CREDIT_CAP_FINAL;
     if (creditAmt > creditCap) creditAmt = creditCap;
   }
-  const aggrTaxFinal = taxAfterPtDc - creditAmt;
+  let aggrTaxFinal = taxAfterPtDc - creditAmt;
+
+  // 세부담상한 (§10): 직전연도 보유세 상당액 입력 시에만 적용.
+  // (당해 재산세 + 종부세) 가 전년 상당액 × 150% 를 넘으면 초과분을 종부세에서 차감
+  let capLimit = 0, capReduction = 0;
+  if (prevYearTotal > 0) {
+    capLimit = prevYearTotal * 1.5;
+    const currentBurden = propertyTax + aggrTaxFinal;
+    if (currentBurden > capLimit) {
+      capReduction = Math.min(aggrTaxFinal, currentBurden - capLimit);
+      aggrTaxFinal -= capReduction;
+    }
+  }
 
   const aggrTaxFloor = Math.floor(aggrTaxFinal);
   const ruralTax     = Math.floor(aggrTaxFinal * 0.2);  // 농특세 20%
@@ -175,12 +193,52 @@ export function calcAggrTax(oneOOne, heavy, gongsi, period, age, propertyTax, re
     breakdown: {
       oneOOne, gongsi, deductAmt, aggrTaxBase,
       aggrTaxBeforeDc: aggrTax,
-      propertyTaxDc,
+      propertyTaxDc, propertyTax,
       prdDc, ageDc, combinedDc, creditAmt, creditCap,
+      prevYearTotal, capLimit, capReduction,
       fairMarketRate,
       reformYear, isResident, residentShare, ownCount,
     },
     lawRef: reformYear ? [...LAW_REF, ...LAW_REF_REFORM] : LAW_REF,
+  };
+}
+
+/**
+ * 부부 공동명의 1주택 종부세 — 인별(각자) 계산 후 합산
+ *
+ * 종부세는 인별 과세다. 부부 공동명의 1주택은 각자 자기 지분의 공시가격에서
+ * 각자 기본공제 9억(부부 합계 18억)을 빼고 각자 누진세율로 계산한 뒤 더한다.
+ * 재산세는 물건별 과세라 주택 전체로 계산한 값을 지분비율로 배분해 공제한다.
+ * 인별 방식에는 1세대1주택 세액공제(장기보유·연령)가 없다 — 공동명의 1주택자
+ * 특례(§10의2: 1세대1주택 단독명의 방식, 12억 공제 + 세액공제) 신청이 유리한지는
+ * calcAggrTax('1세대1주택', ...) 결과와 비교해 판단한다.
+ *
+ * @param {number} gongsi 주택 전체 공시가격 [원]
+ * @param {number} shareA 본인 지분율 (0~1, 기본 0.5 — 배우자는 1−shareA)
+ * @param {string} heavy 조정지역 여부 ("조정지역" | "비조정지역")
+ * @param {number} propertyTax 주택 전체 재산세 본세 [원]
+ * @param {object} [opts] calcAggrTax의 reformOpts와 동일.
+ *   prevYearTotal은 부부 합산 전년 보유세 상당액을 넣으면 지분비율로 나눠 적용된다.
+ * @returns {{ a, b, shares: {a:number,b:number}, aggrTax: number, ruralTax: number, total: number, lawRef: string[] }}
+ *   a·b는 각자의 calcAggrTax 결과(인별 내역), aggrTax·ruralTax·total은 부부 합계
+ */
+export function calcAggrTaxCouple(gongsi, shareA, heavy, propertyTax, opts = {}) {
+  const sa = Math.min(Math.max(shareA ?? 0.5, 0), 1);
+  const sb = 1 - sa;
+  // 지분 배분값은 원 단위로 반올림 (부동소수점 오차 방지)
+  const person = (share) => calcAggrTax(
+    '공동명의1주택', heavy, Math.round(gongsi * share), 0, 0, Math.round(propertyTax * share),
+    { ...opts, prevYearTotal: Math.round((opts.prevYearTotal ?? 0) * share) },
+  );
+  const a = person(sa);
+  const b = person(sb);
+  return {
+    a, b,
+    shares: { a: sa, b: sb },
+    aggrTax: a.aggrTax + b.aggrTax,
+    ruralTax: a.ruralTax + b.ruralTax,
+    total: a.total + b.total,
+    lawRef: [...a.lawRef, '종합부동산세법 §7(납세의무자 — 인별 과세)', '종합부동산세법 §10의2(공동명의 1주택자 특례 — 신청 시 1세대1주택 방식 선택 가능)'],
   };
 }
 

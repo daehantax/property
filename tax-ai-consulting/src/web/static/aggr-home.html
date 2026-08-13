@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>보유세 계산기 — 종합부동산세·재산세</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="aggr-home.html" class="active">보유세 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    보유 형태별 <b>종합부동산세·재산세 계산기</b>입니다. 종부세는 <b>인별 과세</b>라서 단독명의와
+    부부 공동명의의 계산 방식이 다릅니다 — 보유 형태를 골라 들어가세요.
+    모든 계산은 브라우저 안에서만 이뤄지며 입력값이 서버로 전송되지 않습니다.
+  </p>
+
+  <div class="hub-grid">
+    <a class="hub-card" href="aggr-single.html">
+      <span class="hc-badge">종부세</span>
+      <h3>1세대 1주택 · 단독명의</h3>
+      <p>기본공제 12억, 장기보유·연령 세액공제(최대 80%) 적용.
+      산출세액·재산세 공제·세액공제·세부담상한 산식을 항목별로 확인할 수 있습니다.</p>
+    </a>
+
+    <a class="hub-card" href="aggr-couple.html">
+      <span class="hc-badge">종부세 · 인별 계산</span>
+      <h3>1세대 1주택 · 부부 공동명의</h3>
+      <p>부부 각자 지분(기본 50:50, 수정 가능)에 각자 9억씩 공제해 <b>따로 계산 후 합산</b>합니다.
+      특례(1세대1주택 방식) 신청이 유리한지도 비교합니다.</p>
+    </a>
+
+    <a class="hub-card soon" href="javascript:void(0)" aria-disabled="true">
+      <span class="hc-badge">준비중</span>
+      <h3>1세대 2주택</h3>
+      <p>일시적 2주택·상속주택 등 주택 수 특례를 포함한 2주택 보유세 계산기를 준비하고 있습니다.</p>
+    </a>
+
+    <a class="hub-card" href="property-calc.html">
+      <span class="hc-badge">재산세</span>
+      <h3>재산세 계산기</h3>
+      <p>1세대1주택 특례(공정시장가액비율 43~45%, 공시 9억 이하 특례세율)와 표준세율,
+      도시지역분·지방교육세까지 연간 재산세를 계산합니다.</p>
+    </a>
+  </div>
+
+  <p class="page-intro" style="margin-top:18px">
+    2026 세제개편안(정부안)에 따른 연도별 종부세 변화는
+    <a href="index.html">세금 계산기</a>의 「종부세 개편안 비교」 탭에서 확인할 수 있습니다.
+  </p>
+</div>
+</body>
+</html>

@@ -29,8 +29,12 @@ const PAGES = [
   { entry: 'single-exempt.js', html: 'single-exempt.html' },
   { entry: 'redev-exempt.js', html: 'redev-exempt.html' },
   { entry: 'marriage-exempt.js', html: 'marriage-exempt.html' },
+  { entry: 'aggr-single.js', html: 'aggr-single.html' },
+  { entry: 'aggr-couple.js', html: 'aggr-couple.html' },
+  { entry: 'property-calc.js', html: 'property-calc.html' },
 ];
 const ASSETS = ['styles.css'];
+const HTML_ONLY = ['aggr-home.html'];   // JS 없이 HTML만 복사하는 페이지
 
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
@@ -46,9 +50,11 @@ await build({
 });
 
 for (const p of PAGES) fs.copyFileSync(path.join(staticDir, p.html), path.join(dist, p.html));
+for (const h of HTML_ONLY) fs.copyFileSync(path.join(staticDir, h), path.join(dist, h));
 for (const a of ASSETS) fs.copyFileSync(path.join(staticDir, a), path.join(dist, a));
 
 const kb = (f) => `${(fs.statSync(path.join(dist, f)).size / 1024).toFixed(0)}KB`;
 console.log('✔ 정적 빌드 완료 (dist/):');
 for (const p of PAGES) console.log(`  - ${p.html}  +  ${p.entry} (${kb(p.entry)})`);
+for (const h of HTML_ONLY) console.log(`  - ${h}`);
 for (const a of ASSETS) console.log(`  - ${a}`);
