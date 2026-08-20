@@ -140,6 +140,106 @@ const CALCULATORS = [
     },
   },
   {
+    id: 'single-ltr', name: '1주택 장기거주공제 비교',
+    intro: '1세대1주택 장기보유특별공제가 2026 세제개편안(2026.8.3 정부안)으로 '
+      + '「장기거주소득공제」(거주 중심)로 바뀝니다. 동일 조건으로 양도시기별 3개 구간 — '
+      + '① 2026~2027년 양도(현행 유지: 보유 연4%+거주 연4%, 최대 80%) → '
+      + '② 2028년 양도(전환 1단계: 보유 연2%+거주 연6%, 공제한도 20억) → '
+      + '③ 2029년 이후 양도(완전 시행: 거주만 연8% 최대 80%, 공제한도 10억, 기본공제 2,500만 확대) — '
+      + '의 세액을 비교합니다. 12억 비과세는 그대로 유지됩니다. ※ 국회 통과 전 정부안 기준',
+    fields: [
+      money('marketPrice', '양도가액(시가)', 3_000_000_000),
+      money('basePrice', '취득가액', 1_000_000_000),
+      int('holdPeriod', '보유기간(년)', 10),
+      int('stayPeriod', '거주기간(년)', 2),
+    ],
+    run: (v) => {
+      // 1세대1주택 전용 — 양도시기(레짐)만 바꿔 3개 구간을 동일 조건으로 계산
+      const calc = (reformYear) => calcSaleIncomeTax(
+        v.marketPrice, v.basePrice, v.holdPeriod, v.stayPeriod,
+        '1세대1주택', '주택', 1, 0, 0, '', 0, reformYear,
+      );
+      const cur = calc(0);      // 현행 = 2026~2027년 양도분 (개편안도 2027년까지 현행 유지)
+      const y28 = calc(2028);   // 전환 1단계
+      const y29 = calc(2029);   // 완전 시행
+
+      const dRow = (d) => d === 0 ? '변동 없음'
+        : `${won(Math.abs(d))} ${d > 0 ? '증가 ▲' : '감소 ▼'}`;
+      const rateCell = (b) => {
+        if (b.totalDeductRate === 0) return '공제 없음';
+        const parts = [];
+        if (b.holdDeductRate) parts.push(`보유 ${b.holdDeductRate}%`);
+        if (b.stayDeductRate) parts.push(`거주 ${b.stayDeductRate}%`);
+        return `${parts.join(' + ')} = ${b.totalDeductRate}%`;
+      };
+      const capCell = (b) => b.deductCap > 0 ? won(b.deductCap) : '한도 없음';
+
+      const th = 'border-bottom:1px solid #ccc;padding:6px';
+      const rows = [
+        ['① 2026~2027년 양도 (현행 장특공)', cur, '—'],
+        ['② 2028년 양도 (전환 1단계)', y28, dRow(y28.total - cur.total)],
+        ['③ 2029년~ 양도 (완전 시행)', y29, dRow(y29.total - cur.total)],
+      ];
+      const cmpTable = `
+        <div class="notice-wrap"><table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+          <thead><tr>
+            <th style="text-align:left;${th}">양도시기 구간</th>
+            <th style="text-align:right;${th}">공제율 (보유+거주)</th>
+            <th style="text-align:right;${th}">공제금액</th>
+            <th style="text-align:right;${th}">공제한도</th>
+            <th style="text-align:right;${th}">기본공제</th>
+            <th style="text-align:right;${th}">양도세+지방세</th>
+            <th style="text-align:right;${th}">현행 대비</th>
+          </tr></thead>
+          <tbody>${rows.map(([label, r, d]) => `
+            <tr>
+              <td style="padding:6px">${label}</td>
+              <td style="text-align:right;padding:6px">${rateCell(r.breakdown)}</td>
+              <td style="text-align:right;padding:6px">${won(r.breakdown.deductAmt)}</td>
+              <td style="text-align:right;padding:6px">${capCell(r.breakdown)}</td>
+              <td style="text-align:right;padding:6px">${won(r.breakdown.basicDeduct)}</td>
+              <td style="text-align:right;padding:6px"><b>${won(r.total)}</b></td>
+              <td style="text-align:right;padding:6px">${d}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>`;
+
+      // 제도 변화 요약 (계산과 무관한 규정 비교 — 상담용 표)
+      const ruleTable = `
+        <div class="compare-box"><h4>제도 변화 요약 — 1세대1주택 장기보유특별공제 → 장기거주소득공제</h4>
+        <div class="notice-wrap"><table class="notice">
+          <thead><tr><th>구분</th><th>~2027년 양도 (현행)</th><th>2028년 양도 (전환 1단계)</th><th>2029년~ 양도 (완전 시행)</th></tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">보유기간 공제</td><td>연 4% (최대 40%)</td><td>연 2% (최대 20%) — 절반 축소</td><td>폐지</td></tr>
+            <tr><td class="rowlabel">거주기간 공제</td><td>연 4% (최대 40%)</td><td>연 6% (최대 60%)</td><td>연 8% (최대 80%)</td></tr>
+            <tr><td class="rowlabel">최대 공제율</td><td>80% (보유10년+거주10년)</td><td>80% (보유10년+거주10년)</td><td>80% (거주 10년 이상만으로 달성)</td></tr>
+            <tr><td class="rowlabel">공제금액 한도</td><td>없음</td><td>20억원</td><td>10억원</td></tr>
+            <tr><td class="rowlabel">기본공제</td><td>250만원</td><td>250만원</td><td>10년 이상 거주 + 양도가액 30억 이하 → 2,500만원 (그 외 250만원)</td></tr>
+            <tr><td class="rowlabel">기본 요건</td><td colspan="3">보유 3년 이상 + 거주 2년 이상 (거주 2년 미만은 공제 배제) · 12억 비과세는 모든 구간 동일 유지</td></tr>
+          </tbody>
+        </table></div>
+        <p style="font-size:12px;color:#566573;margin:8px 0 0">핵심: 오래 <b>보유</b>만 한 집(거주 짧음)은 2028년부터 공제가 크게 줄고,
+        오래 <b>거주</b>한 집은 2029년 이후에도 최대 80%를 그대로 받습니다. 고가주택은 공제한도(20억→10억) 신설로 추가 부담이 생길 수 있습니다.</p>
+        </div>`;
+
+      const nontax = cur.total === 0 && y28.total === 0 && y29.total === 0;
+      return {
+        headline: y29.total,
+        headlineLabel: '2029년 이후 양도 시 세액 (완전 시행 기준)',
+        sub: nontax
+          ? '양도가액 12억 이하 1세대1주택 → 모든 구간 비과세 (세액 없음)'
+          : `① 현행(~2027년) ${won(cur.total)} → ② 2028년 ${won(y28.total)} → ③ 2029년~ ${won(y29.total)}`,
+        extraHtml: cmpTable + ruleTable,
+        computations: [
+          { kind: 'transfer', label: '① 2026~2027년 양도 — 현행 장기보유특별공제', result: cur },
+          { kind: 'transfer', label: '② 2028년 양도 — 장기거주소득공제 전환 1단계', result: y28 },
+          { kind: 'transfer', label: '③ 2029년 이후 양도 — 장기거주소득공제 완전 시행', result: y29 },
+        ],
+        lawRef: y29.lawRef,
+      };
+    },
+  },
+  {
     id: 'property', name: '재산세',
     intro: '공시가격 × 공정시장가액비율(1세대1주택 43~45% / 그 외 60%)로 과세표준을 잡고 누진세율을 적용합니다.',
     fields: [
