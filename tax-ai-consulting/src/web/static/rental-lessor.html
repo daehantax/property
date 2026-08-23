@@ -128,6 +128,7 @@
   <div class="calc-tabs" id="rlTabs">
     <button class="active" data-tab="tab-terminated">거주주택+말소된주택</button>
     <button data-tab="tab-aftersale">거주주택 양도 후+임대주택 양도</button>
+    <button data-tab="tab-choice">거주주택·임대주택 양도 택일</button>
     <button disabled style="opacity:.5;cursor:default">임대 등록 중 (준비중)</button>
   </div>
 
@@ -559,6 +560,197 @@
       실행 전 반드시 예규 원문·확정 법령 및 홈택스 모의계산으로 재검증하시기 바랍니다.
     </p>
   </div>
+
+  <!-- ════════ 탭 3: 거주주택·임대주택 양도 택일 ════════ -->
+  <div id="tab-choice" class="rl-pane" data-store="rl-checklist-choice" style="display:none">
+
+    <div class="rl-premise">
+      <b>전제 —</b> 거주주택(A) 1채 + 등록임대주택(B) 1채 보유 세대가 <b>자녀에게 저가양도할 대상</b>을 고르는 국면.
+      하나의 거래에 ① 증여추정(상증법 §44①) ② 저가양수 증여이익(상증법 §35) ③ 부당행위계산부인(소득령 §167③)
+      ④ 취득세 시가인정액(지방세법 §10의3②) 네 규정이 <b>서로 다른 기준으로 동시에</b> 개입합니다.
+      <div class="rl-flow" style="margin-top:8px">
+        <span class="f">상증세: 3억까지 깎아줌 → 증여세 0</span><span class="arr">vs</span>
+        <span class="f">소득세: 3억 이상이면 잡음 → 시가로 양도세</span>
+      </div>
+      같은 3억이 상증법에서는 <b>면제 한도</b>, 소득세법에서는 <b>과세 요건</b> — 저가양도는 「증여세를 아끼는 기법」이지
+      「양도세를 아끼는 기법」이 아닙니다.
+    </div>
+
+    <div class="rl-note">
+      ⚠ <b>3억원의 실종(취득가액 단절):</b> 한도 내 저가양도는 증여재산가액이 0이므로 소득령 §163⑩의 취득가액 가산도 없습니다.
+      할인 3억은 부모 단계에서 시가로 과세되고 자녀 취득가액(실제 대가)에는 반영되지 않아 <b>자녀 재양도 시 다시 과세</b>됩니다.
+      자녀가 장기 실거주(비과세 목표)·상속 예정이면 무시 가능, 단기 재양도 계획이면 설계 재검토가 필요합니다.
+    </div>
+
+    <div class="rl-progress">
+      <div class="bar"><span></span></div>
+      <div class="pct">0 / 0</div>
+      <button class="reset">전체 초기화</button>
+    </div>
+
+    <div class="rl-actions">
+      <button onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+    </div>
+
+    <!-- 시뮬레이션 -->
+    <div class="rl-step">
+      <h2><span class="stepno">시뮬레이션</span> A vs B 저가양도 택일 계산기 — 라이프사이클(잔여주택 처분까지) 비교</h2>
+      <div class="body">
+        <div class="rl-calc-layout">
+          <div class="cform">
+            <div class="cbox">
+              <h4>A(거주주택) — 단위: 억원·년</h4>
+              <div class="rl-grid2">
+                <div><label>취득가액</label><input type="number" id="chAAcq" value="4" step="0.1" min="0"></div>
+                <div><label>시가(감정평가)</label><input type="number" id="chAVal" value="15" step="0.1" min="0"></div>
+                <div><label>보유기간(년)</label><input type="number" id="chAHold" value="10" step="1" min="0"></div>
+                <div><label>거주기간(년)</label><input type="number" id="chALive" value="10" step="1" min="0"></div>
+              </div>
+              <label style="margin-top:8px">§155⑳ 거주주택 비과세 요건 충족 여부</label>
+              <select id="chA155">
+                <option value="yes">충족 (2년 거주·B 요건·말소 후 5년 내·평생 1회 미소진)</option>
+                <option value="no">미충족 (비과세 불가 — 일반 과세)</option>
+              </select>
+            </div>
+            <div class="cbox">
+              <h4>B(등록임대주택) — 단위: 억원·년</h4>
+              <div class="rl-grid2">
+                <div><label>취득가액</label><input type="number" id="chBAcq" value="5" step="0.1" min="0"></div>
+                <div><label>시가(감정평가)</label><input type="number" id="chBVal" value="12" step="0.1" min="0"></div>
+                <div><label>보유기간(년)</label><input type="number" id="chBHold" value="10" step="1" min="0"></div>
+                <div>
+                  <label>말소 유형</label>
+                  <select id="chBStatus">
+                    <option value="auto">자동말소 (§97의3 50% 가능)</option>
+                    <option value="vol">자진말소 (§97의3 불가 → 표1)</option>
+                    <option value="active">의무임대기간 중 (양도 불가)</option>
+                  </select>
+                </div>
+              </div>
+              <h4 style="margin-top:10px">B 기준시가 3점 (Case 1 잔여 B 안분용)</h4>
+              <div class="rl-grid3">
+                <div><label>B 취득일</label><input type="number" id="chKsAcq" value="3" step="0.1" min="0"></div>
+                <div><label>A 양도일</label><input type="number" id="chKsA" value="6" step="0.1" min="0"></div>
+                <div><label>B 양도일</label><input type="number" id="chKsSell" value="7" step="0.1" min="0"></div>
+              </div>
+            </div>
+            <div class="cbox">
+              <h4>자녀</h4>
+              <label>자녀의 현재 주택수 (취득세율 결정)</label>
+              <select id="chChild">
+                <option value="0">무주택 → 1~3% (구간별)</option>
+                <option value="1">1주택 → 조정지역 2주택 취득 8.4%</option>
+                <option value="2">2주택 이상 → 12.4% 중과</option>
+              </select>
+              <div class="money-hint">대가는 상증법 한도 「시가 − Min(시가×30%, 3억)」로 자동 설정됩니다</div>
+            </div>
+            <button class="btn-primary" id="chBtn">A vs B 비교 계산</button>
+          </div>
+
+          <div class="panel cresult" id="chOut"></div>
+        </div>
+        <p class="disclaimer">⚠ 필요경비·취득세 감면·농특세·공정시장가액비율 변동 등을 단순화한 구조 이해용 계산입니다.
+        중과배제·§97의3의 2026 개편(단계폐지) 논의는 반영하지 않았으므로 실행 전 확정 조문과 홈택스 모의계산으로 검증하십시오.</p>
+      </div>
+    </div>
+
+    <!-- 의사결정 플로우 -->
+    <div class="rl-step">
+      <h2><span class="stepno">플로우</span> 의사결정 순서 — 결론을 뒤집는 4개 변수</h2>
+      <div class="body">
+        <div class="rl-flow">
+          <span class="f">[1] A 시가 12억 이하? → YES: ★ A 저가양도 (부모 양도세 0, 압도적)</span><span class="arr">→</span>
+          <span class="f">[2] B 의무임대기간 중? → YES: B 양도 불가(과태료·추징, 포괄승계만 허용)</span><span class="arr">→</span>
+          <span class="f">[3] 자진말소? → §97의3 불가 → A 유리</span><span class="arr">→</span>
+          <span class="f">[4] 자녀 자금력? A 대가 조달 불가 → B 또는 부담부증여</span><span class="arr">→</span>
+          <span class="f">[5] B 장기보유+상승 전망 → 안분 손실 큼 → ★ B 저가양도</span><span class="arr">→</span>
+          <span class="f">[6] 평생 1회 보존 필요 → B 저가양도</span>
+        </div>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>#</th><th>변수</th><th>Case 1(A 저가양도) 유리</th><th>Case 2(B 저가양도) 유리</th></tr>
+          <tr><td>1</td><td>A의 시가</td><td class="good">12억 이하 → 부모 양도세 0 (압도적)</td><td>12억 크게 초과</td></tr>
+          <tr><td>2</td><td>A 양도일 이후 B의 가격 상승폭</td><td>작음 (안분 손실 미미)</td><td class="good">큼 (안분 손실 극대)</td></tr>
+          <tr><td>3</td><td>B의 말소 유형</td><td>자진말소 (§97의3 불가 → 지금 팔면 손해)</td><td class="good">자동말소 (§97의3 50% 활용)</td></tr>
+          <tr><td>4</td><td>자녀 자금력</td><td>A 대가 조달 가능</td><td class="good">B 대가만 조달 가능</td></tr>
+        </table></div>
+        <p><b>안분의 원리:</b> 안분은 비율 문제가 아니라 <b>"A 보유기간과 겹치는 구간이 영구 과세된다"</b>는 구조 문제입니다.
+        B의 보유기간이 길고 A 양도가 늦을수록 겹치는 구간이 커져 불리합니다(B가 오르면 비과세 비율이 올라도 절대 세액은 증가).</p>
+      </div>
+    </div>
+
+    <!-- STEP 1: A 비과세 체크 -->
+    <div class="rl-step">
+      <h2><span class="stepno">체크 1</span> 거주주택(A) 비과세 가능 여부 — 모든 계산의 출발점</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="ch1-1"><div><div class="t">A에서 2년 이상 거주 (§155⑳ 고유 요건, 조정지역 여부 불문)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch1-2"><div><div class="t">B가 요건 충족 「장기임대주택」인지 확인</div><div class="d">민특법 임대등록 + 소득세법 §168 사업자등록(별도!) + 임대개시일 기준시가 6억(수도권 밖 3억) 이하 + 임대료 5% 제한 준수 + 의무기간 충족(또는 자동·자진말소)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch1-3"><div><div class="t">B 말소된 경우 말소일부터 5년 이내 A 양도 (자동·자진 공통)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch1-4"><div><div class="t">거주주택 비과세 평생 1회 미소진 (2019.2.12 이후 취득 기준)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch1-5"><div><div class="t">1세대 요건 — 자녀 세대분리 완료 (주민등록 + 실제 생계 독립)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch1-6"><div><div class="t">§154① 요건 — 보유 2년, 조정지역 2017.8.3 이후 취득 시 거주 2년, 12억 초과 여부(고가주택 안분)</div></div></label>
+
+        <h3>거주주택 비과세를 깨뜨리는 함정</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>함정</th><th>내용</th></tr>
+          <tr><td class="warn">임대료 5% 위반</td><td>단 한 번의 위반으로 B의 장기임대주택 지위 상실 → A 비과세 소급 부인</td></tr>
+          <tr><td class="warn">의무임대기간 중 B 양도</td><td>민특법 위반 → 과태료(3천만원 이하) + 세제 추징 (임대사업자 지위 포괄양도 제외)</td></tr>
+          <tr><td class="warn">말소 후 5년 도과</td><td>§155⑳ 특례 적용 불가</td></tr>
+          <tr><td class="warn">세대분리 미완성</td><td>자녀가 같은 세대면 주택수 합산</td></tr>
+        </table></div>
+        <p><b>결정적 분기점:</b> A의 시가가 <b>12억원 이하</b>라면 비과세가 전액 적용되어 부모의 양도세는 0원 —
+        이 경우 A 저가양도가 압도적으로 유리합니다(다른 계산 볼 필요 없음. 단 잔여 B의 안분 문제는 남으므로 B 처분 계획 병행 설계).</p>
+      </div>
+    </div>
+
+    <!-- STEP 2: B 조특법 체크 -->
+    <div class="rl-step">
+      <h2><span class="stepno">체크 2</span> 등록임대주택(B) 조세특례 가능 여부</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="ch2-1"><div><div class="t">§97의3 요건 — 2020.12.31 이전 등록 (일몰, 회복 불가)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch2-2"><div><div class="t">국민주택규모 이하 (전용 85㎡, 수도권 밖 읍·면 100㎡) + 임대개시일 기준시가 6억(수도권 밖 3억) 이하</div><div class="d">기준시가 요건은 2018.9.14 이후 취득분</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch2-3"><div><div class="t">임대료 5% 증액 제한 준수 + 8년 이상 임대 (자동말소 시 충족 간주, 자진말소는 간주 규정 없음 → 불가)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch2-4"><div><div class="t">B가 의무임대기간 중인지 확인 — 중이라면 양도 자체가 과태료·추징 사유</div><div class="d">자녀에게 임대사업자 지위 포괄승계 시에만 허용</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch2-5"><div><div class="t">말소 유형·말소일자 확정 → §97의3 가능 여부, 5년·1년 기한 계산</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch2-6"><div><div class="t">B 취득일이 2017.8.3 이전인지 → 향후 B 비과세 시 거주요건 유무 결정</div></div></label>
+        <p><b>§97의3의 경제성:</b> 자동말소면 50% 공제가 살아 있습니다. 양도차익 7억이면 3.5억 공제 ≒ <b>약 9,400만원의 세액 차이</b> —
+        이 카드를 쓸 수 있는지가 B 저가양도의 경제성을 좌우합니다.</p>
+      </div>
+    </div>
+
+    <!-- STEP 3: 실행 체크 -->
+    <div class="rl-step">
+      <h2><span class="stepno">체크 3</span> 저가양도 실행 체크리스트 — 증여추정(§44) 방어 포함</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="ch3-1"><div><div class="t">시가 확정 — 감정평가 확보 (10억 초과 시 2곳 이상 권장)</div><div class="d">양도일 전후 3개월(상증법 평가기간) 내 감정평가가 안전. 평가액이 낮으면 대가도 낮출 수 있어 실질 이전 규모가 커짐</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-2"><div><div class="t">대가 설정 — 상증법 한도 Min(시가×30%, 3억) 검증 + 부당행위계산부인(차액 3억 or 시가 5%) 발동 확인</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-3"><div><div class="t">자녀 자금출처 소명자료 사전 확보 (소득증빙 3~5년치, 대출서류, 재산처분 대금, 수증재산 신고서)</div><div class="d">차용 시 차용증 + 실제 이자 지급 내역 (적정이자율 연 4.6%, 연 이자 1천만원 미만이면 증여이익 과세 제외)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-4"><div><div class="t">대금 전액 계좌이체 실행 (현금·차용증 대체 지급 금지) + 부동산 실거래 신고</div><div class="d">⚠ 가장 흔한 실패: 자녀 계좌에 부모가 자금을 미리 넣어두고 지급 — 자금 흐름 추적 시 즉시 적발, 거래 전체가 증여로 재구성</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-5"><div><div class="t">자녀 세대분리 완료 (주민등록 + 실질, 최소 6개월 전 권장)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-6"><div><div class="t">자녀의 기존 주택수 확인 → 취득세율 결정 (무주택 1~3% / 조정 2주택 8% / 3주택+ 12%)</div><div class="d">취득세 과세표준 = 시가인정액 전제로 자금 계획</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-7"><div><div class="t">상속 10년 내 합산 가능성 검토</div><div class="d">3억 한도 내 설계로 증여재산가액을 0으로 만들면 상속세 합산 문제 회피 가능</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-8"><div><div class="t">취득세 신고(60일 내)·양도세 예정신고(양도월 말일부터 2개월 내) 일정 등록</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch3-9"><div><div class="t">잔여주택 처분 계획 수립 — 안분 대비 기준시가 자료 확보</div></div></label>
+
+        <h3>실행 순서</h3>
+        <div class="rl-flow">
+          <span class="f">① 감정평가 2곳 (A·B)</span><span class="arr">→</span>
+          <span class="f">② A 12억 이하 판정 (최우선)</span><span class="arr">→</span>
+          <span class="f">③ B 말소 유형·일자</span><span class="arr">→</span>
+          <span class="f">④ 세대분리</span><span class="arr">→</span>
+          <span class="f">⑤ 자금출처 정리</span><span class="arr">→</span>
+          <span class="f">⑥ 대가 설정</span><span class="arr">→</span>
+          <span class="f">⑦ 계약·계좌이체·실거래신고</span><span class="arr">→</span>
+          <span class="f">⑧ 취득세·양도세 신고</span><span class="arr">→</span>
+          <span class="f">⑨ 잔여주택 계획</span>
+        </div>
+
+        <h3>종부세 영향 (참고)</h3>
+        <p>어느 쪽을 이전하든 부모·자녀 모두 1주택(공제 12억)이 되어 <b>종부세 0원</b> — 연 250~300만원, 10년 누적 2,500~3,000만원 절감.
+        양쪽에 동일하게 작용하므로 <b>선택 기준은 되지 못합니다</b>. 다만 부모가 A를 계속 보유하는 Case 2는 1세대1주택 고령자·장기보유
+        세액공제(최대 80%)를 계속 축적하므로 A를 향후 상속으로 넘길 계획이라면 유리합니다.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -775,6 +967,168 @@
     $(id).addEventListener('change', calc);
   });
   calc(); // 사례 7 기본값으로 초기 표시
+
+  // ── 양도 택일 시뮬레이션 (탭 3) ─────────────────
+  // 금액 단위: 억원. 세액 표시: 만원 반올림.
+  function fmtWon(eok) {
+    var man = Math.round(eok * 10000);
+    if (man === 0) return '0원';
+    var sign = man < 0 ? '-' : ''; man = Math.abs(man);
+    var e = Math.floor(man / 10000), m = man % 10000;
+    if (e > 0 && m > 0) return sign + e + '억 ' + m.toLocaleString() + '만원';
+    if (e > 0) return sign + e + '억원';
+    return sign + m.toLocaleString() + '만원';
+  }
+  // 양도소득세 기본세율 (과세표준: 억원)
+  function transferTax(base) {
+    if (base <= 0) return 0;
+    var t;
+    if (base <= 0.14) t = base * 0.06;
+    else if (base <= 0.5) t = base * 0.15 - 0.0126;
+    else if (base <= 0.88) t = base * 0.24 - 0.0576;
+    else if (base <= 1.5) t = base * 0.35 - 0.1544;
+    else if (base <= 3) t = base * 0.38 - 0.1994;
+    else if (base <= 5) t = base * 0.40 - 0.2594;
+    else if (base <= 10) t = base * 0.42 - 0.3594;
+    else t = base * 0.45 - 0.6594;
+    return Math.max(0, t) * 1.1; // 지방소득세 포함
+  }
+  // 증여세 (과세표준: 억원) — 신고세액공제 3% 반영
+  function giftTax(base) {
+    if (base <= 0) return 0;
+    var t;
+    if (base <= 1) t = base * 0.10;
+    else if (base <= 5) t = base * 0.20 - 0.1;
+    else if (base <= 10) t = base * 0.30 - 0.6;
+    else if (base <= 30) t = base * 0.40 - 1.6;
+    else t = base * 0.50 - 4.6;
+    return Math.max(0, t) * 0.97;
+  }
+  // 취득세 (유상, 시가인정액 기준, 지방교육세 포함·전용 85㎡ 이하 가정)
+  function acqTax(price, childHomes) {
+    var rate;
+    if (childHomes === '1') rate = 8.4;
+    else if (childHomes === '2') rate = 12.4;
+    else {
+      var r = price <= 6 ? 1 : (price >= 9 ? 3 : (price * 2 / 3 - 3));
+      rate = r * 1.1; // 지방교육세 = 취득세율의 1/10
+    }
+    return { tax: price * rate / 100, rate: rate };
+  }
+  var giftDiscount = function (v) { return Math.min(v * 0.3, 3); }; // 상증법 한도
+
+  function chCalc() {
+    var aAcq = num('chAAcq'), aVal = num('chAVal'), aHold = num('chAHold'), aLive = num('chALive');
+    var a155 = $('chA155').value === 'yes';
+    var bAcq = num('chBAcq'), bVal = num('chBVal'), bHold = num('chBHold');
+    var bStatus = $('chBStatus').value;
+    var ksAcq = num('chKsAcq'), ksA = num('chKsA'), ksSell = num('chKsSell');
+    var child = $('chChild').value;
+    var out = $('chOut');
+
+    var aGain = aVal - aAcq, bGain = bVal - bAcq;
+    var aPrice = aVal - giftDiscount(aVal); // 대가 (한도 활용 → 증여세 0)
+    var bPrice = bVal - giftDiscount(bVal);
+    // 장특공
+    var table2 = Math.min(0.4, 0.04 * aHold) + (aLive >= 2 ? Math.min(0.4, 0.04 * aLive) : 0); // A 표2
+    var bDed = bStatus === 'auto' ? 0.5 : Math.min(0.3, 0.02 * bHold);                          // B §97의3 / 표1
+    var basic = 0.025; // 기본공제 250만
+
+    // A 양도세 (1세대1주택 상태 or §155⑳ 상태 공통 사용)
+    function aTax(asOnlyHome) {
+      var exemptOk = asOnlyHome || a155;
+      if (!exemptOk) { // 비과세 불가: 2주택 일반과세, 표1 공제
+        var d1 = Math.min(0.3, 0.02 * aHold);
+        return transferTax(aGain * (1 - d1) - basic);
+      }
+      var taxable = aVal > 12 ? aGain * (aVal - 12) / aVal : 0;
+      return transferTax(taxable * (1 - Math.min(0.8, table2)) - basic);
+    }
+    // B 양도세 — 2주택 상태(중과배제 가정) 저가양도
+    var bTaxNow = transferTax(bGain * (1 - bDed) - basic);
+    // Case 1 잔여 B: 직전거주주택보유주택 안분 (a155 충족 시에만)
+    var denom = ksSell - ksAcq;
+    var ratio = (a155 && denom > 0) ? Math.min(1, Math.max(0, (ksSell - ksA) / denom)) : 1;
+    var bh = bVal > 12 ? (bVal - 12) / bVal : 0;
+    var bTaxableFuture = a155
+      ? bGain * (1 - ratio) + bGain * ratio * bh   // 이전 기간분 전액 + 이후 기간분 고가 초과
+      : bGain * bh;                                 // 안분 없음: 고가 초과분만
+    var bTaxFuture = transferTax(bTaxableFuture * (1 - bDed) - basic);
+
+    // Case 1: A 저가양도
+    var c1 = {
+      parent: aTax(false),
+      acq: acqTax(aVal, child),
+      future: bTaxFuture, futureLabel: 'B (직전거주주택보유주택' + (a155 ? ' — 안분 ' + pctf(ratio) + ' 비과세' : ' 아님') + ')',
+      moved: aVal, cash: aPrice, once: a155 ? '소진' : '해당 없음'
+    };
+    // Case 2: B 저가양도
+    var c2 = {
+      parent: bTaxNow,
+      acq: acqTax(bVal, child),
+      future: aTax(true), futureLabel: 'A (온전한 1세대1주택)',
+      moved: bVal, cash: bPrice, once: '보존'
+    };
+    c1.now = c1.parent + c1.acq.tax; c1.total = c1.now + c1.future;
+    c2.now = c2.parent + c2.acq.tax; c2.total = c2.now + c2.future;
+
+    var html = '';
+    var bBlocked = bStatus === 'active';
+
+    if (aVal <= 12) {
+      html += '<div class="jv ok"><span class="tag">★ Case 3 — 판을 뒤집는 시나리오</span>A 시가가 <b>12억 이하</b>이므로 부당행위계산부인으로 양도가액을 시가로 재계산해도 <b>부모 양도세 0원</b>. 시가 ' + fmtWon(aVal) + ' 주택과 현금 ' + fmtWon(giftDiscount(aVal)) + ' 상당의 이익이 취득세 ' + fmtWon(c1.acq.tax) + '만으로 이전됩니다 — <b>A 저가양도가 압도적, 다른 계산은 볼 필요 없음</b> (잔여 B 안분 문제만 병행 설계).</div>';
+    }
+    if (bBlocked) {
+      html += '<div class="jv no"><span class="tag">B 양도 불가</span>B가 <b>의무임대기간 중</b> — 자녀 양도 자체가 과태료(3천만원 이하)·세제 추징 사유입니다(임대사업자 지위 포괄승계 시에만 허용). 아래 Case 2는 참고용입니다.</div>';
+    }
+
+    function caseCol(title, c, dis) {
+      return '<div class="cbox" style="flex:1;min-width:240px' + (dis ? ';opacity:.55' : '') + '"><h4>' + title + '</h4>'
+        + '<div class="rrow"><span class="k">대가 (시가−Min(30%,3억))</span><span class="v">' + fmtWon(c.cash) + '</span></div>'
+        + '<div class="rrow"><span class="k">부모 양도세 (지방세 포함)</span><span class="v">' + fmtWon(c.parent) + '</span></div>'
+        + '<div class="rrow"><span class="k">자녀 증여세</span><span class="v">0원 (한도 내)</span></div>'
+        + '<div class="rrow"><span class="k">자녀 취득세 (' + c.acq.rate.toFixed(1) + '%)</span><span class="v">' + fmtWon(c.acq.tax) + '</span></div>'
+        + '<div class="rrow big"><span class="k">즉시 세부담 소계</span><span class="v">' + fmtWon(c.now) + '</span></div>'
+        + '<div class="rrow"><span class="k">잔여주택 미래 처분세액<br><small style="font-weight:400">' + c.futureLabel + '</small></span><span class="v">' + fmtWon(c.future) + '</span></div>'
+        + '<div class="rrow big"><span class="k">라이프사이클 합계</span><span class="v">' + fmtWon(c.total) + '</span></div>'
+        + '<div class="rrow"><span class="k">평생 1회</span><span class="v">' + c.once + '</span></div>'
+        + '<div class="rrow"><span class="k">이전 자산 / 자녀 필요현금</span><span class="v">' + fmtWon(c.moved) + ' / ' + fmtWon(c.cash) + '</span></div>'
+        + '</div>';
+    }
+    html += '<div style="display:flex;gap:12px;flex-wrap:wrap">'
+      + caseCol('Case 1 — A(거주주택) 저가양도', c1, false)
+      + caseCol('Case 2 — B(임대주택) 저가양도', c2, bBlocked)
+      + '</div>';
+
+    // 판정
+    if (!(aVal <= 12)) {
+      if (bBlocked) {
+        html += '<div class="jv warn" style="margin-top:12px"><span class="tag">판정</span>B는 의무임대기간 중이라 양도 불가 → <b>A 저가양도(Case 1)</b>로 검토하되, B 이전이 꼭 필요하면 임대사업자 지위 포괄승계를 설계하세요.</div>';
+      } else {
+        var diff = c2.total - c1.total;
+        var win = diff > 0 ? 'Case 1 (A 저가양도)' : 'Case 2 (B 저가양도)';
+        html += '<div class="jv ' + (Math.abs(diff) < 0.3 ? 'warn' : 'ok') + '" style="margin-top:12px"><span class="tag">판정 — ' + win + ' 유리</span>라이프사이클 합계 기준 <b>' + fmtWon(Math.abs(diff)) + '</b> 차이입니다.'
+          + (Math.abs(diff) < 0.5 ? ' 격차가 크지 않아 <b>4개 민감도 변수(A 시가 12억, B 상승 전망, 말소 유형, 자녀 자금력)</b>에 따라 쉽게 역전됩니다 — 아래 플로우로 재검토하세요.' : '')
+          + (bStatus === 'vol' ? ' <b>자진말소</b>여서 §97의3 50%가 불가(표1 ' + Math.round(bDed * 100) + '%)한 점이 B 세액을 키우고 있습니다.' : '')
+          + '</div>';
+      }
+    }
+
+    // 증여 비교 (참고)
+    var gA = giftTax(aVal - 0.5) + aVal * 0.124;
+    var gB = giftTax(bVal - 0.5) + bVal * 0.124;
+    html += '<h3 style="margin:14px 0 6px;color:var(--navy);font-size:13.5px">참고 — 같은 주택을 순수 증여하면 (직계비속 공제 5천만, 무상취득 12.4% 중과 가정)</h3>'
+      + '<div class="rrow"><span class="k">A 증여 시 (증여세+취득세)</span><span class="v">' + fmtWon(gA) + ' (자녀 현금 0)</span></div>'
+      + '<div class="rrow"><span class="k">B 증여 시 (증여세+취득세)</span><span class="v">' + fmtWon(gB) + ' (자녀 현금 0)</span></div>'
+      + '<p style="font-size:11.5px;color:#90a4ae;line-height:1.6;margin:8px 0 0">저가양도는 세금이 낮은 대신 자녀가 대가를 실제 조달해야 합니다. 중간 지대는 부담부증여(승계분 유상 1~3% + 무상분 12% 분리 계산 — 별도 시뮬레이션 필요).</p>';
+
+    out.innerHTML = html;
+  }
+  $('chBtn').addEventListener('click', chCalc);
+  ['chAAcq', 'chAVal', 'chAHold', 'chALive', 'chA155', 'chBAcq', 'chBVal', 'chBHold', 'chBStatus', 'chKsAcq', 'chKsA', 'chKsSell', 'chChild'].forEach(function (id) {
+    $(id).addEventListener('change', chCalc);
+  });
+  chCalc(); // 보고서 공통 전제 기본값으로 초기 표시
 })();
 </script>
 </body>
