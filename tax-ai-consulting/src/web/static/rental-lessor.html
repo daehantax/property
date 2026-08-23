@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>주택임대사업자 — 거주주택+말소된주택 체크리스트</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* ── 체크리스트 전용 ─────────────────────────── */
+  .rl-progress { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
+  .rl-progress .bar { flex: 1; height: 10px; background: #e3e9ee; border-radius: 999px; overflow: hidden; }
+  .rl-progress .bar span { display: block; height: 100%; width: 0; background: var(--navy); border-radius: 999px; transition: width .25s; }
+  .rl-progress .pct { font-size: 12.5px; font-weight: 800; color: var(--navy); white-space: nowrap; }
+  .rl-progress .reset { background: none; border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; font-size: 11.5px; color: #7b8a97; cursor: pointer; font-family: inherit; }
+  .rl-progress .reset:hover { color: #c0392b; border-color: #f5b7b1; }
+
+  .rl-note { background: #fef9e7; border: 1px solid #f7dc6f; border-radius: 10px; padding: 12px 16px; font-size: 12.5px; line-height: 1.7; color: #7d6608; margin: 0 0 16px; }
+  .rl-premise { background: #eaf2f8; border: 1px solid #aed6f1; border-radius: 10px; padding: 12px 16px; font-size: 13px; line-height: 1.7; color: #21618c; margin: 0 0 16px; }
+
+  .rl-step { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); overflow: hidden; }
+  .rl-step > h2 { margin: 0; padding: 14px 18px; background: #eef3f7; color: #123a54; font-size: 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+  .rl-step > h2 .stepno { background: var(--navy); color: #fff; font-size: 11.5px; font-weight: 800; border-radius: 999px; padding: 3px 11px; flex-shrink: 0; }
+  .rl-step .body { padding: 14px 18px 16px; }
+  .rl-step h3 { font-size: 13.5px; color: var(--navy); margin: 16px 0 6px; }
+  .rl-step h3:first-child { margin-top: 0; }
+  .rl-step p { font-size: 13px; line-height: 1.7; color: #2c3e50; margin: 6px 0; }
+
+  .ck { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .ck:hover { background: #f4f8fb; }
+  .ck input { width: 17px; height: 17px; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--navy); cursor: pointer; }
+  .ck .t { font-size: 13.5px; font-weight: 700; color: #2c3e50; line-height: 1.55; }
+  .ck .d { font-size: 12px; font-weight: 400; color: #7b8a97; line-height: 1.55; margin-top: 1px; }
+  .ck input:checked ~ div .t { color: #90a4ae; text-decoration: line-through; }
+
+  .rl-table-wrap { overflow-x: auto; margin: 8px 0 4px; }
+  table.rl { width: 100%; border-collapse: collapse; background: #fff; }
+  table.rl th, table.rl td { border: 1px solid var(--line); padding: 7px 10px; font-size: 12.5px; line-height: 1.55; text-align: left; vertical-align: top; }
+  table.rl th { background: #eef3f7; color: #21618c; font-weight: 700; white-space: nowrap; }
+  table.rl td b { color: #0b3d5c; }
+  table.rl .warn { color: #943126; font-weight: 700; }
+  table.rl .good { color: #145a32; font-weight: 700; }
+
+  .rl-deadline { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin: 10px 0 4px; }
+  .rl-deadline .card { border: 1px solid #f5cba7; background: #fef5e7; border-radius: 10px; padding: 12px 14px; }
+  .rl-deadline .card.red { border-color: #f5b7b1; background: #fdecea; }
+  .rl-deadline .card.green { border-color: #abebc6; background: #eafaf1; }
+  .rl-deadline .when { font-size: 12px; font-weight: 800; color: #b9770e; }
+  .rl-deadline .card.red .when { color: #c0392b; }
+  .rl-deadline .card.green .when { color: #1e8449; }
+  .rl-deadline .what { font-size: 13px; font-weight: 700; color: #1a2733; margin-top: 3px; line-height: 1.5; }
+  .rl-deadline .why { font-size: 11.5px; color: #566573; margin-top: 4px; line-height: 1.55; }
+
+  .rl-formula { background: #f4f8fb; border: 1px solid #d4e6f1; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #0b3d5c; margin: 8px 0; }
+
+  .rl-flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+  .rl-flow .f { background: #eef3f7; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font-size: 12.5px; font-weight: 700; color: #21618c; }
+  .rl-flow .arr { color: #90a4ae; font-weight: 800; }
+
+  .rl-actions { display: flex; gap: 8px; margin: 0 0 14px; }
+  .rl-actions button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 8px 16px; font-size: 12.5px; font-weight: 700; color: #47606f; cursor: pointer; font-family: inherit; }
+  .rl-actions button:hover { border-color: var(--navy); color: var(--navy); }
+
+  @media print {
+    .topnav, .calc-tabs, .rl-actions, .rl-progress .reset { display: none !important; }
+    .rl-step { break-inside: avoid; box-shadow: none; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="aggr-home.html">보유세 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
+    <a href="rental-lessor.html" class="active">주택임대사업자</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    <b>주택임대사업자</b>를 위한 실무 체크리스트입니다. 등록임대주택의 말소 전후 특례와
+    2026.8.3 세제개편안(정부안) 영향, 대응 조치를 상황별 탭으로 정리했습니다.
+    체크 상태는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.
+  </p>
+
+  <div class="calc-tabs">
+    <button class="active">거주주택+말소된주택</button>
+    <button disabled style="opacity:.5;cursor:default">임대 등록 중 (준비중)</button>
+  </div>
+
+  <!-- ════════ 탭: 거주주택 + 말소된주택 ════════ -->
+  <div id="tab-terminated">
+
+    <div class="rl-premise">
+      <b>전제 —</b> 1세대 2주택. <b>A주택</b> = 본인 거주주택(2년 이상 거주 가정),
+      <b>B주택</b> = 장기일반민간임대(아파트)로 등록했다가 2020.8.18 민특법 개정에 따라
+      <b>자동말소</b> 또는 <b>자진말소</b>된 아파트. 임대개시일 공시가격 수도권 6억(비수도권 3억) 이하,
+      임대료 5% 증액제한을 준수했던 것으로 가정.
+    </div>
+
+    <div class="rl-note">
+      ⚠ 아래 「개편안」 부분은 <b>2026.8.3 발표된 정부안</b> 기준으로 <b>국회 통과 전 미확정</b>이며,
+      세부 요건은 2027.2월 시행령에서 확정됩니다. 실제 자문·실행 전 확정 법령 및 국세청 유권해석으로
+      재검증이 필요합니다.
+    </div>
+
+    <div class="rl-progress">
+      <div class="bar"><span id="progBar"></span></div>
+      <div class="pct" id="progPct">0 / 0</div>
+      <button class="reset" id="resetBtn">전체 초기화</button>
+    </div>
+
+    <div class="rl-actions">
+      <button onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="rl-step">
+      <h2><span class="stepno">STEP 1</span> 사실관계 7개 변수 확정 — 모든 조치의 적용 가부가 여기서 갈립니다</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="s1-1"><div><div class="t">① B주택 취득일 확인 (2018.9.13 이전 / 이후)</div><div class="d">2018.9.14 이후 조정대상지역 신규취득분은 종부세 합산배제·양도세 중과배제 대상에서 제외 — 취득일 확인 필수</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s1-2"><div><div class="t">② 임대 등록일과 등록 유형 확인</div><div class="d">세무서 사업자등록 + 지자체 임대등록(렌트홈), 장기일반민간임대 여부</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s1-3"><div><div class="t">③ 말소 유형(자동 / 자진)과 말소일 확정</div><div class="d">등록말소 통지서 기준으로 확정 — 1년·5년 기한 계산의 기산일</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s1-4"><div><div class="t">④ B주택의 조정대상지역 여부 확인</div><div class="d">8.3 개편안 단계폐지는 조정대상지역 매입임대 「아파트」가 정면 타깃</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s1-5"><div><div class="t">⑤ 임대개시일 공시가격 확인 (수도권 6억 / 비수도권 3억 이하)</div><div class="d">종부세 합산배제·임대소득세 감면 등 공통 가액요건</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s1-6"><div><div class="t">⑥ A주택 거주기간 확인 (2년 이상)</div><div class="d">거주주택 비과세 특례(소득세법 시행령 §155⑳)의 기본요건</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s1-7"><div><div class="t">⑦ §155⑳ 거주주택 비과세 특례 「평생 1회」 기사용 여부 확인</div><div class="d">2019.2.12 이후 취득분부터 평생 1회 — 이미 썼다면 A주택 특례 불가</div></div></label>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="rl-step">
+      <h2><span class="stepno">STEP 2</span> 과거에 받았던 혜택과 추징 여부 점검</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="s2-1"><div><div class="t">렌트홈 등록이력 · 표준임대차계약 신고이력 확인</div><div class="d">추징 배제 판단의 출발점 — 이력을 먼저 확인해야 함</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s2-2"><div><div class="t">임대료 5% 증액상한 위반 이력이 없는지 확인</div><div class="d">위반 이력이 있으면 기수혜분 추징 대상이 될 수 있음</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s2-3"><div><div class="t">자동말소 또는 「요건 갖춘 자진말소」인지 확인 (임의 중도말소 아님)</div><div class="d">자동말소·요건 갖춘 자진말소는 의무임대기간 미충족에도 기수혜분(종부세 합산배제·임대소득세 감면·재산세 감면) 추징이 배제됨 — 일반 임의말소와의 결정적 차이</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s2-4"><div><div class="t">종부세 합산배제 신고이력(매년 9.16~9.30) 확인</div><div class="d">말소 이후분은 종료 → B주택은 현재 합산과세(일반주택) 상태</div></div></label>
+
+        <h3>말소 전 등록임대 기간 중 받을 수 있었던 혜택 (혜택별 개별 검증 필요)</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>혜택</th><th>근거</th><th>핵심 요건</th><th>비고</th></tr>
+          <tr><td><b>종부세 합산배제</b></td><td>종부세법 §8②, 시행령 §3</td><td>임대개시일 공시가 수도권 6억/비수도권 3억 이하 · 의무임대기간(장기 8년) · 임대료 5% 상한 · 세무서 사업자등록+지자체 임대등록 · 매년 9.16~9.30 합산배제 신고</td><td class="warn">2018.9.14 이후 조정대상지역 신규취득분은 배제 — 취득일 확인 필수</td></tr>
+          <tr><td><b>재산세 감면</b></td><td>지방세특례제한법 §31의3</td><td>2세대 이상 임대 · 전용 40㎡ 이하 면제, 60㎡ 이하 50%, 85㎡ 이하 25% 등</td><td>지자체 감면, 말소 시 향후분 종료</td></tr>
+          <tr><td><b>임대소득세 감면</b></td><td>조특법 §96</td><td>국민주택규모 · 임대개시일 기준시가 6억 이하 · 5% 상한 · 장기 75%(2호 이상 50%), 단기 30%(20%)</td><td class="warn">추계신고 시 감면배제(조특법 §128) 주의</td></tr>
+          <tr><td><b>거주주택 비과세 특례</b></td><td>소득세법 시행령 §155⑳</td><td>거주주택 2년 이상 거주 + 임대주택 요건 충족 시 임대주택을 주택수 제외 → A주택 1세대1주택 비과세</td><td>2019.2.12 이후 취득분부터 평생 1회</td></tr>
+          <tr><td><b>양도세 중과배제</b></td><td>소득세법 시행령 §167의3 · §167의10</td><td>임대주택 양도 시 다주택 중과세율 배제</td><td class="warn">2018.9.14 이후 조정지역 취득분 배제</td></tr>
+          <tr><td><b>장특공제 특례</b></td><td>조특법 §97의3(§97의4)</td><td>8년 임대 50% / 10년 임대 70% (전용 85㎡ 이하 등)</td><td>아파트 자동말소는 8년 기준</td></tr>
+          <tr><td><b>취득세 감면</b></td><td>지특법 §31</td><td>공동주택 최초분양 취득 · 60㎡ 이하 면제 등</td><td>기존주택 매입 시 해당 없음</td></tr>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="rl-step">
+      <h2><span class="stepno">STEP 3</span> 기한이 있는 카드부터 처리 — 달력에 박아둘 날짜</h2>
+      <div class="body">
+        <div class="rl-deadline">
+          <div class="card red">
+            <div class="when">자진말소: 말소일부터 1년 이내</div>
+            <div class="what">B주택 양도 시에만 중과배제</div>
+            <div class="why">이미 1년이 지났다면 중과배제는 소멸 → 2027~2028년 한시완화 구간 매도로 전환</div>
+          </div>
+          <div class="card">
+            <div class="when">자동말소: 2027.12.31 이전 매도가 최적</div>
+            <div class="what">중과배제 + 장특공 50% 온전 적용의 마지막 해</div>
+            <div class="why">2028년은 절반(중과 +10%p/+15%p, 장특공 30%), 2029년부터 혜택 소멸 + 장특공 사실상 0</div>
+          </div>
+          <div class="card green">
+            <div class="when">A 거주주택: 말소일부터 5년 이내</div>
+            <div class="what">§155⑳ 거주주택 비과세 양도 기한</div>
+            <div class="why">5년 경과 시 특례 소멸, 일반 2주택으로 판정</div>
+          </div>
+        </div>
+
+        <label class="ck"><input type="checkbox" data-ck="s3-1"><div><div class="t">자진말소인 경우: 말소 후 1년 기한의 잔여일수 계산 완료</div><div class="d">1년 이내 B 양도가 중과배제의 유일한 길</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s3-2"><div><div class="t">자동말소인 경우: B(조정지역 아파트) 매도 목표를 2027.12.31 이전으로 설정</div><div class="d">중과배제 + §97의3 장특공 50%를 온전히 쓸 수 있는 마지막 해</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s3-3"><div><div class="t">A 거주주택 비과세: 말소일 + 5년 기한을 달력에 기록</div><div class="d">등록말소 통지서 기준으로 잔여일수 확정</div></div></label>
+
+        <h3>현행 기준 — 자동말소 vs 자진말소 비교</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>항목</th><th>자동말소 (의무기간 만료)</th><th>자진말소 (의무기간 1/2 경과 + 임차인 동의)</th></tr>
+          <tr><td>기수혜 감면 추징</td><td class="good">없음</td><td class="good">없음</td></tr>
+          <tr><td>B 양도 시 중과배제</td><td>기한 제한 없음 (현행)</td><td class="warn">말소일부터 1년 이내 양도 시에만 배제</td></tr>
+          <tr><td>조특법 §97의3 장특공 특례</td><td>8년 충족 간주 → 50% 적용 (70%는 불가)</td><td class="warn">적용 불가 (임대기간 요건 미충족)</td></tr>
+          <tr><td>A 거주주택 비과세(§155⑳)</td><td>말소일부터 5년 이내 A 양도 시 비과세</td><td>좌동 (5년 이내)</td></tr>
+          <tr><td>종부세 합산배제</td><td>말소 이후분 종료 → B는 합산과세</td><td>좌동</td></tr>
+        </table></div>
+        <p>말소 이후 B아파트는 종부세·재산세상 일반주택 → 현재 1세대 2주택 합산과세 상태(현행 다주택 기본공제 인별 9억).</p>
+
+        <h3>8.3 개편안 — 조정대상지역 매입임대 「아파트」 단계폐지 (2026.10.1 시행 기준)</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>양도 시기</th><th>중과배제</th><th>장특공 특례(§97의3)</th></tr>
+          <tr><td>~2027.12.31</td><td class="good">유지</td><td class="good">50% 유지</td></tr>
+          <tr><td>2028년 중</td><td class="warn">절반 중과 (2주택 +10%p, 3주택+ +15%p)</td><td class="warn">30%로 축소</td></tr>
+          <tr><td>2029.1.1~</td><td class="warn">중과 전면 적용</td><td class="warn">폐지</td></tr>
+        </table></div>
+        <p>자동말소로 「기한 없이」 유지되던 중과배제가 조정지역 아파트에 한해 시한부가 되는 것이 핵심 변화.
+        B가 비조정지역이거나 아파트가 아니면 직접 대상이 아님(확정 조문 확인 필요).</p>
+        <p><b>장특공 체계 개편:</b> 2028.1.1 이후 양도분부터 「장기거주소득공제」(거주 연 8%, 최대 80%)로 전환,
+        공제한도 2028년 20억 → 2029년 10억. 등록임대 임대기간은 연 2%·최대 30%까지 거주기간으로 인정하되
+        <b>조정대상지역 아파트는 인정 제외</b> → B아파트는 실거주하지 않는 한 2028년 이후 장특공 사실상 소멸.
+        A거주주택은 실거주 기간이 길수록 개편 후에도 불리하지 않음.</p>
+        <p><b>종부세 개편:</b> 2027년(과세기준일 2027.6.1)부터 세율이 주택수 → 가액 기준 전환.
+        다주택 기본공제 = 「4억 + 5억 × (거주주택 공시가 / 보유주택 공시가 합계)」,
+        공정시장가액비율 70%(2027) → 80%(2028), 세부담상한 200%. B 계속 보유 시 보유세가 매년 누적 증가.
+        B 처분으로 1주택이 되면 A는 실거주 기준 기본공제 14억(비거주 9억).</p>
+        <p><b>다주택 중과 한시완화(별도 트랙):</b> 조정대상지역 2년 이상 보유주택은 2027년 +5%p(2주택)/+10%p(3주택 이상),
+        2028년 +10%p/+15%p로 완화 후 2029년 원복. 중과배제를 못 받는 상황에서 출구로 활용 가능.</p>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="rl-step">
+      <h2><span class="stepno">STEP 4</span> 양도 순서 설계 · 보유 지속 비교</h2>
+      <div class="body">
+        <div class="rl-flow">
+          <span class="f">B(임대주택) 선매도</span><span class="arr">→</span>
+          <span class="f">A 최종 1주택 전액 비과세</span><span class="arr">=</span>
+          <span class="f good" style="color:#145a32">일반적으로 유리한 순서</span>
+        </div>
+        <label class="ck"><input type="checkbox" data-ck="s4-1"><div><div class="t">양도 순서 검토: B 선매도 → A 최종 1주택 비과세</div><div class="d">B 선매도 시 A는 §155⑳에 기대지 않고 최종 1주택으로 전액 비과세 가능 + 평생 1회 카드 절약</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s4-2"><div><div class="t">A 선매도(§155⑳) 시의 제약 인지: B는 「직전거주주택보유주택」</div><div class="d">B가 최종 1주택 비과세 요건을 갖추더라도 A 양도일 이후 발생한 양도차익분만 비과세, 임대기간 중 차익은 과세</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s4-3"><div><div class="t">보유 지속 시나리오 수치 비교표 작성</div><div class="d">「3년치 보유세 누적액 + 2029년 이후 양도세 증가분」 vs 「2027년 매도 시 세부담」 — 2029년 이후 보유 시 종부세 다주택 산식 + 공정시장가액비율 80% + 세부담상한 200% + 매도 시 중과세율</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s4-4"><div><div class="t">가족 간 이전(저가양도·증여·부담부증여) 희망 여부 확인 → STEP 5로</div><div class="d">저가양도 역시 「양도」이므로 2027년 내 실행 시 중과배제·장특공 50%를 그대로 활용 가능 — 타이밍상 중요</div></div></label>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="rl-step">
+      <h2><span class="stepno">STEP 5</span> 자녀 저가양도 — 설계 · 한도 · 리스크</h2>
+      <div class="body">
+        <h3>(1) 적용되는 세 가지 규정 — 각각 기준이 다릅니다</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>구분</th><th>근거</th><th>기준</th><th>효과</th></tr>
+          <tr><td><b>자녀(양수자) 증여세</b></td><td>상증법 §35 저가양수 증여의제</td><td>차액(시가−대가)이 Min(시가×30%, 3억) 초과 시</td><td>초과분만 증여재산가액</td></tr>
+          <tr><td><b>부모(양도자) 양도세</b></td><td>소득세법 §101, 시행령 §167 부당행위계산부인</td><td>차액이 시가×5% 이상 또는 3억 이상</td><td class="warn">실제 대가 무시, 시가 기준으로 양도세 계산</td></tr>
+          <tr><td><b>자녀 취득세</b></td><td>지방세법 §10의3</td><td>차액이 시가인정액×5% 이상 또는 3억 이상</td><td>시가인정액을 과세표준으로 취득세</td></tr>
+        </table></div>
+        <div class="rl-formula">증여세 없이 이전 가능한 최대 할인폭 = Min(시가 × 30%, 3억)</div>
+        <p>다만 그 할인폭만큼 깎아 팔아도 부모의 양도세는 시가 기준으로 계산되고(5%/3억 기준은 거의 항상 걸림),
+        자녀의 취득세도 시가인정액 기준. 즉 저가양도의 실익은 「양도세 절감」이 아니라
+        <b>증여세 없는 부(富) 이전(최대 3억)</b>에 있습니다.</p>
+
+        <h3>(2) 설계 예시 — 시가 10억 아파트, 자동말소 후 2027년 내 양도 가정</h3>
+        <ul class="steps" style="padding-left:20px">
+          <li style="font-size:13px;line-height:1.7"><b>매매가액 7억</b> — 할인 3억 = Min(10억×30%=3억, 3억) → <b>증여세 0</b></li>
+          <li style="font-size:13px;line-height:1.7"><b>부모 양도세</b> — 시가 10억 기준 양도차익 계산. 조정지역 아파트라도 <b>2027년 내 양도 시</b> 중과배제 + §97의3 장특공 50% 적용 → 세부담 대폭 축소. 같은 거래를 2029년에 하면 시가 10억 기준 + 중과세율 + 장특공 0으로 세액 급증</li>
+          <li style="font-size:13px;line-height:1.7"><b>자녀 취득세</b> — 시가인정액(감정가·매매사례가액 등) 기준. 중과 취득세 여부는 자녀의 세대·주택수 기준으로 별도 판정</li>
+          <li style="font-size:13px;line-height:1.7"><b>자녀의 향후 취득가액</b> — 실제 지급 대가 7억(+증여의제 과세분 가산). 자녀가 나중에 팔 때 양도차익이 커지는 트레이드오프 → 자녀가 장기 실거주(1세대1주택 비과세 목표)할 계획일 때 효율이 가장 높음</li>
+        </ul>
+
+        <h3>(3) 반드시 관리해야 할 리스크 체크리스트</h3>
+        <label class="ck"><input type="checkbox" data-ck="s5-1"><div><div class="t">① 증여추정(상증법 §44) 대비 — 자녀의 자금출처 소명 계획 수립</div><div class="d">직계존비속 간 양도는 원칙적으로 증여로 추정. 자녀가 실제 대가를 자기 자금으로 지급한 사실(계좌이체 내역, 소득·자금출처)을 입증하지 못하면 매매 자체가 부인되고 전액 증여로 과세 — 소득 대비 7억의 자금출처 소명 계획이 성립의 전제조건</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s5-2"><div><div class="t">② 자금 조달 방식 점검 — 부모 대여 시 차용증 + 법정이자율 연 4.6%</div><div class="d">이자 수수(연 이자차액 1천만원 이내면 증여세 문제 없음 — 상증법 §41의4)와 실제 상환 흔적 필요. 전세보증금을 안고 넘기는 부담부양도 구조는 자녀 현금 부담이 줄지만, 보증금 승계분도 대가의 일부로 보아 저가 판정에 합산</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s5-3"><div><div class="t">③ 시가 산정 — 실행 전 감정평가 1~2곳으로 시가 고정</div><div class="d">아파트는 유사매매사례가액이 촘촘히 잡혀 시가를 임의로 낮게 볼 여지가 거의 없음. 감정평가로 시가를 고정해 두는 것이 증여세·양도세·취득세 세 규정 모두에서 다툼을 줄이는 실무 표준</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s5-4"><div><div class="t">④ 이월과세와의 구분 확인</div><div class="d">저가양도는 유상거래이므로 증여 후 10년 내 양도 시 취득가액을 당초 증여자 기준으로 되돌리는 이월과세(소득세법 §97의2)가 적용되지 않음. 다만 ①의 증여추정이 부인되면 이 장점도 함께 소멸</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="s5-5"><div><div class="t">⑤ 대안 3안 총세부담 병렬 비교 — (a) 저가양도 (b) 단순증여 (c) 부담부증여</div><div class="d">단순증여는 증여재산공제 5천만원·10년 합산, 부담부증여는 보증금·대출 승계분 부모 양도세 + 잔여분 증여세. 양도차익이 작고 보증금 비중이 큰 물건은 부담부증여가, 양도차익이 크지만 2027년 내 중과배제·장특공 50%를 쓸 수 있는 물건은 저가양도가 유리해지는 경향</div></div></label>
+
+        <h3>(4) 타이밍 결론 (개편안 반영)</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>실행 시기</th><th>평가</th><th>이유</th></tr>
+          <tr><td>2027년 내</td><td class="good">세부담 최소 구간</td><td>중과배제 + 장특공 50% 그대로 활용 (조정지역 자동말소 아파트)</td></tr>
+          <tr><td>2028년</td><td>차선</td><td>절반중과 + 장특공 30%</td></tr>
+          <tr><td>2029년 이후</td><td class="warn">재비교 필요</td><td>저가양도의 양도세 측 이점 소멸 → 증여·부담부증여와 재비교</td></tr>
+        </table></div>
+        <p>자녀 이전을 마치면 부모 세대는 1주택이 되어 2027년 이후 개편 종부세에서 실거주 기본공제 14억을 적용받는 부수 효과도 있습니다.</p>
+
+        <h3>실행 증빙 체계 (순서대로)</h3>
+        <div class="rl-flow">
+          <span class="f">감정평가</span><span class="arr">→</span>
+          <span class="f">매매계약</span><span class="arr">→</span>
+          <span class="f">자금이체</span><span class="arr">→</span>
+          <span class="f">실거래신고</span><span class="arr">→</span>
+          <span class="f">(필요 시) 자금출처 소명자료 편철</span>
+        </div>
+        <label class="ck"><input type="checkbox" data-ck="s5-6"><div><div class="t">위 순서대로 증빙 체계 갖추기 완료</div></div></label>
+      </div>
+    </div>
+
+    <!-- 최종 확인 -->
+    <div class="rl-step">
+      <h2><span class="stepno">최종</span> 확인·유의사항</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="f-1"><div><div class="t">개편안의 중과배제·장특공 단계폐지의 정확한 대상 범위 재확인</div><div class="d">조정지역 「아파트」 한정 여부, 자동말소분 포함 여부의 경과규정을 확정 조문으로 재확인</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="f-2"><div><div class="t">§155⑳ 평생 1회 특례 기사용 여부 + 말소일 기준 5년·1년 기한 잔여일수 확정</div><div class="d">등록말소 통지서 기준</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="f-3"><div><div class="t">저가양도 실행 시 증빙 체계(감정평가 → 매매계약 → 자금이체 → 실거래신고 → 자금출처 소명자료 편철) 구축</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="f-4"><div><div class="t">개편안 수치는 정부안 — 국회 심의에서 변경될 수 있음을 고객에게 고지</div></div></label>
+      </div>
+    </div>
+
+    <p class="disclaimer">
+      본 체크리스트는 2026.8.3 정부 세제개편안(국회 통과 전 미확정)과 현행 법령을 기준으로 한 일반 정보이며,
+      개별 사안에 대한 세무 자문이 아닙니다. 실행 전 반드시 확정 법령·시행령 및 국세청 유권해석으로 재검증하시기 바랍니다.
+    </p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = 'rl-checklist-terminated';
+  var boxes = document.querySelectorAll('input[data-ck]');
+  var bar = document.getElementById('progBar');
+  var pct = document.getElementById('progPct');
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
+  }
+  function save(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 저장 불가 환경 무시 */ }
+  }
+  function refresh() {
+    var done = 0;
+    boxes.forEach(function (b) { if (b.checked) done++; });
+    var total = boxes.length;
+    bar.style.width = (total ? (done / total * 100) : 0) + '%';
+    pct.textContent = done + ' / ' + total;
+  }
+
+  var state = load();
+  boxes.forEach(function (b) {
+    b.checked = Boolean(state[b.dataset.ck]);
+    b.addEventListener('change', function () {
+      state[b.dataset.ck] = b.checked;
+      save(state);
+      refresh();
+    });
+  });
+  refresh();
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    if (!confirm('모든 체크 상태를 초기화할까요?')) return;
+    state = {};
+    save(state);
+    boxes.forEach(function (b) { b.checked = false; });
+    refresh();
+  });
+})();
+</script>
+</body>
+</html>
