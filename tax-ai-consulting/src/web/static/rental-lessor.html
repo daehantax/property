@@ -30,7 +30,7 @@
   .ck input { width: 17px; height: 17px; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--navy); cursor: pointer; }
   .ck .t { font-size: 13.5px; font-weight: 700; color: #2c3e50; line-height: 1.55; }
   .ck .d { font-size: 12px; font-weight: 400; color: #7b8a97; line-height: 1.55; margin-top: 1px; }
-  .ck input:checked ~ div .t { color: #90a4ae; text-decoration: line-through; }
+  .ck input[data-ck]:checked ~ div .t { color: #90a4ae; text-decoration: line-through; }
 
   .rl-table-wrap { overflow-x: auto; margin: 8px 0 4px; }
   table.rl { width: 100%; border-collapse: collapse; background: #fff; }
@@ -60,6 +60,41 @@
   .rl-actions button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 8px 16px; font-size: 12.5px; font-weight: 700; color: #47606f; cursor: pointer; font-family: inherit; }
   .rl-actions button:hover { border-color: var(--navy); color: var(--navy); }
 
+  /* ── 판정기·계산기 ───────────────────────────── */
+  .rl-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .rl-grid2 label { margin: 0 0 2px; }
+  .rl-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 14px; }
+  .rl-grid3 label { margin: 0 0 2px; }
+  .rl-calc-layout { display: flex; gap: 16px; align-items: flex-start; }
+  .rl-calc-layout .cform { width: 400px; flex-shrink: 0; }
+  .rl-calc-layout .cresult { flex: 1; min-width: 0; }
+  .cbox { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #fbfcfd; margin-top: 10px; }
+  .cbox h4 { margin: 0 0 8px; font-size: 12.5px; color: var(--navy); }
+  .jv { border-radius: 10px; padding: 14px 16px; margin-top: 12px; font-size: 13.5px; line-height: 1.7; }
+  .jv .tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 12px; border-radius: 999px; color: #fff; margin-bottom: 6px; }
+  .jv.ok { background: #eafaf1; border: 1px solid #abebc6; } .jv.ok .tag { background: #1e8449; }
+  .jv.warn { background: #fef5e7; border: 1px solid #f5cba7; } .jv.warn .tag { background: #b9770e; }
+  .jv.no { background: #fdecea; border: 1px solid #f5b7b1; } .jv.no .tag { background: #c0392b; }
+  .jv ul { margin: 6px 0 0; padding-left: 18px; }
+  .jv li { margin: 3px 0; font-size: 12.5px; }
+  .rrow { display: flex; justify-content: space-between; gap: 12px; padding: 7px 2px; border-bottom: 1px solid #eef2f4; font-size: 13px; }
+  .rrow .k { color: #47606f; font-weight: 700; }
+  .rrow .v { font-weight: 800; color: #0b3d5c; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rrow.big { background: #eaf2f8; border: 1px solid #aed6f1; border-radius: 8px; padding: 10px 12px; margin-top: 8px; border-bottom: 1px solid #aed6f1; }
+  .rrow.big .v { font-size: 16px; }
+  .rrow.minus .v { color: #943126; }
+  .rrow.plus .v { color: #145a32; }
+  .case-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 8px; }
+  .case-card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: #fff; }
+  .case-card .cc-no { display: inline-block; font-size: 10.5px; font-weight: 800; color: #fff; background: #566573; border-radius: 999px; padding: 2px 9px; }
+  .case-card h4 { margin: 7px 0 4px; font-size: 13px; color: #1a2733; }
+  .case-card p { margin: 0; font-size: 12px; color: #566573; line-height: 1.6; }
+
+  @media (max-width: 940px) {
+    .rl-calc-layout { flex-direction: column; }
+    .rl-calc-layout .cform { width: 100%; }
+    .rl-grid3 { grid-template-columns: 1fr 1fr; }
+  }
   @media print {
     .topnav, .calc-tabs, .rl-actions, .rl-progress .reset { display: none !important; }
     .rl-step { break-inside: avoid; box-shadow: none; }
@@ -90,13 +125,14 @@
     체크 상태는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.
   </p>
 
-  <div class="calc-tabs">
-    <button class="active">거주주택+말소된주택</button>
+  <div class="calc-tabs" id="rlTabs">
+    <button class="active" data-tab="tab-terminated">거주주택+말소된주택</button>
+    <button data-tab="tab-aftersale">거주주택 양도 후+임대주택 양도</button>
     <button disabled style="opacity:.5;cursor:default">임대 등록 중 (준비중)</button>
   </div>
 
-  <!-- ════════ 탭: 거주주택 + 말소된주택 ════════ -->
-  <div id="tab-terminated">
+  <!-- ════════ 탭 1: 거주주택 + 말소된주택 ════════ -->
+  <div id="tab-terminated" class="rl-pane" data-store="rl-checklist-terminated">
 
     <div class="rl-premise">
       <b>전제 —</b> 1세대 2주택. <b>A주택</b> = 본인 거주주택(2년 이상 거주 가정),
@@ -112,9 +148,9 @@
     </div>
 
     <div class="rl-progress">
-      <div class="bar"><span id="progBar"></span></div>
-      <div class="pct" id="progPct">0 / 0</div>
-      <button class="reset" id="resetBtn">전체 초기화</button>
+      <div class="bar"><span></span></div>
+      <div class="pct">0 / 0</div>
+      <button class="reset">전체 초기화</button>
     </div>
 
     <div class="rl-actions">
@@ -301,47 +337,444 @@
       개별 사안에 대한 세무 자문이 아닙니다. 실행 전 반드시 확정 법령·시행령 및 국세청 유권해석으로 재검증하시기 바랍니다.
     </p>
   </div>
+
+  <!-- ════════ 탭 2: 거주주택 양도 후 + 임대주택 양도 ════════ -->
+  <div id="tab-aftersale" class="rl-pane" data-store="rl-checklist-aftersale" style="display:none">
+
+    <div class="rl-premise">
+      <b>전제 —</b> 거주주택(A)을 소득령 §155⑳ 특례로 <b>1세대1주택 비과세 양도한 뒤</b>,
+      남은 등록임대주택(B)을 양도하는 국면. B는 「<b>직전거주주택보유주택</b>」이 되어
+      <b>직전거주주택(A) 양도일 이후 발생한 양도차익에 대해서만</b> 1세대1주택(§154①)으로 비과세됩니다.
+      <div class="rl-flow" style="margin-top:8px">
+        <span class="f">① A+B 보유</span><span class="arr">→</span>
+        <span class="f">② §155⑳으로 A 비과세 양도</span><span class="arr">→</span>
+        <span class="f">③ B = 직전거주주택보유주택</span><span class="arr">→</span>
+        <span class="f">④ B 양도 ★쟁점</span>
+      </div>
+    </div>
+
+    <div class="rl-note">
+      ⚠ 본 탭의 근거 예규 — <b>기획재정부 재산세제과-1081(2022.8.31.)</b>, <b>서면-2023-법규재산-0426(법규과-1841, 2023.7.13.)</b> —
+      는 요약을 토대로 정리한 것으로 문서번호·문언이 부정확할 수 있습니다. 고객 자문 전
+      <b>국세법령정보시스템에서 원문을 직접 확인</b>하고, 안분 후 장특공 적용 방식은 <b>홈택스 모의계산과 대조</b>하십시오.
+    </div>
+
+    <div class="rl-progress">
+      <div class="bar"><span></span></div>
+      <div class="pct">0 / 0</div>
+      <button class="reset">전체 초기화</button>
+    </div>
+
+    <div class="rl-actions">
+      <button onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+    </div>
+
+    <!-- 쟁점 요약 -->
+    <div class="rl-step">
+      <h2><span class="stepno">쟁점</span> 두 개의 쟁점 — 예규가 정리해 준 결론</h2>
+      <div class="body">
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>쟁점</th><th>질문</th><th>결론</th></tr>
+          <tr><td><b>쟁점 1 · 비과세 가능성</b></td><td>B를 양도할 때 다시 1세대1주택 비과세를 받을 수 있는가? C(신규주택) 취득 뒤라면 일시적 2주택(§155①)을 겹쳐 쓸 수 있는가?</td><td class="good">가능. 다만 직전거주주택(A) 양도일 이후 기간분 양도차익에 한정. §155⑳+§155① 중첩 적용 허용</td></tr>
+          <tr><td><b>쟁점 2 · 거주요건</b></td><td>B에 대해 "2년 거주"를 요구하는가? B는 임대만 놓아 거주 이력이 없는 것이 보통인데?</td><td class="good">§155⑳의 거주요건은 요구하지 않음. 오직 §154①의 요건(2년 보유, 조정지역 2017.8.3 이후 취득분은 2년 거주)만 판단</td></tr>
+        </table></div>
+
+        <h3>실무적 파급력 — 거주요건 분기표</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>B의 상황</th><th>§154① 거주요건</th><th>결론</th></tr>
+          <tr><td>비조정대상지역 소재</td><td>없음</td><td class="good">거주 이력 0일이어도 비과세 판정 가능</td></tr>
+          <tr><td>조정대상지역, 2017.8.3 <b>이전</b> 취득</td><td>없음</td><td class="good">거주 이력 0일이어도 비과세 판정 가능</td></tr>
+          <tr><td>조정대상지역, 2017.8.3 <b>이후</b> 취득</td><td class="warn">2년 거주 필요</td><td class="warn">말소 후 실제 입주하여 2년 채워야 함</td></tr>
+        </table></div>
+        <p><b>현장에서 가장 많이 놓치는 지점:</b> "임대만 놓던 집이라 거주요건 때문에 안 될 것"이라 지레 포기하는 사례가 많습니다.
+        B의 취득일이 2017.8.3 이전이라면 거주요건 자체가 존재하지 않습니다. <b>취득일부터 확인하는 것이 상담의 첫 단계</b>여야 합니다.</p>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="rl-step">
+      <h2><span class="stepno">STEP 1</span> A(거주주택) 양도 시점에 반드시 해둘 일</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="as1-1"><div><div class="t">A 양도일 현재 B의 기준시가(개별주택가격·공동주택가격) 캡처·보관</div><div class="d">부동산공시가격알리미 — 향후 안분 계산의 필수 자료. 사후에 찾기 번거로우므로 A 양도 시점에 미리 확보</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="as1-2"><div><div class="t">A와 B의 예상 양도차익 비교 → 어느 쪽을 비과세로 살릴지 사전 결정</div><div class="d">A의 비과세 이익보다 B의 안분 손실이 더 클 수 있음(아래 전략 비교 계산기) — 관성적으로 "거주주택부터 비과세로 팔자"고 하면 큰 손실 가능</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="as1-3"><div><div class="t">거주주택 비과세 「평생 1회」 소진 여부 기록</div><div class="d">A 양도 = §155⑳ 소진(2019.2.12 이후 취득 기준). 이후 B 양도는 §154① 일반 비과세이므로 추가 소진 아님</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="as1-4"><div><div class="t">B의 취득일·양도일 기준시가도 함께 정리</div><div class="d">안분 산식의 분모(양도일 기준시가 − 취득일 기준시가) 구성 자료</div></div></label>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="rl-step">
+      <h2><span class="stepno">STEP 2</span> B(임대주택) 양도 전 확인사항</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="as2-1"><div><div class="t">B의 취득일이 2017.8.3 이전인지 확인 (거주요건 유무의 분수령)</div><div class="d">이전 취득이면 거주 이력 0일이어도 비과세 판정 가능</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="as2-2"><div><div class="t">B 취득 「당시」 조정대상지역이었는지 확인 (양도 시점 기준 아님)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="as2-3"><div><div class="t">C(신규주택) 취득일 → 3년 데드라인 캘린더 등록</div><div class="d">3년의 기산일은 A 양도일도, B 말소일도 아닌 C 취득일. "C를 사시는 순간 시계가 돌아갑니다"</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="as2-4"><div><div class="t">자동말소인지 자진말소인지 확인 → 조특법 §97의3(장특공 50%) 적용 가능 여부</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="as2-5"><div><div class="t">임대주택이 2채 이상이면 양도 순서 시뮬레이션</div><div class="d">마지막 1채만 비과세 안분 혜택. 통상 A 양도일 이후 가격 상승폭이 큰 주택을 마지막에 남기는 것이 유리</div></div></label>
+
+        <h3>기한 관리 요약</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>기산점</th><th>기한</th><th>효과</th></tr>
+          <tr><td>등록말소일</td><td><b>5년</b></td><td>거주주택 비과세(§155⑳) 적용 한계</td></tr>
+          <tr><td>자진말소일</td><td><b>1년</b></td><td>양도세 중과배제</td></tr>
+          <tr><td>신규주택(C) 취득일</td><td><b>3년</b></td><td>일시적 2주택 비과세(§155①)</td></tr>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- 판정기 -->
+    <div class="rl-step">
+      <h2><span class="stepno">판정기</span> B 양도 비과세 판정 플로우 (Q1~Q3)</h2>
+      <div class="body">
+        <div class="rl-grid2">
+          <div>
+            <label>[Q1] A를 §155⑳로 비과세 양도한 이력이 있습니까?</label>
+            <select id="jq1">
+              <option value="yes">예 — A를 §155⑳ 비과세로 양도했음</option>
+              <option value="no">아니오 — A를 과세 양도했거나 특례 미적용</option>
+            </select>
+          </div>
+          <div>
+            <label>[Q2] B 양도 시점에 B 외 다른 주택이 있습니까?</label>
+            <select id="jq2">
+              <option value="none">없음 (B 단독 1주택)</option>
+              <option value="c">C(신규주택) 1채 있음</option>
+              <option value="other">그 외 다른 주택 있음</option>
+            </select>
+          </div>
+          <div id="jqCwrap1" style="display:none">
+            <label>C(신규주택) 취득일</label>
+            <input type="date" id="jqCdate">
+          </div>
+          <div id="jqCwrap2" style="display:none">
+            <label>B 양도(예정)일</label>
+            <input type="date" id="jqSellDate">
+          </div>
+          <div>
+            <label>[Q3] B 취득일</label>
+            <input type="date" id="jqBdate">
+          </div>
+          <div>
+            <label>B 보유기간 2년 이상입니까?</label>
+            <select id="jqHold2">
+              <option value="yes">예</option>
+              <option value="no">아니오</option>
+            </select>
+          </div>
+          <div>
+            <label>취득 「당시」 조정대상지역이었습니까?</label>
+            <select id="jqAdj">
+              <option value="no">아니오</option>
+              <option value="yes">예</option>
+            </select>
+          </div>
+          <div id="jqLiveWrap">
+            <label>B에서 2년 이상 거주했습니까(예정 포함)?</label>
+            <select id="jqLive2">
+              <option value="no">아니오 (거주 이력 없음)</option>
+              <option value="yes">예</option>
+            </select>
+          </div>
+        </div>
+        <div id="jqResult" class="jv ok"></div>
+        <p class="disclaimer" style="margin-top:10px">※ §155⑳의 거주주택 2년 거주요건은 B 양도 판정에서 따지지 않습니다(예규 취지). 판정은 §154① 하나 기준입니다.</p>
+      </div>
+    </div>
+
+    <!-- 계산기 -->
+    <div class="rl-step">
+      <h2><span class="stepno">계산기</span> 양도차익 안분 + 고가주택 안분 + 전략 비교</h2>
+      <div class="body">
+        <div class="rl-calc-layout">
+          <div class="cform">
+            <div class="cbox">
+              <h4>① B 거래 정보 (단위: 억원)</h4>
+              <div class="rl-grid2">
+                <div><label>취득가액</label><input type="number" id="cAcq" value="6" step="0.1" min="0"></div>
+                <div><label>양도가액(예정)</label><input type="number" id="cSell" value="20" step="0.1" min="0"></div>
+                <div><label>필요경비</label><input type="number" id="cExp" value="0" step="0.1" min="0"></div>
+              </div>
+            </div>
+            <div class="cbox">
+              <h4>② 기준시가 3점 (안분용, 단위: 억원)</h4>
+              <div class="rl-grid3">
+                <div><label>B 취득일</label><input type="number" id="cKsAcq" value="3.5" step="0.1" min="0"></div>
+                <div><label>A 양도일</label><input type="number" id="cKsA" value="7" step="0.1" min="0"></div>
+                <div><label>B 양도일</label><input type="number" id="cKsSell" value="10" step="0.1" min="0"></div>
+              </div>
+              <label class="ck" style="margin-top:8px"><input type="checkbox" id="cAnbun" checked><div><div class="t">직전거주주택보유주택 안분 적용 (A를 §155⑳ 비과세 양도한 경우)</div></div></label>
+            </div>
+            <div class="cbox">
+              <h4>③ 전략 비교용 (선택, 단위: 억원)</h4>
+              <label>A(거주주택)의 예상 양도차익 — 사례 8 비교</label>
+              <input type="number" id="cAGain" value="2" step="0.1" min="0">
+              <div class="money-hint">비워두면(0) 전략 비교는 생략됩니다</div>
+            </div>
+            <button class="btn-primary" id="calcBtn">계산하기</button>
+          </div>
+
+          <div class="panel cresult" id="calcOut"></div>
+        </div>
+
+        <h3 style="margin-top:16px">기본 산식 (기준시가 안분)</h3>
+        <div class="rl-formula">비과세 기간분 비율 = (양도일 기준시가 − 직전거주주택 양도일 기준시가) ÷ (양도일 기준시가 − B 취득일 기준시가)
+비과세 대상 양도차익 = 전체 양도차익 × 위 비율 → 12억 초과 고가주택이면 §160 고가주택 안분 추가 적용</div>
+        <p class="disclaimer">⚠ 안분 후 장기보유특별공제(표1 vs 표2 vs 조특법 §97의3) 적용 방식은 실무상 견해가 갈리는 영역입니다.
+        본 계산기는 비과세/과세 양도차익의 「폭」을 비교하는 구조 이해용이며, 세율·장특공·기본공제는 반영하지 않습니다.
+        신고 전 홈택스 모의계산과 최신 예규를 반드시 대조하십시오.</p>
+      </div>
+    </div>
+
+    <!-- 사례 시사점 -->
+    <div class="rl-step">
+      <h2><span class="stepno">사례</span> 사례 연구 핵심 시사점</h2>
+      <div class="body">
+        <div class="case-cards">
+          <div class="case-card"><span class="cc-no">사례 1</span><h4>거주 이력 0일 + 2017.8.3 이전 취득</h4><p>거주요건 자체가 없어 거주 없이도 비과세가 열립니다. 이 사례가 예규의 존재 이유. 단 A 양도일 이후 기간분에 한정.</p></div>
+          <div class="case-card"><span class="cc-no">사례 2</span><h4>조정지역 + 2017.8.3 이후 취득</h4><p>예규가 면제하는 것은 §155⑳의 거주요건이지 §154①의 거주요건이 아님 → 말소 후 실입주 2년을 채워야 비과세. 거주 2년이 생기면 장특공 표2(거주 연 4%)도 확보되어 §97의3(50%)와 유불리 재계산.</p></div>
+          <div class="case-card"><span class="cc-no">사례 3·4</span><h4>일시적 2주택 중첩 — 3년 시계</h4><p>§155⑳(안분 제한)+§155①(일시적 2주택)은 동시 작동. 3년 기산일은 A 양도일도 B 말소일도 아닌 <b>C 취득일</b>. 3년 도과 시 비과세 전면 배제 — 안분조차 논할 여지 없음.</p></div>
+          <div class="case-card"><span class="cc-no">사례 5</span><h4>임대주택 2채 — 순차 양도</h4><p>마지막 1채만 안분 비과세. 먼저 파는 채는 과세(중과배제·§97의3 50% 검토). A 양도일 이후 상승폭이 큰 주택을 마지막에. B1 양도 시 B2가 말소 전 요건충족 임대주택이면 B1도 비과세 — 말소 시차 설계 여지.</p></div>
+          <div class="case-card"><span class="cc-no">사례 6</span><h4>B에 2년 거주해도 안분은 유지</h4><p>거주는 §154① 요건 충족 문제일 뿐, 직전거주주택보유주택 지위는 거주로 소멸하지 않음. 안분은 A 비과세를 받은 사실 자체에서 발생.</p></div>
+          <div class="case-card"><span class="cc-no">사례 8</span><h4>★ 전략적 선택 — A를 굳이 비과세받지 않기</h4><p>A 비과세 이익 &lt; B 안분 손실이면 A를 §155⑳ 요건 미성립 구조로 양도(순서·말소시점 조정). §155⑳은 요건 충족 시 당연 적용으로 해석되는 것이 일반적 — "임의 포기"는 다툼 소지 커서 사전 검토 필수.</p></div>
+          <div class="case-card"><span class="cc-no">사례 9</span><h4>말소 후 5년 도과 — A 비과세 붕괴</h4><p>A는 과세되지만 B는 직전거주주택보유주택이 되지 않음 → 이후 B를 1주택으로 양도하면 안분 없이 전액 비과세 가능. 5년을 놓친 것이 항상 손해는 아님.</p></div>
+          <div class="case-card"><span class="cc-no">사례 10</span><h4>평생 1회와의 관계</h4><p>B 양도는 §155⑳이 아닌 §154① 일반 비과세+안분 제한 → 평생 1회를 추가 소진하지 않음. 2019.2.12 이전 다회 수혜 이력이 있으면 「가장 마지막 거주주택」이 직전거주주택이고 안분 기산일도 그 날짜.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 최종 확인 -->
+    <div class="rl-step">
+      <h2><span class="stepno">최종</span> 확인·유의사항</h2>
+      <div class="body">
+        <label class="ck"><input type="checkbox" data-ck="asf-1"><div><div class="t">인용 예규 원문 대조 — 기재부 재산세제과-1081(2022.8.31.), 서면-2023-법규재산-0426(2023.7.13.)</div><div class="d">국세법령정보시스템(txsi.hometax.go.kr)에서 원문 확인 후 고객 자문에 사용</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="asf-2"><div><div class="t">소득령 §155 항 번호 확인</div><div class="d">항 번호 개정이 잦음 — 적용 시점의 실제 조문 확인</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="asf-3"><div><div class="t">안분 후 장특공(표1·표2·§97의3) 적용 방식 — 홈택스 모의계산·최신 해석 대조</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="asf-4"><div><div class="t">사례 8형 설계(§155⑳ 요건 미성립 유도)는 사전 예규 확인 또는 세무조정 검토를 거칠 것</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="asf-5"><div><div class="t">개별 변수 점검 — 상속·증여 취득, 조합원입주권·분양권, 세대 분리, 임대료 5% 위반 이력, 다가구주택 여부</div></div></label>
+      </div>
+    </div>
+
+    <p class="disclaimer">
+      본 자료는 예규 요약을 토대로 한 구조 이해용 일반 정보이며, 개별 사안에 대한 세무 자문이 아닙니다.
+      실행 전 반드시 예규 원문·확정 법령 및 홈택스 모의계산으로 재검증하시기 바랍니다.
+    </p>
+  </div>
 </div>
 
 <script>
 (function () {
-  var KEY = 'rl-checklist-terminated';
-  var boxes = document.querySelectorAll('input[data-ck]');
-  var bar = document.getElementById('progBar');
-  var pct = document.getElementById('progPct');
+  // ── 하위 탭 전환 ─────────────────────────────
+  var tabBtns = document.querySelectorAll('#rlTabs button[data-tab]');
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tabBtns.forEach(function (b) { b.classList.toggle('active', b === btn); });
+      document.querySelectorAll('.rl-pane').forEach(function (p) {
+        p.style.display = (p.id === btn.dataset.tab) ? '' : 'none';
+      });
+    });
+  });
 
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
-  }
-  function save(state) {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 저장 불가 환경 무시 */ }
-  }
-  function refresh() {
-    var done = 0;
-    boxes.forEach(function (b) { if (b.checked) done++; });
-    var total = boxes.length;
-    bar.style.width = (total ? (done / total * 100) : 0) + '%';
-    pct.textContent = done + ' / ' + total;
-  }
-
-  var state = load();
-  boxes.forEach(function (b) {
-    b.checked = Boolean(state[b.dataset.ck]);
-    b.addEventListener('change', function () {
-      state[b.dataset.ck] = b.checked;
-      save(state);
+  // ── 체크리스트 저장·진행률 (탭별 localStorage) ──
+  document.querySelectorAll('.rl-pane').forEach(function (pane) {
+    var KEY = pane.dataset.store;
+    var boxes = pane.querySelectorAll('input[data-ck]');
+    var bar = pane.querySelector('.rl-progress .bar span');
+    var pct = pane.querySelector('.rl-progress .pct');
+    var state;
+    try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { state = {}; }
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 저장 불가 환경 무시 */ } }
+    function refresh() {
+      var done = 0;
+      boxes.forEach(function (b) { if (b.checked) done++; });
+      if (bar) bar.style.width = (boxes.length ? (done / boxes.length * 100) : 0) + '%';
+      if (pct) pct.textContent = done + ' / ' + boxes.length;
+    }
+    boxes.forEach(function (b) {
+      b.checked = Boolean(state[b.dataset.ck]);
+      b.addEventListener('change', function () {
+        state[b.dataset.ck] = b.checked;
+        save(); refresh();
+      });
+    });
+    refresh();
+    var reset = pane.querySelector('.rl-progress .reset');
+    if (reset) reset.addEventListener('click', function () {
+      if (!confirm('이 탭의 체크 상태를 모두 초기화할까요?')) return;
+      state = {}; save();
+      boxes.forEach(function (b) { b.checked = false; });
       refresh();
     });
   });
-  refresh();
 
-  document.getElementById('resetBtn').addEventListener('click', function () {
-    if (!confirm('모든 체크 상태를 초기화할까요?')) return;
-    state = {};
-    save(state);
-    boxes.forEach(function (b) { b.checked = false; });
-    refresh();
+  var $ = function (id) { return document.getElementById(id); };
+  var fmtD = function (d) { return d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '.'; };
+
+  // ── 판정기 (Q1~Q3 플로우) ─────────────────────
+  var CUTOFF = new Date(2017, 7, 3); // 2017.8.3 이후 취득분부터 거주요건
+  function judge() {
+    var q1 = $('jq1').value, q2 = $('jq2').value;
+    var showC = (q1 === 'yes' && q2 === 'c');
+    $('jqCwrap1').style.display = showC ? '' : 'none';
+    $('jqCwrap2').style.display = showC ? '' : 'none';
+
+    var bdate = $('jqBdate').value ? new Date($('jqBdate').value) : null;
+    var needLive = bdate && bdate >= CUTOFF && $('jqAdj').value === 'yes';
+    $('jqLiveWrap').style.display = (needLive || !bdate) ? '' : 'none';
+
+    var lines = [], verdict = 'ok', head = '';
+    var anbun = (q1 === 'yes');
+
+    if (!anbun) {
+      lines.push('직전거주주택보유주택 <b>아님</b> → 안분 없이 §154① 일반 판정 (유리)');
+    } else {
+      lines.push('B는 「직전거주주택보유주택」 → 비과세는 A 양도일 이후 기간분 양도차익에 한정 (안분)');
+      if (q2 === 'other') {
+        $('jqResult').className = 'jv no';
+        $('jqResult').innerHTML = '<span class="tag">비과세 불가</span><div><b>비과세 전면 배제 — 전액 과세.</b> B 양도 시점에 C 외 다른 주택이 있으면 안분조차 논할 여지가 없습니다. 처분 순서를 재설계하세요.</div>';
+        return;
+      }
+      if (q2 === 'c') {
+        var cd = $('jqCdate').value ? new Date($('jqCdate').value) : null;
+        var sd = $('jqSellDate').value ? new Date($('jqSellDate').value) : null;
+        if (cd) {
+          var dead = new Date(cd); dead.setFullYear(dead.getFullYear() + 3);
+          lines.push('§155① 일시적 2주택 데드라인: <b>' + fmtD(dead) + '</b>까지 B 양도 (기산일 = C 취득일)');
+          if (sd) {
+            if (sd <= dead) {
+              lines.push('양도예정일이 3년 이내 → <b>§155① 중첩 적용 가능</b> (§155⑳ 안분과 동시 작동)');
+            } else {
+              $('jqResult').className = 'jv no';
+              $('jqResult').innerHTML = '<span class="tag">비과세 불가</span><div><b>C 취득일부터 3년 도과 — 비과세 전면 배제(전액 과세).</b> 데드라인은 ' + fmtD(dead) + '이었습니다. B·C 2주택 상태의 일반 주택으로 과세됩니다.</div>';
+              return;
+            }
+          } else {
+            lines.push('B 양도(예정)일을 입력하면 3년 이내 여부를 판정합니다');
+          }
+        } else {
+          lines.push('C 취득일을 입력하면 3년 데드라인을 계산합니다');
+        }
+      }
+    }
+
+    if ($('jqHold2').value !== 'yes') {
+      verdict = 'no'; head = '비과세 불가';
+      lines.push('<b>보유 2년 미충족</b> → §154① 요건 불충족, 과세');
+    } else if (bdate) {
+      if (bdate < CUTOFF) {
+        lines.push('B 취득일 ' + fmtD(bdate) + ' = 2017.8.3 <b>이전</b> → <b>거주요건 없음</b> (거주 이력 0일이어도 가능)');
+      } else if ($('jqAdj').value !== 'yes') {
+        lines.push('취득 당시 비조정대상지역 → <b>거주요건 없음</b>');
+      } else if ($('jqLive2').value === 'yes') {
+        lines.push('조정지역 + 2017.8.3 이후 취득이지만 <b>2년 거주 충족</b> → 거주요건 통과 (장특공 표2 거주공제도 일부 확보)');
+      } else {
+        verdict = 'warn'; head = '요건 보완 필요';
+        lines.push('조정지역 + 2017.8.3 이후 취득 → <b>§154① 2년 거주요건 적용</b>. 말소 후 실제 입주하여 2년을 채운 뒤 양도해야 비과세 가능');
+      }
+    } else {
+      lines.push('B 취득일을 입력하면 거주요건(2017.8.3 분수령)을 판정합니다');
+    }
+
+    if (verdict === 'ok') {
+      head = anbun ? '비과세 가능 (안분 한정)' : '비과세 가능 (안분 없음)';
+      lines.push(anbun
+        ? '아래 계산기로 <b>비과세 폭(안분 비율)</b>을 확인하세요 — 생각보다 작을 수 있습니다'
+        : '12억 초과 고가주택 안분만 적용 — 아래 계산기에서 「안분 적용」 체크를 해제하고 계산하세요');
+    }
+    $('jqResult').className = 'jv ' + verdict;
+    $('jqResult').innerHTML = '<span class="tag">' + head + '</span><ul><li>' + lines.join('</li><li>') + '</li></ul>';
+  }
+  ['jq1', 'jq2', 'jqCdate', 'jqSellDate', 'jqBdate', 'jqHold2', 'jqAdj', 'jqLive2'].forEach(function (id) {
+    $(id).addEventListener('change', judge);
   });
+  judge();
+
+  // ── 안분 계산기 ───────────────────────────────
+  var fmt = function (x) {
+    var v = Math.round(x * 100) / 100;
+    return v.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '억원';
+  };
+  var pctf = function (x) { return (Math.round(x * 10000) / 100).toFixed(2) + '%'; };
+  var num = function (id) { return Number($(id).value) || 0; };
+
+  function calc() {
+    var acq = num('cAcq'), sell = num('cSell'), exp = num('cExp');
+    var ksAcq = num('cKsAcq'), ksA = num('cKsA'), ksSell = num('cKsSell');
+    var anbun = $('cAnbun').checked;
+    var aGain = num('cAGain');
+    var out = $('calcOut');
+
+    var gain = sell - acq - exp;
+    if (sell <= 0 || gain <= 0) {
+      out.innerHTML = '<div class="jv warn"><span class="tag">입력 확인</span>양도차익(양도가액 − 취득가액 − 필요경비)이 0 이하입니다. 양도차손이면 비과세 안분을 논할 실익이 없습니다.</div>';
+      return;
+    }
+
+    // 고가주택(12억 초과) 안분 — §160
+    var h = sell > 12 ? (sell - 12) / sell : 0;
+    var html = '';
+
+    // 안분 비율 (기준시가)
+    var r = 1, rNote = '';
+    if (anbun) {
+      var denom = ksSell - ksAcq;
+      if (denom <= 0 || ksSell <= 0) {
+        out.innerHTML = '<div class="jv warn"><span class="tag">입력 확인</span>기준시가가 「취득일 &lt; 양도일」 순으로 커지도록 입력하세요 (분모 = 양도일 − 취득일 기준시가).</div>';
+        return;
+      }
+      r = (ksSell - ksA) / denom;
+      if (r < 0) { r = 0; rNote = ' (A 양도일 기준시가가 더 높아 0%로 처리)'; }
+      if (r > 1) { r = 1; rNote = ' (A 양도일 기준시가가 취득일보다 낮아 100%로 처리)'; }
+    }
+    var afterPart = gain * r;            // A 양도일 이후 기간분 → 1세대1주택 판정 대상
+    var beforePart = gain - afterPart;   // 이전 기간분 → 전액 과세
+    var exemptB = afterPart * (1 - h);
+    var taxB = beforePart + afterPart * h;
+    var fullExemptB = gain * (1 - h);    // 안분이 없을 때의 비과세 폭
+
+    html += '<h3 style="margin:0 0 8px;color:var(--navy);font-size:14px">' + (anbun ? '① 기간 안분 (기준시가)' : '① 기간 안분 — 미적용') + '</h3>';
+    html += '<div class="rrow"><span class="k">전체 양도차익</span><span class="v">' + fmt(gain) + '</span></div>';
+    if (anbun) {
+      html += '<div class="rrow"><span class="k">비과세 기간분 비율 (' + (Math.round((ksSell - ksA) * 100) / 100) + ' ÷ ' + (Math.round((ksSell - ksAcq) * 100) / 100) + ')</span><span class="v">' + pctf(r) + rNote + '</span></div>';
+      html += '<div class="rrow plus"><span class="k">A 양도일 이후 기간분 (1세대1주택 판정 대상)</span><span class="v">' + fmt(afterPart) + '</span></div>';
+      html += '<div class="rrow minus"><span class="k">A 양도일 이전 기간분 (전액 과세)</span><span class="v">' + fmt(beforePart) + '</span></div>';
+    }
+    html += '<h3 style="margin:14px 0 8px;color:var(--navy);font-size:14px">② 고가주택 안분 (12억 기준)</h3>';
+    if (h > 0) {
+      html += '<div class="rrow"><span class="k">과세 비율 ((' + sell + ' − 12) ÷ ' + sell + ')</span><span class="v">' + pctf(h) + '</span></div>';
+    } else {
+      html += '<div class="rrow"><span class="k">양도가액 12억 이하</span><span class="v">고가주택 안분 없음</span></div>';
+    }
+    html += '<h3 style="margin:14px 0 8px;color:var(--navy);font-size:14px">③ 최종</h3>';
+    html += '<div class="rrow big plus"><span class="k">비과세 양도차익</span><span class="v">' + fmt(exemptB) + ' (' + pctf(gain ? exemptB / gain : 0) + ')</span></div>';
+    html += '<div class="rrow big minus"><span class="k">과세 대상 양도차익</span><span class="v">' + fmt(taxB) + '</span></div>';
+    if (anbun) {
+      html += '<p style="font-size:12px;color:#7b8a97;line-height:1.6;margin:10px 0 0">안분이 없었다면 비과세 폭은 ' + fmt(fullExemptB) +
+        ' — 안분으로 <b>' + fmt(fullExemptB - exemptB) + '</b>이 과세로 전환됩니다. "직전거주주택보유주택은 비과세 폭이 생각보다 작다"는 점을 고객에게 미리 설명해 기대치를 관리하세요.</p>';
+    }
+
+    // 전략 비교 (사례 8)
+    if (aGain > 0 && anbun) {
+      var scenGa = aGain + exemptB;      // (가) A §155⑳ 비과세 + B 안분
+      var scenNa = fullExemptB;          // (나) A 과세 + B 온전 1주택 (안분 없음)
+      var diff = scenNa - scenGa;
+      html += '<h3 style="margin:16px 0 8px;color:var(--navy);font-size:14px">④ 전략 비교 (사례 8) — 비과세 양도차익 합계</h3>';
+      html += '<div class="rrow"><span class="k">(가) A를 §155⑳ 비과세 → B 안분 양도</span><span class="v">' + fmt(aGain) + ' + ' + fmt(exemptB) + ' = ' + fmt(scenGa) + '</span></div>';
+      html += '<div class="rrow"><span class="k">(나) A 과세 양도 → B 온전한 1주택 양도</span><span class="v">' + fmt(scenNa) + '</span></div>';
+      if (diff > 0.005) {
+        html += '<div class="jv warn" style="margin-top:10px"><span class="tag">(나)가 유리한 구간</span>(나)의 비과세 폭이 <b>' + fmt(diff) + '</b> 더 큽니다. 다만 §155⑳은 요건 충족 시 <b>당연 적용</b>으로 해석되는 것이 일반적이어서 "임의 포기"는 다툼의 소지가 큽니다 — 양도 순서·말소 시점을 조정해 <b>요건 자체가 성립하지 않도록 설계</b>하고, 반드시 사전 예규 확인을 거치세요.</div>';
+      } else {
+        html += '<div class="jv ok" style="margin-top:10px"><span class="tag">(가)가 유리한 구간</span>통상 구도대로 A를 §155⑳ 비과세로 먼저 양도하는 쪽의 비과세 폭이 ' + fmt(-diff) + ' 더 큽니다(같으면 관리 부담이 적은 (가) 권장).</div>';
+      }
+      html += '<p style="font-size:11.5px;color:#90a4ae;line-height:1.6;margin:8px 0 0">※ 비과세 「양도차익 폭」의 비교입니다. 실제 세액은 세율 구간·장특공(표1/표2/§97의3)·A 양도 과세액에 따라 달라지므로 최종 판단 전 세액 단위로 재계산하세요.</p>';
+    }
+
+    out.innerHTML = html;
+  }
+  $('calcBtn').addEventListener('click', calc);
+  ['cAcq', 'cSell', 'cExp', 'cKsAcq', 'cKsA', 'cKsSell', 'cAnbun', 'cAGain'].forEach(function (id) {
+    $(id).addEventListener('change', calc);
+  });
+  calc(); // 사례 7 기본값으로 초기 표시
 })();
 </script>
 </body>
