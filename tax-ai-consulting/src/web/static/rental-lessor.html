@@ -129,6 +129,7 @@
     <button class="active" data-tab="tab-terminated">거주주택+말소된주택</button>
     <button data-tab="tab-aftersale">거주주택 양도 후+임대주택 양도</button>
     <button data-tab="tab-choice">거주주택·임대주택 양도 택일</button>
+    <button data-tab="tab-permit">토지거래허가구역 저가양도</button>
     <button disabled style="opacity:.5;cursor:default">임대 등록 중 (준비중)</button>
   </div>
 
@@ -751,6 +752,294 @@
       </div>
     </div>
   </div>
+
+  <!-- ════════ 탭 4: 토지거래허가구역 내 저가양도 ════════ -->
+  <div id="tab-permit" class="rl-pane" data-store="rl-checklist-permit" style="display:none">
+
+    <div class="rl-premise">
+      <b>전제 —</b> 거주주택(A)+등록임대주택(B) 보유자의 자녀 저가양도를 <b>토지거래허가구역 안</b>에서 실행하는 국면
+      (근거: 부동산 거래신고 등에 관한 법률 §10~§23). 허가 대상은 「대가를 받는 소유권·지상권 이전 계약」 —
+      <b>유상성</b>이 기준이므로 저가양도·정상매매·부담부증여(채무승계분)는 허가 대상, <b>순수 증여·상속은 허가 불요</b>입니다.
+      <div class="rl-flow" style="margin-top:8px">
+        <span class="f">1관문 구청 — 가격 적정성 + 실수요성 (불허가 → 계약 확정적 무효)</span><span class="arr">+</span>
+        <span class="f">2관문 국세청 — 부당행위·§35·증여추정 (추징+가산세)</span>
+      </div>
+      1관문에서는 "가격이 너무 낮으면" 막히고, 2관문에서는 "낮은 만큼" 과세됩니다 —
+      저가양도의 본질(싸게 넘기기)이 <b>1관문의 탈락 사유</b>가 되는 구조적 모순이 이 탭의 주제입니다.
+    </div>
+
+    <div class="rl-note">
+      ⚠ <b>정보 연계:</b> 허가 신청(예정가격 기재) → 허가증 발급 → 실거래 신고(자금조달계획서) → 국세청 통보
+      → 특수관계인 거래 자동 추출 → 자금출처 소명 요구. 허가 절차를 밟는 순간 거래가 <b>완전히 노출</b>되어
+      허가구역 밖 거래보다 세무 리스크 노출도가 훨씬 높습니다. 허가구역 지정·기준면적은 수시로 변동하므로
+      실행 시점에 <b>관할 지자체 공고문을 직접 확인</b>하십시오.
+    </div>
+
+    <div class="rl-progress">
+      <div class="bar"><span></span></div>
+      <div class="pct">0 / 0</div>
+      <button class="reset">전체 초기화</button>
+    </div>
+
+    <div class="rl-actions">
+      <button onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+    </div>
+
+    <!-- 판정기 -->
+    <div class="rl-step">
+      <h2><span class="stepno">판정기</span> 허가 대상 여부 + 허가구역 내 선택 플로우</h2>
+      <div class="body">
+        <div class="rl-grid2">
+          <div>
+            <label>대지권 면적 (㎡) — 아파트는 전용면적이 아니라 「대지권 면적」</label>
+            <input type="number" id="pjArea" value="40" step="0.1" min="0">
+            <div class="money-hint">등기사항전부증명서(집합건물) 표제부에서 확인. 예: 대지 20,000㎡ ÷ 500세대 ≒ 40㎡</div>
+          </div>
+          <div>
+            <label>적용 기준면적 (㎡) — 지자체 공고 기준</label>
+            <input type="number" id="pjBase" value="6" step="0.1" min="0">
+            <div class="money-hint">법정: 주거 180 · 상업 200 · 공업 660 · 녹지 100 · 미지정 90 · 농지 500 · 임야 1,000 · 기타 250㎡ 초과. 서울 주요 지역은 6㎡로 축소 지정 사례</div>
+          </div>
+          <div>
+            <label>자녀가 취득 후 즉시 입주해 2년간 실거주 가능합니까?</label>
+            <select id="pjLive">
+              <option value="yes">예 (직장·학업 이동 계획 없음)</option>
+              <option value="no">아니오</option>
+            </select>
+          </div>
+          <div>
+            <label>저가양도 대상 물건</label>
+            <select id="pjTarget">
+              <option value="A">A (거주주택 — 부모 거주 중)</option>
+              <option value="B">B (임대주택 — 임차인 있음)</option>
+            </select>
+          </div>
+          <div id="pjBDutyWrap" style="display:none">
+            <label>B가 의무임대기간 중입니까?</label>
+            <select id="pjBDuty">
+              <option value="no">아니오 (말소 완료)</option>
+              <option value="yes">예 (의무기간 중)</option>
+            </select>
+          </div>
+          <div>
+            <label>예정 거래가격 수준</label>
+            <select id="pjPrice">
+              <option value="low">시가 −3억 (70% 수준) 강행</option>
+              <option value="fair">감정평가액 범위 내 설계</option>
+            </select>
+          </div>
+        </div>
+        <div id="pjResult" class="jv ok"></div>
+        <p class="disclaimer" style="margin-top:10px">※ 기준면적 이하로 쪼개는 분할·지분 거래는 동일인 간 일정 기간 내 합산 판정되고, 지분 거래도 지분 해당 면적으로 판정합니다.
+        법정 면적만 보고 "해당 없음"으로 판단하지 마십시오 — 축소 지정(예: 6㎡)이 적용되는 경우가 많습니다.</p>
+      </div>
+    </div>
+
+    <!-- 충돌 구조 -->
+    <div class="rl-step">
+      <h2><span class="stepno">충돌</span> 허가 요건과 저가양도의 충돌 — 실수요성(자녀가 반드시 살아야 한다)</h2>
+      <div class="body">
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>항목</th><th>내용</th></tr>
+          <tr><td>이용목적</td><td>자기 거주용 주택</td></tr>
+          <tr><td>입주 시기</td><td><b>취득 후 즉시</b> (통상 잔금·등기 후 지체 없이)</td></tr>
+          <tr><td>이용의무기간</td><td><b>2년</b></td></tr>
+          <tr><td>임대 금지</td><td class="warn">이용의무기간 중 타인에게 임대 불가</td></tr>
+        </table></div>
+
+        <h3>★★ B(임대주택) 저가양도가 사실상 불가능한 이유</h3>
+        <div class="rl-flow">
+          <span class="f">B에는 임차인이 있다</span><span class="arr">→</span>
+          <span class="f">허가 요건: 자녀 즉시 입주 + 2년 거주</span><span class="arr">→</span>
+          <span class="f">임차인 있는 상태로는 허가 불가</span><span class="arr">→</span>
+          <span class="f">명도 필요 (갱신요구권·시기 문제)</span><span class="arr">→</span>
+          <span class="f">명도·허가·잔금 시점 정밀 일치 필요</span>
+        </div>
+        <p>B가 아직 <b>의무임대기간 중</b>이라면 양도 자체가 민특법 위반(과태료 3천만원 이하 + 세제 추징)이며 임차인을 내보내는 것도
+        불가능 → 허가구역에서는 <b>앞 탭 시뮬레이션의 Case 2(B 저가양도)가 실행 난이도상 사실상 배제</b>되고 선택지가 A로 좁혀집니다.</p>
+
+        <h3>★★ A(거주주택) 저가양도의 함정 — 부모가 나가야 한다: 성립 가능한 유일한 동선</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>순서</th><th>조치</th><th>세무 유의점</th></tr>
+          <tr><td>①</td><td>B 자동말소·자진말소 확인 (또는 말소 완료)</td><td>말소일부터 5년 카운트 시작</td></tr>
+          <tr><td>②</td><td>B 임차인 계약만료·명도</td><td>갱신요구권 대응, 실거주 사유 갱신거절 검토</td></tr>
+          <tr><td>③</td><td><b>A 양도 잔금일 = 부모 B 입주일 = 자녀 A 입주일 동시 이행</b></td><td class="warn">하루라도 어긋나면 자녀 이용의무 위반 소지</td></tr>
+          <tr><td>④</td><td>A 양도 시 §155⑳ 거주주택 비과세 적용</td><td>B가 장기임대주택 요건 유지 또는 말소 후 5년 이내</td></tr>
+        </table></div>
+        <p><b>순서의 함정:</b> 부모가 B에 먼저 입주해 B가 임대주택이 아니게 되면 A 양도 시 §155⑳ 특례의 전제(장기임대주택 보유)가
+        흔들릴 수 있습니다. 말소 후 5년 이내라면 말소 상태여도 특례가 유지되므로 <b>「말소 → 명도 → A 양도 및 동시 이주」</b> 순서가
+        안전합니다 (실행 전 개별 확인 필요).</p>
+
+        <h3>가격 적정성 심사 — 저가양도의 최대 난관</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>상황</th><th>실무 대응</th></tr>
+          <tr><td class="warn">시가의 70% 수준 (−3억 설계)</td><td>불허가 또는 보완 요구 가능성 상당</td></tr>
+          <tr><td>특수관계인(부모↔자녀) 명시</td><td>심사 강도 상승</td></tr>
+          <tr><td>인근 실거래가와 괴리 큼</td><td>소명자료 요구</td></tr>
+        </table></div>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>대응 방안</th><th>내용</th><th>한계</th></tr>
+          <tr><td>감정평가서 제출</td><td>공인감정평가법인 2곳 평가액 첨부 → 가격 객관성 소명</td><td>평가액이 시가에 근접하면 저가 폭 축소</td></tr>
+          <tr><td>가격 조정</td><td>시가 대비 하락폭 축소 (예: −1.5억)</td><td>증여 효과 감소</td></tr>
+          <tr><td>하자·특수사정 소명</td><td>수리 필요, 임차보증금 승계, 권리관계 등</td><td>객관적 증빙 필요</td></tr>
+          <tr><td>거래방식 전환</td><td>증여 또는 부담부증여로 전환 (허가 불요)</td><td>세부담 대폭 증가</td></tr>
+        </table></div>
+        <p><b>현실적 조언:</b> 허가구역에서 「시가 −3억」을 강행하기보다 <b>감정평가액을 정확히 확보한 뒤 그 범위 내에서 설계</b>하는
+        편이 안전합니다. 불허가 처분을 받으면 계약이 확정적 무효가 되어 계약금 반환·명도 계획이 모두 무너집니다.</p>
+      </div>
+    </div>
+
+    <!-- 유동적 무효·제재 -->
+    <div class="rl-step">
+      <h2><span class="stepno">계약</span> 유동적 무효 — 계약서 설계 · 위반 시 제재</h2>
+      <div class="body">
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>단계</th><th>계약의 효력</th></tr>
+          <tr><td>계약 체결 ~ 허가 전</td><td><b>유동적 무효</b> (채권적 효력 없음)</td></tr>
+          <tr><td>허가 취득</td><td class="good">계약 시점으로 소급하여 유효</td></tr>
+          <tr><td>불허가 확정</td><td class="warn">확정적 무효 → 기지급금 부당이득 반환</td></tr>
+        </table></div>
+
+        <h3>계약서 필수 특약 (예시)</h3>
+        <div class="rl-formula">제○조 (토지거래허가)
+① 본 계약은 「부동산 거래신고 등에 관한 법률」에 따른 토지거래계약 허가를 받는 것을 조건으로 하며, 허가 전까지 유동적 무효 상태임을 당사자가 확인한다.
+② 매도인과 매수인은 계약체결일부터 ○일 이내에 허가 신청에 공동으로 협력하며, 필요한 서류를 지체 없이 제공한다.
+③ 관할 관청의 불허가 처분이 확정된 경우 본 계약은 확정적으로 무효가 되며, 매도인은 수령한 계약금 전액을 즉시 반환한다. 이 경우 위약금·손해배상 책임은 발생하지 아니한다.
+④ 보완 요구가 있는 경우 양 당사자는 성실히 보완에 응하며, ○회의 보완에도 허가를 받지 못한 경우 제3항을 준용한다.
+⑤ 매수인은 취득 후 즉시 입주하여 2년 이상 자기 거주 목적으로 이용할 의무가 있음을 확인하고, 매도인은 잔금일까지 목적물을 명도한다.</div>
+
+        <h3>불허가 시 구제 · 위반 시 제재</h3>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>구제 수단</th><th>기한·내용</th></tr>
+          <tr><td>이의신청</td><td>처분 통지 후 <b>1개월 이내</b> 관할 관청에</td></tr>
+          <tr><td>매수청구</td><td>불허가 확정 후 <b>1개월 이내</b>, 지자체 등에 공시지가 기준 매수 청구</td></tr>
+          <tr><td>행정심판·소송</td><td>일반 행정쟁송 절차</td></tr>
+        </table></div>
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>위반 유형</th><th>제재</th></tr>
+          <tr><td>무허가 계약 체결 · 부정한 방법으로 허가 취득</td><td class="warn">2년 이하 징역 또는 개별공시지가 기준 토지가격의 30% 이하 벌금</td></tr>
+          <tr><td>이용의무 위반 (미이용)</td><td class="warn">이행명령 → 취득가액의 10% 이행강제금</td></tr>
+          <tr><td>이용의무 위반 (임대)</td><td class="warn">취득가액의 7% 이행강제금</td></tr>
+          <tr><td>이용목적 무단 변경</td><td class="warn">취득가액의 5% 이행강제금</td></tr>
+          <tr><td>실거래 허위신고</td><td>취득가액의 5% 이하 과태료</td></tr>
+        </table></div>
+        <p class="warn" style="color:#943126;font-weight:700;font-size:13px">이행강제금은 매년 반복 부과될 수 있습니다 — 15억 주택이면 연 1.5억까지 가능. 자녀에게 반드시 고지해야 할 사항입니다.</p>
+
+        <h3>실행 순서 (D-90 → 2년 사후관리)</h3>
+        <div class="rl-flow">
+          <span class="f">[0] D-90 사전조사 (지정·기준면적·대지권·B 임대차)</span><span class="arr">→</span>
+          <span class="f">[1] D-60 감정평가 2곳 (허가+세무 겸용)</span><span class="arr">→</span>
+          <span class="f">[2] D-60 자녀 요건 정비 (세대분리·자금·거주지)</span><span class="arr">→</span>
+          <span class="f">[3] D-60 B 임차인 명도 협의</span><span class="arr">→</span>
+          <span class="f">[4] D-30 계약 체결 (특약 삽입·계약금 최소화)</span><span class="arr">→</span>
+          <span class="f">[5] D-30 허가 신청 (공동, 토지이용계획서·자금조달계획서·감정평가서)</span><span class="arr">→</span>
+          <span class="f">[6] D-15 처분 (15일 내, 경과 시 허가 의제)</span><span class="arr">→</span>
+          <span class="f">[7] D-Day 잔금·명도·등기 (부모 B 입주·자녀 A 입주·전액 계좌이체)</span><span class="arr">→</span>
+          <span class="f">[8] D+60 신고 (실거래 30일·취득세 60일·양도세 예정신고 2개월)</span><span class="arr">→</span>
+          <span class="f">[9] 2년 사후관리 (실거주·전입 유지·이용실태 조사 대응)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 부모 체크리스트 -->
+    <div class="rl-step">
+      <h2><span class="stepno">부모</span> 【부모(매도인)】 체크리스트 — 24항목</h2>
+      <div class="body">
+        <h3>A. 사전 확인</h3>
+        <label class="ck"><input type="checkbox" data-ck="pm-1"><div><div class="t">물건 소재지가 토지거래허가구역인가 (지정일·해제 예정 확인)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-2"><div><div class="t">지자체 공고상 기준면적 확인 (법정 아닌 축소 지정 여부)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-3"><div><div class="t">등기부상 대지권 면적이 기준면적을 초과하는가</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-4"><div><div class="t">동일인 간 최근 분할 거래 이력 있는가 (합산 판정)</div></div></label>
+        <h3>B. 물건 정비</h3>
+        <label class="ck"><input type="checkbox" data-ck="pm-5"><div><div class="t">A를 넘길 경우 본인 퇴거 및 이주처 확보 계획</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-6"><div><div class="t">B로 이주 예정이면 임차인 명도 일정 확정</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-7"><div><div class="t">B의 의무임대기간 중 여부 (중이면 양도·명도 모두 제약)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-8"><div><div class="t">B의 말소 유형·말소일 → 5년 기한 계산</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-9"><div><div class="t">임차인 갱신거절 통지 기한 준수 (만료 6개월~2개월 전)</div></div></label>
+        <h3>C. 가격 및 계약</h3>
+        <label class="ck"><input type="checkbox" data-ck="pm-10"><div><div class="t">감정평가 2곳 확보 (허가 소명 + 세무 소명 겸용)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-11"><div><div class="t">예정가격이 인근 실거래가 대비 허가 통과 가능 수준인지</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-12"><div><div class="t">계약서에 유동적 무효 특약 삽입</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-13"><div><div class="t">계약금 최소화 (불허가 시 반환 리스크)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-14"><div><div class="t">잔금일 = 명도일 = 자녀 입주일 동시 이행 구조</div></div></label>
+        <h3>D. 세무</h3>
+        <label class="ck"><input type="checkbox" data-ck="pm-15"><div><div class="t">A 비과세 요건 충족 여부 (§155⑳ + §154①)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-16"><div><div class="t">부당행위계산부인 적용 시 양도세 재계산</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-17"><div><div class="t">거주주택 비과세 평생 1회 소진 여부 판단</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-18"><div><div class="t">잔여주택의 「직전거주주택보유주택」 지위 발생 여부</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-19"><div><div class="t">잔여주택 안분 대비 A 양도일 현재 B 기준시가 캡처</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-20"><div><div class="t">양도세 예정신고 (양도일 속한 달 말일부터 2개월)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-21"><div><div class="t">종부세 과세기준일(6/1) 전후 소유권 이전 시기 조정</div></div></label>
+        <h3>E. 절차</h3>
+        <label class="ck"><input type="checkbox" data-ck="pm-22"><div><div class="t">허가 신청 공동 협력 의무 이행</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-23"><div><div class="t">부동산 실거래 신고 (계약일부터 30일)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="pm-24"><div><div class="t">불허가 시 이의신청(1개월)·매수청구(1개월) 기한 관리</div></div></label>
+      </div>
+    </div>
+
+    <!-- 자녀 체크리스트 -->
+    <div class="rl-step">
+      <h2><span class="stepno">자녀</span> 【자녀(매수인)】 체크리스트 — 26항목</h2>
+      <div class="body">
+        <h3>A. 자격 요건</h3>
+        <label class="ck"><input type="checkbox" data-ck="ch-1"><div><div class="t">세대분리 완료 (주민등록 + 실질적 생계 독립)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-2"><div><div class="t">기존 주택 보유 현황 → 실수요성 소명 및 취득세율 결정</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-3"><div><div class="t">현 거주지·직장과 취득 물건의 거리·연고 소명 가능한가</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-4"><div><div class="t">현재 거주 중인 주택의 임대차 종료 시점 정리</div></div></label>
+        <h3>B. ★ 실거주 의무 (가장 중요)</h3>
+        <label class="ck"><input type="checkbox" data-ck="ch-5"><div><div class="t">취득 후 즉시 입주 가능한가 (명도 완료 확인)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-6"><div><div class="t">2년 이상 실거주 가능한가 (직장 이동·유학 계획 점검)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-7"><div><div class="t">이용의무기간 중 임대 금지 인지</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-8"><div><div class="t">위반 시 이행강제금(취득가액 10%, 매년 반복 부과) 인지</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-9"><div><div class="t">전입신고 즉시 이행 및 유지</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-10"><div><div class="t">지자체 이용실태 조사 대응 자료 준비 (관리비·공과금 납부내역)</div></div></label>
+        <h3>C. 자금</h3>
+        <label class="ck"><input type="checkbox" data-ck="ch-11"><div><div class="t">자금조달계획서 작성 및 증빙서류 준비</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-12"><div><div class="t">자금출처 소명자료: 소득금액증명 3~5년, 원천징수영수증</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-13"><div><div class="t">대출 사전 승인 확보 (허가구역 LTV 제약 확인)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-14"><div><div class="t">대금 전액 계좌이체 (현금·상계 금지)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-15"><div><div class="t">차용 시 차용증 + 실제 이자 지급 (적정이자율 4.6%, 연 이자 1천만원 미만 기준 확인)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-16"><div><div class="t">부모가 자녀 계좌에 자금 선입금 금지 (증여추정 재구성 위험)</div></div></label>
+        <h3>D. 세무</h3>
+        <label class="ck"><input type="checkbox" data-ck="ch-17"><div><div class="t">상증법 §44 증여추정 배제 요건 충족 (대가 지급 명백 입증)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-18"><div><div class="t">상증법 §35 증여재산가액 산정 → 증여세 신고 요부</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-19"><div><div class="t">취득세 과세표준 = 시가인정액 전제로 자금 계획</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-20"><div><div class="t">취득세율 확인 (무주택 1~3% / 조정 2주택 8% / 3주택 이상 12%)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-21"><div><div class="t">취득세 신고·납부 (취득일부터 60일)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-22"><div><div class="t">향후 재양도 시 취득가액 단절(3억) 인지</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-23"><div><div class="t">상속 개시 시 10년 내 사전증여 합산 가능성</div></div></label>
+        <h3>E. 절차</h3>
+        <label class="ck"><input type="checkbox" data-ck="ch-24"><div><div class="t">허가 신청 공동 신청인으로 참여</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-25"><div><div class="t">토지이용계획서 작성 (자기 거주용 명시)</div></div></label>
+        <label class="ck"><input type="checkbox" data-ck="ch-26"><div><div class="t">불허가 시 계약금 반환 특약 확인</div></div></label>
+      </div>
+    </div>
+
+    <!-- 결론 -->
+    <div class="rl-step">
+      <h2><span class="stepno">결론</span> 허가구역이 결론에 미치는 영향</h2>
+      <div class="body">
+        <div class="rl-table-wrap"><table class="rl">
+          <tr><th>항목</th><th>허가구역 밖</th><th>허가구역 내</th></tr>
+          <tr><td>B(임대주택) 저가양도</td><td>검토 가능</td><td class="warn">사실상 배제 (임차인·실거주 충돌)</td></tr>
+          <tr><td>A(거주주택) 저가양도</td><td>부모 계속 거주 가능</td><td class="warn">부모 퇴거 필수</td></tr>
+          <tr><td>저가 폭</td><td>시가 −3억 자유</td><td class="warn">가격 심사로 제약</td></tr>
+          <tr><td>증여 대안</td><td>세부담 과다로 후순위</td><td class="good">허가 불요 → 재평가 필요</td></tr>
+          <tr><td>실행 난이도</td><td>중</td><td class="warn">상</td></tr>
+        </table></div>
+        <p><b>핵심 결론:</b> 허가구역에서는 저가양도의 세제상 우위(약 1/10 세부담)와 실행 리스크(불허가·이행강제금·퇴거 부담)를
+        <b>함께 저울질</b>해야 합니다. 자녀가 실거주할 수 없는 상황이라면, 세부담이 크더라도 <b>증여가 유일하게 실행 가능한
+        선택지</b>입니다. 가격 적정성 심사 기준은 명문화되어 있지 않아 지자체·담당자별 편차가 있으므로 <b>사전 상담으로 통과 가능
+        수준을 타진</b>하는 것이 실무상 유효합니다.</p>
+      </div>
+    </div>
+
+    <p class="disclaimer">
+      허가구역 지정 현황·기준면적은 수시로 변동하며 본 자료의 조문·제재 수준은 현행 규정 전제입니다.
+      실행 시점에 관할 지자체 공고문과 개정 법령을 직접 확인한 뒤 활용하시기 바랍니다. §155⑳ 특례와 이주 순서의 상호작용은
+      개별 사안마다 결론이 달라질 수 있으므로 반드시 사전 검토를 거치십시오.
+    </p>
+  </div>
 </div>
 
 <script>
@@ -1129,6 +1418,62 @@
     $(id).addEventListener('change', chCalc);
   });
   chCalc(); // 보고서 공통 전제 기본값으로 초기 표시
+
+  // ── 토지거래허가구역 판정기 (탭 4) ────────────────
+  function pjJudge() {
+    var area = num('pjArea'), base = num('pjBase');
+    var live = $('pjLive').value, target = $('pjTarget').value;
+    var price = $('pjPrice').value;
+    $('pjBDutyWrap').style.display = target === 'B' ? '' : 'none';
+    var bDuty = $('pjBDuty').value;
+    var el = $('pjResult');
+    var lines = [];
+
+    if (base <= 0 || area <= 0) {
+      el.className = 'jv warn';
+      el.innerHTML = '<span class="tag">입력 확인</span>대지권 면적과 지자체 공고 기준면적을 입력하세요.';
+      return;
+    }
+    if (area <= base) {
+      el.className = 'jv ok';
+      el.innerHTML = '<span class="tag">허가 대상 아님</span><div>대지권 면적 ' + area + '㎡ ≤ 기준면적 ' + base + '㎡ → 토지거래허가 불요. <b>일반 저가양도 절차</b>로 진행합니다 (「거주주택·임대주택 양도 택일」 탭의 시뮬레이션 그대로 적용).</div><ul><li>단, 동일인 간 분할·지분 거래는 합산 판정되므로 최근 거래 이력을 확인하세요</li><li>기준면적은 지자체 공고 기준(축소 지정 가능)인지 재확인</li></ul>';
+      return;
+    }
+
+    lines.push('대지권 면적 ' + area + '㎡ &gt; 기준면적 ' + base + '㎡ → <b>토지거래허가 대상</b> (유상계약이므로 저가양도도 허가 필요, 증여·상속은 불요)');
+
+    if (live === 'no') {
+      el.className = 'jv no';
+      el.innerHTML = '<span class="tag">저가양도 불가</span><ul><li>' + lines.join('</li><li>') + '</li><li>자녀가 즉시 입주 + 2년 실거주를 할 수 없으면 실수요성 요건 미충족 → 허가 불가</li><li>★ <b>증여 또는 상속 설계로 전환</b>하세요 — 무상이전은 허가 불요. 세부담이 크더라도 유일하게 실행 가능한 선택지입니다</li></ul>';
+      return;
+    }
+    lines.push('자녀 즉시 입주 + 2년 실거주 가능 → 실수요성 요건 충족 가능');
+
+    if (target === 'B') {
+      if (bDuty === 'yes') {
+        el.className = 'jv no';
+        el.innerHTML = '<span class="tag">B 양도 사실상 불가</span><ul><li>' + lines.join('</li><li>') + '</li><li>B가 <b>의무임대기간 중</b> → 양도 자체가 민특법 위반(과태료 3천만원 이하 + 세제 추징), 임차인 명도도 불가</li><li>A 저가양도로 전환하거나(부모 퇴거·이주처 필요), 임대사업자 지위 포괄승계를 검토하세요</li></ul>';
+        return;
+      }
+      lines.push('B(임차인 있음): 자녀 즉시 입주 요건과 충돌 → <b>명도 가능 시점</b>을 확인하고 명도·허가·잔금 시점을 정밀하게 맞춰야 합니다 (갱신요구권 대응 포함) — 허가구역에서 B 저가양도는 실행 난이도상 사실상 배제되는 경향, 선택지는 통상 A로 좁혀집니다');
+    } else {
+      lines.push('A(부모 거주 중): <b>부모 퇴거 필수</b> → 유일한 동선 = 「B 말소 확인 → B 임차인 명도 → A 양도 잔금일 = 부모 B 입주일 = 자녀 A 입주일 동시 이행」 (§155⑳ 유지 위해 말소 후 5년 이내 확인)');
+    }
+
+    if (price === 'low') {
+      el.className = 'jv warn';
+      el.innerHTML = '<span class="tag">가격 심사 리스크</span><ul><li>' + lines.join('</li><li>') + '</li><li>「시가 −3억(70% 수준)」 강행은 <b>불허가·보완 요구 가능성 상당</b> (특수관계인 명시로 심사 강도 상승)</li><li>감정평가 2곳 확보 후 <b>평가액 범위 내로 가격 조정</b>(예: −1.5억)하거나 증여·부담부증여 전환을 검토하세요</li><li>불허가 확정 시 계약이 확정적 무효 → 계약금 최소화 + 유동적 무효 특약 필수</li></ul>';
+      return;
+    }
+    lines.push('감정평가액 범위 내 설계 → 가격 적정성 심사 통과 가능성 제고 (감정평가서를 허가 신청에 첨부)');
+    lines.push('실행: 유동적 무효 특약 삽입 → 공동 허가 신청(15일 내 처분, 경과 시 의제) → 잔금·명도·등기 동시 이행 → 실거래 30일·취득세 60일·양도세 예정신고, 이후 2년 실거주 사후관리');
+    el.className = 'jv ok';
+    el.innerHTML = '<span class="tag">실행 가능 경로</span><ul><li>' + lines.join('</li><li>') + '</li></ul>';
+  }
+  ['pjArea', 'pjBase', 'pjLive', 'pjTarget', 'pjBDuty', 'pjPrice'].forEach(function (id) {
+    $(id).addEventListener('change', pjJudge);
+  });
+  pjJudge();
 })();
 </script>
 </body>
