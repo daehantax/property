@@ -33,7 +33,7 @@ function calculate() {
   const row = (label, amount, opts = {}) => rows.push(`
     <tr class="${opts.minus ? 'minus' : ''} ${opts.total ? 'total' : ''}">
       <td class="rowlabel">${opts.fx ? `<button class="fx-btn" data-fx="${opts.fx}">${label}</button>` : label}
-        ${opts.note ? `<div style="font-size:11.5px;color:#7b8a97;font-weight:400">${opts.note}</div>` : ''}</td>
+        ${opts.note ? `<div style="font-size:13px;color:#5f7180;font-weight:400">${opts.note}</div>` : ''}</td>
       <td class="num">${opts.minus && amount > 0 ? '△' : ''}${won(amount)}</td>
     </tr>`);
 
@@ -62,10 +62,10 @@ function calculate() {
         : `종부세 ${won(r.aggrTax)} + 농특세 ${won(r.ruralTax)} · 세액공제 ${pct(b.combinedDc)}`}</div>
     </div>
     <div class="notice-wrap"><table class="notice">
-      <tr><th>구분 <span style="font-weight:400;font-size:11px;color:#7b8a97">(밑줄 항목 클릭 = 산식 보기)</span></th><th class="num">금액</th></tr>
+      <tr><th>구분 <span style="font-weight:400;font-size:13px;color:#5f7180">(밑줄 항목 클릭 = 산식 보기)</span></th><th class="num">금액</th></tr>
       ${rows.join('')}
     </table></div>
-    <p style="font-size:12px;color:#566573;margin:8px 0 0">참고 — 재산세는 별도 고지:
+    <p style="font-size:13.5px;color:#566573;margin:8px 0 0">참고 — 재산세는 별도 고지:
       본세 ${won(p.propertyTax)} + 도시지역분 ${won(p.dosiTax)} + 지방교육세 ${won(p.pEduTax)}
       = <b>${won(p.total)}</b> (<a href="property-calc.html">재산세 계산기</a>)</p>
     <div class="lawref"><b>근거 법령</b><br>${r.lawRef.join('<br>')}</div>
@@ -92,7 +92,7 @@ function calculate() {
 = 재산세 × (종부세 과세표준 × 45% × 0.4%) ÷ (공시가격 × 45% × 0.4% − 63만)</div>
         <div class="fx-now">이번 계산: ${won(p.propertyTax)} × (${won(b.aggrTaxBase)} × 45% × 0.4%) ÷ (${won(gongsi)} × 45% × 0.4% − 630,000원)
 = <b>${won(b.propertyTaxDc)}</b></div>
-        <p style="font-size:11.5px;color:#7b8a97">※ 45%는 재산세 공정시장가액비율(1세대1주택 6억 초과), 0.4%−63만은 재산세 표준세율 최고구간 산식입니다.</p>`,
+        <p style="font-size:13px;color:#5f7180">※ 45%는 재산세 공정시장가액비율(1세대1주택 6억 초과), 0.4%−63만은 재산세 표준세율 최고구간 산식입니다.</p>`,
     },
     gongje: {
       title: '세액공제 — 장기보유·연령 (종부세법 §9의2)',

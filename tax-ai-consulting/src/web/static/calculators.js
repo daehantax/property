@@ -181,7 +181,7 @@ const CALCULATORS = [
         ['③ 2029년~ 양도 (완전 시행)', y29, dRow(y29.total - cur.total)],
       ];
       const cmpTable = `
-        <div class="notice-wrap"><table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+        <div class="notice-wrap"><table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px">
           <thead><tr>
             <th style="text-align:left;${th}">양도시기 구간</th>
             <th style="text-align:right;${th}">공제율 (보유+거주)</th>
@@ -218,7 +218,7 @@ const CALCULATORS = [
             <tr><td class="rowlabel">기본 요건</td><td colspan="3">보유 3년 이상 + 거주 2년 이상 (거주 2년 미만은 공제 배제) · 12억 비과세는 모든 구간 동일 유지</td></tr>
           </tbody>
         </table></div>
-        <p style="font-size:12px;color:#566573;margin:8px 0 0">핵심: 오래 <b>보유</b>만 한 집(거주 짧음)은 2028년부터 공제가 크게 줄고,
+        <p style="font-size:13.5px;color:#566573;margin:8px 0 0">핵심: 오래 <b>보유</b>만 한 집(거주 짧음)은 2028년부터 공제가 크게 줄고,
         오래 <b>거주</b>한 집은 2029년 이후에도 최대 80%를 그대로 받습니다. 고가주택은 공제한도(20억→10억) 신설로 추가 부담이 생길 수 있습니다.</p>
         </div>`;
 
@@ -285,7 +285,7 @@ const CALCULATORS = [
           sub: c.total === 0
             ? '각자 지분 공시가격이 인별 공제 9억 이하 → 부부 모두 종부세 없음'
             : `본인(${pctA}%) ${won(c.a.total)} + 배우자(${pctB}%) ${won(c.b.total)} — 인별 각자 계산 합산`,
-          extraHtml: '<p style="font-size:12.5px;color:#566573;margin:6px 0 0">종부세는 인별 과세 — 각자 지분에 '
+          extraHtml: '<p style="font-size:14px;color:#566573;margin:6px 0 0">종부세는 인별 과세 — 각자 지분에 '
             + '각자 기본공제 9억(부부 합계 18억)을 적용해 계산했습니다. 특례(1세대1주택 방식) 비교는 '
             + '<a href="aggr-couple.html">부부 공동명의 전용 계산기</a>에서 확인하세요.</p>',
           computations: [
@@ -379,7 +379,7 @@ const CALCULATORS = [
           headlineLabel: '부부합계 — 개편안 적용 세액 (2028년분~ 기준, 연간)',
           sub: `현행 ${won(cur.total)} → 2027년 ${won(y27.total)} → 2028년~ ${won(y28.total)} (부부 각자 계산 합산)`,
           extraHtml: cmpTable(rows)
-            + '<p style="font-size:12.5px;color:#566573;margin:6px 0 0">종부세는 인별 과세 — 모든 연도를 부부 각자 지분'
+            + '<p style="font-size:14px;color:#566573;margin:6px 0 0">종부세는 인별 과세 — 모든 연도를 부부 각자 지분'
             + `(본인 ${pctA}% / 배우자 ${pctB}%)으로 계산해 합산했습니다. 개편안의 공동명의 인별 공제 변경은 미공표라 인별 9억을 유지합니다.</p>`,
           computations: [
             { kind: 'aggr', label: `현행 — 본인 ${pctA}%`, result: cur.a },
