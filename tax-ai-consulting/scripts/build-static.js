@@ -34,7 +34,7 @@ const PAGES = [
   { entry: 'property-calc.js', html: 'property-calc.html' },
 ];
 const ASSETS = ['styles.css'];
-const HTML_ONLY = ['aggr-home.html', 'rental-lessor.html', 'gov-compare.html'];   // JS 없이 HTML만 복사하는 페이지
+const HTML_ONLY = ['aggr-home.html', 'rental-lessor.html'];   // JS 없이 HTML만 복사하는 페이지
 
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
