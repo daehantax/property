@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>세법개정안 비교 — 현행 vs 정부안 (연도별)</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* 연도 탭 */
+  .year-tabs { display: flex; gap: 8px; margin: 4px 0 16px; flex-wrap: wrap; }
+  .year-tabs button {
+    padding: 10px 22px; border: 1px solid var(--line); background: #fff; border-radius: 999px;
+    font-size: 15.5px; font-weight: 800; cursor: pointer; color: #47606f; font-family: inherit;
+  }
+  .year-tabs button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .year-tabs button .st { font-size: 12.5px; font-weight: 700; opacity: .75; margin-left: 6px; }
+
+  section.year { display: none; }
+  section.year.on { display: block; }
+
+  /* 상태 배지 */
+  .badge { display: inline-block; font-size: 13px; font-weight: 800; border-radius: 999px; padding: 4px 14px; color: #fff; vertical-align: middle; }
+  .badge.pending { background: #b9770e; }
+  .badge.done { background: #145a32; }
+
+  /* 개정 절차 안내 */
+  .cycle { background: #eaf2f8; border: 1px solid #aed6f1; border-radius: 12px; padding: 16px 20px; margin: 0 0 18px; }
+  .cycle h3 { margin: 0 0 8px; font-size: 16px; color: #123a54; }
+  .cycle .flow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  .cycle .flow .f { background: #fff; border: 1px solid #aed6f1; border-radius: 8px; padding: 8px 13px; font-size: 14px; font-weight: 700; color: #21618c; }
+  .cycle .flow .ar { color: #5499c7; font-weight: 800; }
+  .cycle p { font-size: 14.5px; color: #21618c; line-height: 1.7; margin: 6px 0 0; }
+
+  .warn-box { background: #fef9e7; border: 1px solid #f7dc6f; border-radius: 10px; padding: 13px 17px; font-size: 14.5px; line-height: 1.7; color: #7d6608; margin: 0 0 18px; }
+
+  /* 연도 헤더 카드 */
+  .year-head { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .year-head h2 { margin: 0 0 6px; font-size: 21px; color: #1a2733; }
+  .year-head .meta { font-size: 14.5px; color: #566573; line-height: 1.7; }
+
+  /* 세목 카드 */
+  .tax-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .tax-card > h3 { margin: 0 0 4px; font-size: 17.5px; color: var(--navy); }
+  .tax-card > .sub { font-size: 14px; color: #5f7180; margin: 0 0 10px; line-height: 1.6; }
+  .tax-card p { font-size: 15px; line-height: 1.75; color: #2c3e50; margin: 8px 0; }
+  .tax-card ul { padding-left: 22px; margin: 8px 0; }
+  .tax-card li { font-size: 15px; line-height: 1.75; margin: 4px 0; color: #2c3e50; }
+
+  /* 비교표 */
+  .cmp-wrap { overflow-x: auto; }
+  table.cmp { width: 100%; border-collapse: collapse; margin: 8px 0 6px; }
+  table.cmp th, table.cmp td { border: 1px solid var(--line); padding: 10px 13px; font-size: 15px; line-height: 1.65; text-align: left; vertical-align: top; }
+  table.cmp th { background: #eef3f7; color: #21618c; font-weight: 800; white-space: nowrap; }
+  table.cmp th.cur { background: #f2f4f4; color: #566573; }
+  table.cmp th.gov { background: #eaf2f8; color: #123a54; }
+  table.cmp td.item { font-weight: 800; color: #2c3e50; background: #fbfcfd; white-space: nowrap; }
+  table.cmp b.up { color: #943126; }
+  table.cmp b.dn { color: #145a32; }
+  .tbl-note { font-size: 13.5px; color: #5f7180; line-height: 1.65; margin: 4px 0 0; }
+
+  .lawsrc { margin-top: 20px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px 22px; }
+  .lawsrc h3 { margin: 0 0 8px; font-size: 15.5px; color: #21618c; }
+  .lawsrc ul { padding-left: 22px; margin: 0; }
+  .lawsrc li { font-size: 13.5px; color: #5f7180; line-height: 1.8; }
+  .lawsrc a { color: #21618c; }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="aggr-home.html">보유세 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
+    <a href="rental-lessor.html">주택임대사업자</a>
+    <a href="gov-compare.html" class="active">세법개정안 비교</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    정부는 <b>매년 7월 말~8월 초</b> 세제발전심의위원회를 열어 그해 세법개정안(정부안)을 발표하고, 9월 정기국회에
+    제출해 <b>12월 초 본회의에서 의결</b>합니다. 이 페이지는 해마다 발표되는 세법개정의 <b>부동산 관련 내용</b>을
+    현행 세법과 나란히 비교합니다. <b>올해 탭은 정부안(미확정)</b> 기준, <b>직전 연도 탭은 국회 의결로
+    확정된 개정세법</b> 기준입니다.
+  </p>
+
+  <div class="cycle">
+    <h3>📅 세법개정안 연간 사이클</h3>
+    <div class="flow">
+      <span class="f">7월 말~8월 초<br>정부안 발표</span><span class="ar">→</span>
+      <span class="f">9월 초<br>정기국회 제출</span><span class="ar">→</span>
+      <span class="f">11~12월<br>기재위·조세소위 심사</span><span class="ar">→</span>
+      <span class="f">12월 초<br>본회의 의결</span><span class="ar">→</span>
+      <span class="f">이듬해<br>시행</span>
+    </div>
+    <p>국회 심사 과정에서 정부안이 <b>수정·삭제·유예</b>되는 일이 많습니다. 정부안은 "예고편"이고
+    확정은 12월 국회 의결이므로, 심의 중인 연도의 "정부안" 열은 확정 전까지 참고용입니다.
+    <b>의결이 끝난 연도의 탭은 정부안이 아닌 「확정 개정세법」(종전 vs 확정 개정) 기준으로 전환</b>해 표시합니다.</p>
+  </div>
+
+  <div class="year-tabs" id="yearTabs"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       연도 탭 운영 규칙 (생명주기):
+       · 올해(심의 중) 탭  = 「현행 vs 정부안」 — data-status="pending"
+       · 의결 끝난 연도 탭 = 「종전 vs 확정 개정세법」 — data-status="done"
+         (정부안이 아니라 국회 의결로 확정된 내용을 기준으로 표를 정리한다)
+
+       [매년 8월 정부안 발표 후 — 연도 추가]
+       1) 아래 <section class="year" ...> 블록 하나를 통째로 복사한다.
+       2) data-year="2027", data-status="pending", data-label="국회 심의 중",
+          data-title="2027년 정부안" 으로 속성만 바꾼다.
+       3) 표 내용을 새 정부안으로 채운다 — 연도 탭 버튼은 자동 생성된다.
+
+       [12월 국회 의결 후 — 확정 전환]
+       4) 그해 섹션의 data-status="done", data-label="현행 반영",
+          data-title="○○○○년 확정 개정세법" 으로 바꾼다.
+       5) 표를 의결 결과 기준으로 고친다: 열 제목을 「종전 → 개정(확정)」으로,
+          국회에서 수정·삭제·유예된 항목을 반영하고 배지를 "의결 완료"로 바꾼다.
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <!-- ─────────────── 2026년 정부안 ─────────────── -->
+  <section class="year on" data-year="2026" data-status="pending" data-label="국회 심의 중" data-title="2026년 정부안">
+    <div class="year-head">
+      <h2>2026년 세제개편안 (정부안) <span class="badge pending">국회 심의 중 — 미확정</span></h2>
+      <div class="meta">
+        <b>발표</b> 2026.8.3 세제발전심의위원회 · <b>국회 제출</b> 2026.9월 · <b>의결 예정</b> 2026.12월 초 ·
+        <b>시행 예정</b> 2027.1.1~(항목별 상이)<br>
+        핵심 방향: <b>"실거주 1주택 보호, 비거주·고가·다주택 과세 강화"</b> — 주택 수 중심 과세를
+        <b>주택 가액·실거주 여부 중심</b>으로 전환하는 부동산 세제 개편이 중심입니다.
+      </div>
+    </div>
+
+    <div class="tax-card">
+      <h3>① 종합부동산세 — 기본공제·공정시장가액비율 개편</h3>
+      <p class="sub">실거주 1주택은 공제를 늘리고(12억→14억), 비거주·다주택은 공제를 줄여 세부담을 올립니다.</p>
+      <div class="cmp-wrap">
+      <table class="cmp">
+        <tr><th>항목</th><th class="cur">현행</th><th class="gov">정부안 (2026.8.3)</th></tr>
+        <tr>
+          <td class="item">기본공제 — 1주택</td>
+          <td>1세대 1주택 <b>12억 원</b> (거주 여부 무관)</td>
+          <td><b class="dn">실거주 1주택 14억 원</b> (시가 약 20억까지 종부세 제외)<br><b class="up">비거주 1주택 9억 원</b></td>
+        </tr>
+        <tr>
+          <td class="item">기본공제 — 다주택</td>
+          <td>인별 <b>9억 원</b></td>
+          <td>주택가액·거주 여부에 연동해 <b class="up">공제 차등 축소</b></td>
+        </tr>
+        <tr>
+          <td class="item">과세 체계</td>
+          <td><b>주택 수</b> 기준 — 3주택 이상·조정지역 중과세율</td>
+          <td><b>주택 가액</b> 기준으로 전환 (초고가일수록 세부담 증가)</td>
+        </tr>
+        <tr>
+          <td class="item">공정시장가액비율</td>
+          <td><b>60%</b></td>
+          <td>1주택 <b class="up">70%</b>(2027~)<br>3주택 이상·조정지역 <b class="up">70%</b>(2027) → <b class="up">80%</b>(2028~)</td>
+        </tr>
+        <tr>
+          <td class="item">세부담 효과 (보도 기준)</td>
+          <td>시가 50억 1주택 연 약 454만 원</td>
+          <td>시가 약 <b>35억부터 증가</b> — 50억 1주택 약 <b class="up">615만 원(+35%)</b>, 3주택 50억 약 <b class="up">2.2배</b></td>
+        </tr>
+      </table>
+      </div>
+      <p class="tbl-note">※ 실거주 1주택자는 오히려 완화(12억→14억), 비거주·다주택·초고가만 "핀셋 인상"이 정부안의 골자입니다.</p>
+    </div>
+
+    <div class="tax-card">
+      <h3>② 양도소득세 — 장기보유특별공제를 「장기거주소득공제」로 전환</h3>
+      <p class="sub">1세대 1주택 장특공제를 "오래 보유"에서 <b>"실제 거주"</b> 중심으로 단계 전환하고, 공제액 상한을 신설합니다.</p>
+      <div class="cmp-wrap">
+      <table class="cmp">
+        <tr><th>양도 시기</th><th class="cur">~2027년 (현행)</th><th class="gov">2028년</th><th class="gov">2029년 이후</th></tr>
+        <tr>
+          <td class="item">공제율 구조<br>(1세대 1주택)</td>
+          <td>보유 연 4% (최대 40%)<br>+ 거주 연 4% (최대 40%)<br>= 최대 <b>80%</b></td>
+          <td>거주 연 <b>6%</b> + 보유 연 <b>2%</b><br>= 최대 80% 유지</td>
+          <td><b class="up">거주 연 8%만</b> (보유공제 폐지)<br>10년 거주 시 최대 80%<br><b class="up">비거주 시 공제 없음</b></td>
+        </tr>
+        <tr>
+          <td class="item">공제액 한도</td>
+          <td>한도 없음</td>
+          <td><b class="up">20억 원</b> 신설</td>
+          <td><b class="up">10억 원</b>으로 축소</td>
+        </tr>
+      </table>
+      </div>
+      <ul>
+        <li>주택 외 토지·건물 등은 별도의 <b>장기보유소득공제</b>로 이원화 (2028.1.1 이후 양도분부터).</li>
+        <li><b>양도소득 기본공제 확대</b>: 10년 이상 거주 + 양도가액 30억 원 이하 1주택자는 연 250만 원 → <b class="dn">연 2,500만 원</b>.</li>
+        <li>실무 포인트: 보유만 길고 거주가 짧은 1주택은 <b>2027년 내 양도</b> 여부가 절세 갈림길이 됩니다.</li>
+      </ul>
+    </div>
+
+    <div class="tax-card">
+      <h3>③ 다주택자 양도세 중과 — 2027~2028년 한시 완화</h3>
+      <p class="sub">2026.5.10부터 재적용된 조정대상지역 다주택 중과세율을 2년간 낮췄다가 2029년 원상 복귀합니다.</p>
+      <div class="cmp-wrap">
+      <table class="cmp">
+        <tr><th>양도 시기</th><th>2주택 가산</th><th>3주택 이상 가산</th><th>최고세율 (2주택/3주택)</th></tr>
+        <tr>
+          <td class="item">현행 (2026.5.10~)</td>
+          <td>+20%p</td><td>+30%p</td><td>65% / 75%</td>
+        </tr>
+        <tr>
+          <td class="item">2027년 양도 (정부안)</td>
+          <td><b class="dn">+5%p</b></td><td><b class="dn">+10%p</b></td><td><b class="dn">50% / 55%</b></td>
+        </tr>
+        <tr>
+          <td class="item">2028년 양도 (정부안)</td>
+          <td><b class="dn">+10%p</b></td><td><b class="dn">+15%p</b></td><td><b class="dn">55% / 60%</b></td>
+        </tr>
+        <tr>
+          <td class="item">2029년 이후</td>
+          <td>+20%p 복귀</td><td>+30%p 복귀</td><td>65% / 75%</td>
+        </tr>
+      </table>
+      </div>
+      <p class="tbl-note">※ 다주택 처분(매물 유도)을 위한 한시 완화입니다. 기본세율 6~45%에 가산세율이 더해지는 구조는 동일합니다.</p>
+    </div>
+
+    <div class="tax-card">
+      <h3>④ 등록말소된 매입임대 아파트 (조정대상지역) — 양도 시기별 혜택 축소</h3>
+      <div class="cmp-wrap">
+      <table class="cmp">
+        <tr><th>양도 시기</th><th>다주택 중과</th><th>장기보유특별공제</th></tr>
+        <tr><td class="item">~2027.12.31</td><td><b class="dn">중과 배제</b></td><td><b class="dn">우대율 50%</b></td></tr>
+        <tr><td class="item">2028년</td><td>중과세율의 ½ 적용</td><td>우대율 30%</td></tr>
+        <tr><td class="item">2029년 이후</td><td><b class="up">중과 전면 적용</b></td><td><b class="up">우대 종료</b></td></tr>
+      </table>
+      </div>
+      <p class="tbl-note">※ 임대의무기간 종료로 <b>자동 등록말소</b>된 조정대상지역 매입임대 아파트 기준 — 주택임대사업자 탭의 출구전략과 직결됩니다.</p>
+    </div>
+
+    <div class="tax-card">
+      <h3>⑤ 이 사이트 계산기와의 관계 — 정부안을 세액으로 직접 비교하려면</h3>
+      <ul>
+        <li>기본 계산기·판정기는 모두 <b>현행(2026.5.10 시행) 기준</b>입니다. 정부안은 국회 의결 전 미확정이므로 기본 계산에는 반영하지 않습니다.</li>
+        <li>다만 <a href="index.html">세금 계산기</a>에 정부안 세액을 직접 계산해 보는 전용 탭 3종이 있습니다:
+          <b>「양도세 개정안 비교」</b>(중과 완화 + 장기거주공제 전환, 양도시기별),
+          <b>「1주택 장기거주공제 비교」</b>(~2027 / 2028 / 2029~ 3구간),
+          <b>「종부세 개편안 비교」</b>(현행 → 2027 과도기 → 2028~).</li>
+        <li>양도 시기를 고를 수 있는 상담이라면 위 ②·③표의 <b>연도별 갈림길(2027 / 2028 / 2029)</b>을 먼저 확인한 뒤 전용 탭으로 세액을 산출하세요.</li>
+        <li>12월 국회 의결로 확정되면 이 페이지에 의결 결과를 반영하고, 계산 엔진 상수를 업데이트합니다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─────────────── 2025년 확정 개정세법 (의결 완료 → 정부안 아님) ─────────────── -->
+  <section class="year" data-year="2025" data-status="done" data-label="현행 반영" data-title="2025년 확정 개정세법">
+    <div class="year-head">
+      <h2>2025년 개정세법 (확정) <span class="badge done">2025.12.2 국회 의결 — 현행 반영</span></h2>
+      <div class="meta">
+        <b>정부안 발표</b> 2025.7.31 → <b>국회 의결(확정)</b> 2025.12.2 본회의 (국세 세법 12건) →
+        <b>시행</b> 2026.1.1~<br>
+        의결이 끝난 연도이므로 아래 표는 정부안이 아닌 <b>국회에서 확정된 개정세법</b> 기준입니다
+        (종전 규정 vs 확정 개정). 2025년 개정은 법인세·금융투자 과세가 중심이었고 부동산 세제 개편은
+        소폭이었으며, 부동산 <b>"실거주 중심 대전환"은 이듬해 2026년 정부안</b>에서 추진 중입니다.
+      </div>
+    </div>
+
+    <div class="tax-card">
+      <h3>부동산 관련 확정 개정 내용 (2025.12.2 의결 → 2026.1.1 시행, 현행)</h3>
+      <div class="cmp-wrap">
+      <table class="cmp">
+        <tr><th>항목</th><th class="cur">종전 (개정 전)</th><th class="gov">확정 개정 (현행)</th></tr>
+        <tr>
+          <td class="item">임대사업자 거주주택<br>비과세 특례 정비</td>
+          <td>직전거주주택보유주택 등 양도차익 구분 미비 사례</td>
+          <td>2년 이상 거주한 주택은 <b>직전거주주택 양도 이후 발생한 양도차익분에 대해 비과세</b>하도록 명확화</td>
+        </tr>
+        <tr>
+          <td class="item">종부세 합산배제<br>사후관리 강화</td>
+          <td>합산배제 후 요건 미충족 시 추징 대상 열거</td>
+          <td>주택건설사업 목적의 <b>멸실 예정 주택이 3년 내 멸실되지 못한 경우</b>를 추징 대상에 추가</td>
+        </tr>
+        <tr>
+          <td class="item">비수도권 준공 후<br>미분양 주택</td>
+          <td>2025.12.31까지 취득분 — 종부세 주택 수 제외·중과 배제</td>
+          <td>취득 기한을 <b class="dn">2026.12.31까지 1년 연장</b></td>
+        </tr>
+      </table>
+      </div>
+    </div>
+
+    <div class="tax-card">
+      <h3>참고 — 2025~2026년 세법 밖 부동산 조치 (현행 세부담의 배경)</h3>
+      <ul>
+        <li><b>2025.6.27</b> 가계대출(주담대) 규제 강화 — 세법 아닌 금융 조치.</li>
+        <li><b>2025.10.15</b> 규제지역 대폭 확대 — 서울 전역 등 조정대상지역·토지거래허가구역 지정 → 취득세·양도세 <b>중과 적용 범위가 실질적으로 확대</b>.</li>
+        <li><b>2026.5.10</b> 다주택자 양도세 중과 유예 종료 → <b>중과 재적용</b> (이 사이트 계산기의 기준일).</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="warn-box">
+    ⚠️ <b>유의</b> — "정부안" 열은 국회 의결 전에는 확정된 세법이 아닙니다. 심사 과정에서 수정·유예될 수 있으므로
+    실제 의사결정(양도·증여 시기 결정 등)은 반드시 의결·공포된 법령과 세무사 상담으로 확인하세요.
+    이 페이지는 매년 정부안 발표(7~9월)와 국회 의결(12월) 후 업데이트됩니다. <b>최종 업데이트: 2026.9.5</b>
+  </div>
+
+  <div class="lawsrc">
+    <h3>근거 자료 (출처)</h3>
+    <ul>
+      <li><a href="https://www.korea.kr/briefing/pressReleaseView.do?newsId=156776418" target="_blank" rel="noopener">대한민국 정책브리핑 — 2026년 세제개편안 정부안 확정 (기획재정부)</a></li>
+      <li><a href="https://www.korea.kr/news/policyNewsView.do?newsId=148969278" target="_blank" rel="noopener">정책브리핑 — 거주용 1주택, 시가 20억 원까지 종부세 과세 대상서 제외</a></li>
+      <li><a href="https://www.newspim.com/news/view/20260801000159" target="_blank" rel="noopener">뉴스핌 — 다주택자 양도세 중과 2년간 완화 (2주택 최고 65%→50%)</a></li>
+      <li><a href="https://www.newspim.com/news/view/20260731001503" target="_blank" rel="noopener">뉴스핌 — 장특공제 '보유'→'거주' 전환, 10년 거주 시 최대 80%</a></li>
+      <li><a href="https://tfmedia.co.kr/mobile/article.html?no=206139" target="_blank" rel="noopener">조세금융신문 — 2029년부터 '실거주'만 장특공 적용</a></li>
+      <li><a href="https://www.khan.co.kr/article/202608032138005" target="_blank" rel="noopener">경향신문 — 초고가·비거주 종부세 '핀셋 인상'</a></li>
+      <li><a href="https://www.yonhapmidas.com/news/articleView.html?idxno=10576" target="_blank" rel="noopener">연합뉴스 마이더스 — 시가 35억부터 종부세↑, 과세 대상은 축소</a></li>
+      <li><a href="https://www.intn.co.kr/news/articleView.html?idxno=2047657" target="_blank" rel="noopener">일간NTN — 2025 핵심 개정 세법 총정리 (2025.12.2 본회의 의결)</a></li>
+      <li><a href="https://eiec.kdi.re.kr/policy/materialView.do?num=274089" target="_blank" rel="noopener">KDI — 2025년 세법개정안 기재위 통과 자료</a></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// 연도 탭 자동 생성 — <section class="year"> 블록을 추가하면 버튼이 자동으로 생긴다.
+(function () {
+  var tabs = document.getElementById('yearTabs');
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section.year'));
+  sections.forEach(function (sec, i) {
+    var btn = document.createElement('button');
+    var title = sec.dataset.title || (sec.dataset.year + '년 정부안');
+    btn.innerHTML = title + ' <span class="st">' + (sec.dataset.label || '') + '</span>';
+    if (sec.classList.contains('on')) btn.className = 'active';
+    btn.addEventListener('click', function () {
+      sections.forEach(function (s) { s.classList.remove('on'); });
+      Array.prototype.forEach.call(tabs.children, function (b) { b.className = ''; });
+      sec.classList.add('on');
+      btn.className = 'active';
+    });
+    tabs.appendChild(btn);
+  });
+})();
+</script>
+</body>
+</html>

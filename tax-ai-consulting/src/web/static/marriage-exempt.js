@@ -136,7 +136,7 @@ function render(r) {
       <div class="head">${r.headline}</div>
     </div>
     <div>${r.checklist.map(checkRow).join('')}</div>
-    ${r.reasons.length ? `<div class="reasons"><b style="font-size:12.5px;color:#7d6608">참고</b><ul style="padding-left:18px;margin:6px 0 0">${r.reasons.map((x) => `<li>${x}</li>`).join('')}</ul></div>` : ''}
+    ${r.reasons.length ? `<div class="reasons"><b style="font-size:14px;color:#7d6608">참고</b><ul style="padding-left:18px;margin:6px 0 0">${r.reasons.map((x) => `<li>${x}</li>`).join('')}</ul></div>` : ''}
     <div class="lawref">${r.lawRef.join(' · ')}</div>
     <div class="muted">※ 참고용 판정입니다. 세대 판정·다른 특례와의 중복·동거봉양 합가 등 개별 사실관계는 반영되지 않을 수 있어, 실제 신고 전 세무 전문가 확인이 필요합니다.</div>
   `;

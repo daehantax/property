@@ -41,7 +41,7 @@ function calculate() {
   const row = (label, va, vb, opts = {}) => rows.push(`
     <tr class="${opts.minus ? 'minus' : ''} ${opts.total ? 'total' : ''}">
       <td class="rowlabel">${opts.fx ? `<button class="fx-btn" data-fx="${opts.fx}">${label}</button>` : label}
-        ${opts.note ? `<div style="font-size:11.5px;color:#7b8a97;font-weight:400">${opts.note}</div>` : ''}</td>
+        ${opts.note ? `<div style="font-size:13px;color:#5f7180;font-weight:400">${opts.note}</div>` : ''}</td>
       <td class="num">${opts.minus && va > 0 ? '△' : ''}${won(va)}</td>
       <td class="num">${opts.minus && vb > 0 ? '△' : ''}${won(vb)}</td>
       <td class="num">${opts.minus && va + vb > 0 ? '△' : ''}${won(va + vb)}</td>
@@ -75,7 +75,7 @@ function calculate() {
         : `본인(${pctA}%) ${won(A.total)} + 배우자(${pctB}%) ${won(B.total)}`}</div>
     </div>
     <div class="notice-wrap"><table class="notice">
-      <tr><th>구분 <span style="font-weight:400;font-size:11px;color:#7b8a97">(밑줄 항목 클릭 = 산식 보기)</span></th>
+      <tr><th>구분 <span style="font-weight:400;font-size:13px;color:#5f7180">(밑줄 항목 클릭 = 산식 보기)</span></th>
         <th class="num">본인 (${pctA}%)</th><th class="num">배우자 (${pctB}%)</th><th class="num">부부합계</th></tr>
       ${rows.join('')}
     </table></div>
@@ -87,15 +87,15 @@ function calculate() {
         <tr>
           <td class="rowlabel">인별 방식 (기본)${perPersonWins ? ' <span class="win">✓ 유리</span>' : ''}</td>
           <td class="num"><b>${won(c.total)}</b></td>
-          <td style="font-size:12px;color:#566573">각자 9억 공제(합 18억) · 세액공제 없음</td>
+          <td style="font-size:13.5px;color:#566573">각자 9억 공제(합 18억) · 세액공제 없음</td>
         </tr>
         <tr>
           <td class="rowlabel">특례 — 1세대1주택 방식${!perPersonWins ? ' <span class="win">✓ 유리</span>' : ''}</td>
           <td class="num"><b>${won(special.total)}</b></td>
-          <td style="font-size:12px;color:#566573">12억 공제 · 장기보유 ${pct(special.breakdown.prdDc)} + 연령 ${pct(special.breakdown.ageDc)} 세액공제</td>
+          <td style="font-size:13.5px;color:#566573">12억 공제 · 장기보유 ${pct(special.breakdown.prdDc)} + 연령 ${pct(special.breakdown.ageDc)} 세액공제</td>
         </tr>
       </table>
-      <p style="font-size:12.5px;margin:0;color:#2c3e50">
+      <p style="font-size:14px;margin:0;color:#2c3e50">
         ${c.total === special.total
           ? '두 방식의 세액이 같습니다.'
           : `<b class="win">${perPersonWins ? '인별 방식(기본)' : '특례 신청'}</b>이 연 <b>${won(diff)}</b> 유리합니다.`}
@@ -103,7 +103,7 @@ function calculate() {
       </p>
     </div>
 
-    <p style="font-size:12px;color:#566573;margin:8px 0 0">참고 — 재산세는 물건별 과세로 주택 전체 기준 계산 후 지분비율로 나눠 납부:
+    <p style="font-size:13.5px;color:#566573;margin:8px 0 0">참고 — 재산세는 물건별 과세로 주택 전체 기준 계산 후 지분비율로 나눠 납부:
       전체 ${won(p.total)} (본세 ${won(p.propertyTax)} + 도시지역분 ${won(p.dosiTax)} + 지방교육세 ${won(p.pEduTax)})
       → 본인 ${won(p.total * shareA)} / 배우자 ${won(p.total * (1 - shareA))} (<a href="property-calc.html">재산세 계산기</a>)</p>
     <div class="lawref"><b>근거 법령</b><br>${c.lawRef.join('<br>')}</div>

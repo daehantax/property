@@ -120,7 +120,7 @@ function readTarget() {
 }
 
 const listBlock = (title, items, cls) => items.length
-  ? `<div style="margin-top:8px"><b style="font-size:12.5px;color:#47606f">${title}</b><ul class="lst ${cls}">${items.map((r) => `<li>${r}</li>`).join('')}</ul></div>`
+  ? `<div style="margin-top:8px"><b style="font-size:14px;color:#47606f">${title}</b><ul class="lst ${cls}">${items.map((r) => `<li>${r}</li>`).join('')}</ul></div>`
   : '';
 
 function legend(activeIdx) {
@@ -157,7 +157,7 @@ function judge() {
     ${listBlock('주택수 포함', r.included, 'inc')}
     ${listBlock('주택수 제외', r.excluded, 'exc')}
     <div class="reasons">
-      <b style="font-size:12.5px;color:#7d6608">판정 근거</b>
+      <b style="font-size:14px;color:#7d6608">판정 근거</b>
       <ul class="lst" style="padding-left:18px;margin:6px 0 0">${r.reasons.map((x) => `<li>${x}</li>`).join('')}</ul>
     </div>
     <div class="muted">${r.note}</div>

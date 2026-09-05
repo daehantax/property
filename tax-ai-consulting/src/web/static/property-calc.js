@@ -49,7 +49,7 @@ function calculate() {
   const row = (label, amount, opts = {}) => rows.push(`
     <tr class="${opts.total ? 'total' : ''}">
       <td class="rowlabel">${opts.fx ? `<button class="fx-btn" data-fx="${opts.fx}">${label}</button>` : label}
-        ${opts.note ? `<div style="font-size:11.5px;color:#7b8a97;font-weight:400">${opts.note}</div>` : ''}</td>
+        ${opts.note ? `<div style="font-size:13px;color:#5f7180;font-weight:400">${opts.note}</div>` : ''}</td>
       <td class="num">${won(amount)}</td>
     </tr>`);
 
@@ -71,13 +71,13 @@ function calculate() {
         ${share < 1 ? ` · 본인 부담분(${Math.round(share * 100)}%) ${won(r.total * share)}` : ''}</div>
     </div>
     <div class="notice-wrap"><table class="notice">
-      <tr><th>구분 <span style="font-weight:400;font-size:11px;color:#7b8a97">(밑줄 항목 클릭 = 산식 보기)</span></th><th class="num">금액</th></tr>
+      <tr><th>구분 <span style="font-weight:400;font-size:13px;color:#5f7180">(밑줄 항목 클릭 = 산식 보기)</span></th><th class="num">금액</th></tr>
       ${rows.join('')}
     </table></div>
-    ${share < 1 ? `<p style="font-size:12px;color:#566573;margin:8px 0 0">공동명의 본인 부담분:
+    ${share < 1 ? `<p style="font-size:13.5px;color:#566573;margin:8px 0 0">공동명의 본인 부담분:
       ${won(r.total)} × ${Math.round(share * 100)}% = <b>${won(r.total * share)}</b>
       (재산세는 물건별 과세 — 전체 세액을 지분비율로 나눠 납부)</p>` : ''}
-    <p style="font-size:12px;color:#566573;margin:8px 0 0">납부: 7월(½)·9월(½) 분납, 세액 20만 원 이하는 7월 일시 납부.
+    <p style="font-size:13.5px;color:#566573;margin:8px 0 0">납부: 7월(½)·9월(½) 분납, 세액 20만 원 이하는 7월 일시 납부.
       종부세 계산은 <a href="aggr-home.html">보유세 계산기</a>에서.</p>
     <div class="lawref"><b>근거 법령</b><br>${r.lawRef.join('<br>')}</div>
     <div class="disclaimer">※ 참고용 계산이며, 실제 고지서와는 세부담상한 등으로 차이가 날 수 있습니다. (기준: 2026.5.10 시행분)</div>

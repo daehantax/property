@@ -235,6 +235,7 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 | **1세대1주택 비과세 판정기** | `single-exempt.html` + `single-exempt.js` | 보유·거주요건(2017.8.3 조정지역), 상생임대 면제, 고가주택 12억, 일시적 2주택 판정 (`single-house-exempt.js`, 재건축 제외) |
 | **재건축·재개발 비과세 판정기** | `redev-exempt.html` + `redev-exempt.js` | 조합원입주권 양도 비과세(§89①4 가/나목)·대체주택 특례(§156의2⑤) 판정, 고가주택 12억 반영 (`redev-exempt.js`) |
 | **혼인 비과세 판정기** | `marriage-exempt.html` + `marriage-exempt.js` | 혼인 시 주택·입주권·분양권 특례(§156의2⑨ 제1~4호, 10년 기한 2024.11.12~/종전 5년)·혼인 2주택(§155⑤) 판정, §154① 보유·거주요건·고가 12억 반영 (`marriage-exempt.js`) |
+| **세법개정안 비교** | `gov-compare.html` | 매년 7~9월 발표되는 정부 세법개정안(부동산 분야)을 현행 세법과 연도별 탭으로 비교 (2025년 확정분·2026년 정부안 수록, 매년 발표·의결 후 업데이트) |
 
 - 계산 엔진이 **브라우저 안에서 직접 실행**되므로 입력값이 서버로 전송되지 않습니다.
 - 페이지 추가 방법: `src/web/static/`에 `이름.html` + `이름.js`를 만들고 `scripts/build-static.js`의 `PAGES` 배열에 등록하면 됩니다.
