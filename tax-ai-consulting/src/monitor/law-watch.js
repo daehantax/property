@@ -30,6 +30,9 @@ export const ENGINE_ASSUMPTIONS = [
   { id: 'give_deduct_spouse', label: '배우자 증여재산공제 한도', value: `${(GIVE_DEDUCT.SPOUSE / 1e8).toFixed(1)}억원`, where: 'constants.GIVE_DEDUCT.SPOUSE', law: '상증세법 §53' },
   { id: 'give_deduct_child_adult', label: '성년 자녀 증여재산공제 한도', value: `${(GIVE_DEDUCT.CHILD_ADULT / 1e4).toLocaleString('ko-KR')}만원`, where: 'constants.GIVE_DEDUCT.CHILD_ADULT', law: '상증세법 §53' },
   { id: 'independent_hh_age', label: '별도세대 인정 연령(시나리오 전제)', value: `${INDEPENDENT_HH_AGE}세`, where: 'constants.INDEPENDENT_HH_AGE', law: '소득세법 시행령 §152의3 등' },
+  // 상수 대조 외 동향 감시 2종 — 발견 내용은 세법 동향 일지(law-updates-data.js)에 기록한다
+  { id: 'court_rulings_watch', label: '엔진 판정 로직 관련 신규 대법원 판결·조세심판원 결정·기재부/국세청 예규 (1세대1주택 비과세, 다주택 중과, 이월과세, 상생임대, 부담부증여 등)', value: '최근 1개월 내 신규 판결·결정·예규 유무 확인', where: 'src/web/static/law-updates-data.js (세법 동향 일지)', law: '대법원 판례·조세심판원 결정·예규' },
+  { id: 'gov_reform_watch', label: '정부 세법개정안·국회 의결·규제지역 지정 동향 (부동산 세제)', value: '2026 세제개편안(2026.8.3 발표) 국회 심의 중 — 의결·수정·조정대상지역 변경 여부 확인', where: 'src/web/static/law-updates-data.js (세법 동향 일지)', law: '연간 세법개정 절차(7~8월 정부안, 12월 국회 의결)' },
 ];
 
 const WATCH_SYSTEM = `당신은 한국 부동산 세법 개정 동향을 추적하는 세무 리서처입니다.

@@ -32,6 +32,7 @@ const PAGES = [
   { entry: 'aggr-single.js', html: 'aggr-single.html' },
   { entry: 'aggr-couple.js', html: 'aggr-couple.html' },
   { entry: 'property-calc.js', html: 'property-calc.html' },
+  { entry: 'law-updates.js', html: 'law-updates.html' },
 ];
 const ASSETS = ['styles.css'];
 const HTML_ONLY = ['aggr-home.html', 'rental-lessor.html'];   // JS 없이 HTML만 복사하는 페이지

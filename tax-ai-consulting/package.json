@@ -12,6 +12,7 @@
     "advise": "node scripts/advise.js",
     "advise:dry": "node scripts/advise.js --no-ai",
     "law-watch": "node scripts/law-watch.js",
+    "smoke": "node scripts/build-static.js && node scripts/smoke-test.js",
     "web": "node scripts/build-static.js && node src/web/server.js",
     "build:static": "node scripts/build-static.js"
   },
