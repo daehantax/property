@@ -4,6 +4,7 @@
  */
 
 import { judgeLocalHouse, REGIONS, HOW, DEPOP } from '../../core/local-house-judge.js';
+import { searchAreas, allAreas, classifyArea, SIDO_LABEL } from '../../core/regions-data.js';
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n).toLocaleString('ko-KR');
@@ -54,6 +55,13 @@ function renderFields() {
 
     <div class="sub-box local">
       <h5>② 지방주택</h5>
+      <div class="area-search">
+        <label>시·군·구 이름으로 찾기 — 인구감소지역·관심지역·접경지역·광역시 군 여부를 자동 판별해 아래 두 항목을 채웁니다</label>
+        <input class="s-search" placeholder="예: 강릉, 군위, 연천, 부산 동구, 경기 광주" autocomplete="off">
+        <div class="area-list" id="areaList"></div>
+        <div class="area-badge" id="areaBadge"></div>
+        <details class="area-all"><summary>인구감소지역 89곳 · 관심지역 18곳 · 접경지역 15곳 전체 명단 보기</summary><div id="areaTable"></div></details>
+      </div>
       <div class="grid2">
         <div class="full"><label>소재지 유형</label><select class="s-region">${opts(REGIONS, 'province')}</select></div>
         <div class="full"><label>인구감소지역 구분 (행안부 고시)</label><select class="s-depop">${opts(DEPOP, 'none')}</select></div>
@@ -73,10 +81,50 @@ function renderFields() {
   bindMoney($('fields'));
   q('.s-how').addEventListener('change', renderHow);
   q('.l-sell').addEventListener('change', renderLocalSell);
+  q('.s-search').addEventListener('input', renderAreaSearch);
+  q('.s-search').addEventListener('focus', renderAreaSearch);
+  document.addEventListener('click', (e) => { if (!e.target.closest('.area-search')) $('areaList').innerHTML = ''; });
+  renderAreaTable();
   renderHow();
   renderLocalSell();
   $('result').style.display = 'none';
   $('empty').style.display = 'block';
+}
+
+// ── 시·군·구 검색 → 소재지 유형·인구감소 구분 자동 선택 ──
+const DEPOP_BADGE = { depop: '<span class="bd bd-depop">인구감소</span>', interest: '<span class="bd bd-int">관심지역</span>', none: '' };
+const badges = (a) => `${DEPOP_BADGE[a.depop]}${a.border ? '<span class="bd bd-border">접경</span>' : ''}${a.capital ? '<span class="bd bd-cap">수도권</span>' : ''}${a.metroCity && !a.gun ? '<span class="bd bd-cap">광역시</span>' : ''}${a.metroCity && a.gun ? '<span class="bd bd-gun">광역시 군</span>' : ''}`;
+
+function renderAreaSearch() {
+  const list = searchAreas(val('s-search'));
+  $('areaList').innerHTML = list.map((a, i) => `<div class="area-item" data-sido="${a.sido}" data-name="${a.name}">
+      <span class="nm">${a.label}</span>${badges(a)}<span class="ok">${a.secondHomeOk ? '세컨드홈 ✓' : ''}${a.jongbuLowPriceOk ? ' 저가주택 ✓' : ''}</span></div>`).join('')
+    || (val('s-search') ? '<div class="area-none">일치하는 시·군·구가 없습니다 (읍·면·동이 아닌 시·군·구 이름으로 검색)</div>' : '');
+  $('areaList').querySelectorAll('.area-item').forEach((el) => el.addEventListener('click', () => applyArea(el.dataset.sido, el.dataset.name)));
+}
+
+function applyArea(sido, name) {
+  const a = classifyArea(sido, name);
+  q('.s-region').value = a.regionKey;
+  q('.s-depop').value = a.depop;
+  q('.s-search').value = a.label;
+  $('areaList').innerHTML = '';
+  $('areaBadge').innerHTML = `<b>${a.label}</b> ${badges(a)}<div class="area-notes">${a.notes.map((n) => `· ${n}`).join('<br>')}
+    <br>→ 소재지 유형 「${a.regionLabel}」, 인구감소 구분 「${DEPOP.find((d) => d.key === a.depop).label}」로 설정했습니다.${a.regionKey === 'sejongDong' ? ' 읍·면이면 직접 바꾸세요.' : ''}</div>`;
+}
+
+function renderAreaTable() {
+  const rows = allAreas().filter((a) => a.depop !== 'none' || a.border);
+  const bySido = {};
+  for (const a of rows) (bySido[a.sido] ??= []).push(a);
+  $('areaTable').innerHTML = `<div class="area-legend">${DEPOP_BADGE.depop} 인구감소지역 89 &nbsp; ${DEPOP_BADGE.interest} 관심지역 18 &nbsp; <span class="bd bd-border">접경</span> 접경지역 15
+      &nbsp;|&nbsp; <b>세컨드홈</b>: 조특법 §71의2 지역 요건 충족 여부 &nbsp; <b>저가주택</b>: 종부세 §8④3 지역 요건 충족 여부 (가액·취득시기는 별도)</div>
+    <table class="area-table"><thead><tr><th>시·도</th><th>시·군·구 (클릭하면 선택)</th></tr></thead><tbody>
+    ${Object.entries(bySido).map(([sido, list]) => `<tr><td>${SIDO_LABEL[sido]}</td><td>${list.map((a) => `<span class="area-chip" data-sido="${a.sido}" data-name="${a.name}" title="세컨드홈 ${a.secondHomeOk ? '가능' : '불가'} · 종부세 저가주택 ${a.jongbuLowPriceOk ? '가능' : '불가'}">${a.name}${badges(a)}<span class="mini">${a.secondHomeOk ? '' : ' 세컨드홈✗'}${a.jongbuLowPriceOk ? '' : ' 저가✗'}</span></span>`).join('')}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="area-notes">출처: 행정안전부 인구감소지역 고시(2021.10.19 지정 → 2026 재지정, 89곳 동일) · 인구감소관심지역 고시 제2025-78호(2026.1.1 시행) · 접경지역 지원 특별법 §2.
+      군위군은 2023.7 대구 편입(광역시 소속 군 → 특례 가능). 고시 변경 시 <code>src/core/regions-data.js</code>의 목록을 갱신하세요.</div>`;
+  $('areaTable').querySelectorAll('.area-chip').forEach((el) => el.addEventListener('click', () => { applyArea(el.dataset.sido, el.dataset.name); el.closest('details').open = false; }));
 }
 
 function renderHow() {

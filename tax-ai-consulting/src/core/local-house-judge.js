@@ -78,7 +78,8 @@ export const REGIONS = [
   { key: 'metroCity', label: '광역시 (군 제외 — 부산·대구·인천 제외·광주·대전·울산)', metroArea: false, metroCity: true, sejongDong: false },
   { key: 'sejongEupMyeon', label: '세종특별자치시 읍·면 지역', metroArea: false, metroCity: false, sejongDong: false },
   { key: 'sejongDong', label: '세종특별자치시 동 지역', metroArea: false, metroCity: false, sejongDong: true },
-  { key: 'borderCapital', label: '수도권 접경지역 (연천·강화·옹진)', metroArea: true, metroCity: false, sejongDong: false },
+  { key: 'borderCapital', label: '수도권 접경지역 (강화·옹진·김포·파주·연천·고양·양주·동두천·포천)', metroArea: true, metroCity: false, sejongDong: false },
+  { key: 'capital', label: '수도권 — 접경지역 아님 (특례 불가)', metroArea: true, metroCity: false, sejongDong: false },
 ];
 const REGION = Object.fromEntries(REGIONS.map((r) => [r.key, r]));
 
