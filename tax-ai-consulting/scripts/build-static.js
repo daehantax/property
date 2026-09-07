@@ -29,6 +29,7 @@ const PAGES = [
   { entry: 'single-exempt.js', html: 'single-exempt.html' },
   { entry: 'redev-exempt.js', html: 'redev-exempt.html' },
   { entry: 'marriage-exempt.js', html: 'marriage-exempt.html' },
+  { entry: 'local-house.js', html: 'local-house.html' },
   { entry: 'aggr-single.js', html: 'aggr-single.html' },
   { entry: 'aggr-couple.js', html: 'aggr-couple.html' },
   { entry: 'property-calc.js', html: 'property-calc.html' },

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>지방주택 + 수도권 주택 1세대1주택 판정기 — 소득세법·종부세법</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .hj-layout { display: flex; gap: 18px; align-items: flex-start; }
+  #hjForm { width: 520px; flex-shrink: 0; }
+  #hjResult { flex: 1; min-width: 0; min-height: 400px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .grid2 label { margin: 0 0 2px; }
+  .grid2 .full { grid-column: 1 / -1; }
+  .money-hint { font-size: 13px; color: #2874a6; min-height: 13px; }
+  .chk { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; font-size: 14.5px; color: #34495e; font-weight: 700; }
+  .chk input { width: auto; margin-top: 2px; }
+  .req-note { font-size: 13px; color: #5f7180; line-height: 1.6; margin: 8px 0 0; }
+  .flow-note { font-size: 13px; color: #566573; line-height: 1.7; background: #f4f8fb; border: 1px solid #d6e4ef; border-radius: 9px; padding: 10px 12px; margin-bottom: 12px; }
+  .flow-note b { color: var(--navy); }
+  .sub-box { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; margin-top: 10px; background: #fbfcfd; }
+  .sub-box h5 { margin: 0 0 8px; font-size: 14px; color: var(--navy); }
+  .sub-box.metro { border-color: #aed6f1; background: #f5fbff; }
+  .sub-box.local { border-color: #a9dfbf; background: #f6fdf8; }
+  .btn-primary { width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .btn-primary:hover { background: var(--navy-d); }
+
+  .tax-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; background: #fff; }
+  .tax-card h3 { margin: 0 0 10px; font-size: 17px; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+  .tax-card h3 .law { font-size: 12.5px; font-weight: 600; color: #6f8496; }
+  .verdict { border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+  .verdict.exempt { background: #eafaf1; border: 1px solid #abebc6; }
+  .verdict.partial { background: #fef5e7; border: 1px solid #f5cba7; }
+  .verdict.taxable { background: #fdecea; border: 1px solid #f5b7b1; }
+  .verdict .tag { display: inline-block; font-size: 13.5px; font-weight: 800; padding: 3px 12px; border-radius: 999px; color: #fff; }
+  .verdict.exempt .tag { background: #1e8449; }
+  .verdict.partial .tag { background: #b9770e; }
+  .verdict.taxable .tag { background: #c0392b; }
+  .verdict .head { font-size: 18px; font-weight: 800; margin-top: 8px; color: #1a2733; letter-spacing: -0.4px; line-height: 1.4; }
+
+  .check { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eef2f4; }
+  .check .ic { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14.5px; color: #fff; }
+  .check.ok .ic { background: #1e8449; }
+  .check.no .ic { background: #c0392b; }
+  .check.warn .ic { background: #b9770e; }
+  .check .lbl { font-size: 14.5px; font-weight: 700; color: #2c3e50; }
+  .check .det { font-size: 13px; color: #5f7180; margin-top: 1px; line-height: 1.5; }
+  details.path { border: 1px solid var(--line); border-radius: 9px; margin: 6px 0; background: #fbfcfd; }
+  details.path summary { cursor: pointer; padding: 9px 12px; font-size: 14.5px; font-weight: 700; color: #2c3e50; display: flex; gap: 8px; align-items: center; }
+  details.path summary .law { font-size: 12.5px; color: #6f8496; font-weight: 600; }
+  details.path summary .st { margin-left: auto; font-size: 12.5px; font-weight: 800; padding: 2px 10px; border-radius: 999px; color: #fff; }
+  details.path.ok summary .st { background: #1e8449; }
+  details.path.no summary .st { background: #95a5a6; }
+  details.path.applied { border-color: #7dcea0; background: #f2fbf5; }
+  details.path .body { padding: 0 12px 8px; }
+  h4.sec { margin: 14px 0 4px; font-size: 14.5px; color: var(--navy); }
+  .heavy-box { border-radius: 9px; padding: 10px 12px; margin-top: 10px; font-size: 13.5px; line-height: 1.6; }
+  .heavy-box.on { background: #fdecea; border: 1px solid #f5b7b1; color: #922b21; }
+  .heavy-box.off { background: #f4f8fb; border: 1px solid #d6e4ef; color: #34495e; }
+  .reasons { background: #fff9e6; border: 1px solid #f5d97e; border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+  .reasons li { font-size: 13.5px; margin: 4px 0; line-height: 1.6; }
+  .muted { font-size: 13.5px; color: #5f7180; margin-top: 10px; line-height: 1.6; }
+  .lawref { margin-top: 12px; font-size: 12.5px; color: #5f7180; border-top: 1px solid var(--line); padding-top: 8px; line-height: 1.6; }
+  .result-empty { color: #6f8496; text-align: center; margin-top: 140px; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
+  table.cmp th, table.cmp td { border-bottom: 1px solid #eef2f4; padding: 6px 8px; text-align: right; }
+  table.cmp th:first-child, table.cmp td:first-child { text-align: left; color: #34495e; }
+  table.cmp thead th { background: #f4f8fb; color: var(--navy); font-size: 13px; }
+  table.cmp tr.total td { font-weight: 800; color: #1a2733; border-top: 2px solid var(--navy); }
+  table.cmp td.chosen { background: #eafaf1; }
+  .wrap-x { overflow-x: auto; }
+  @media (max-width: 1060px) { .hj-layout { flex-direction: column; } #hjForm { width: 100%; } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="aggr-home.html">보유세 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
+    <a href="local-house.html" class="active">지방주택 판정기</a>
+    <a href="rental-lessor.html">주택임대사업자</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    <b>수도권 주택 1채 + 지방주택 1채</b>를 보유한 1세대가 <b>소득세법</b>(양도소득세 비과세)과 <b>종합부동산세법</b>(1세대1주택자 특례)에서
+    각각 「1세대 1주택」으로 인정받을 수 있는지 판정합니다. 양도세는 일시적 2주택·상속·농어촌(§155)·조특법 농어촌주택(§99의4)·
+    세컨드홈(§71의2)·준공 후 미분양(§98의9)·부득이한 사유(§155⑧) 7가지 경로를, 종부세는 §8④ 일시적 2주택·상속·지방 저가주택과 조특법 특례를
+    검토하고 <b>특례 적용 전후 종부세</b>를 비교합니다. 계산은 브라우저 안에서만 이뤄집니다.
+  </p>
+
+  <div class="hj-layout">
+    <div class="panel" id="hjForm">
+      <div class="flow-note">
+        <b>주의:</b> 양도세 중과 주택수 제외(비수도권 기준시가 3억 이하, §167의3)와 비과세 판정의 주택수(§154)는 <b>별개</b>입니다.
+        지방주택이 3억 이하라도 비과세는 별도 특례가 있어야 하고, 종부세 지방 저가주택(4억·인구감소지역 9억)은 <b>매년 9.16~9.30 신청</b>해야 적용됩니다.
+      </div>
+      <div id="fields"></div>
+      <button class="btn-primary" id="judgeBtn">1세대1주택 판정하기</button>
+    </div>
+
+    <div class="panel" id="hjResult">
+      <div class="result-empty" id="empty">두 주택 정보를 입력하고 「1세대1주택 판정하기」를 누르세요.</div>
+      <div id="result" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script src="local-house.js"></script>
+</body>
+</html>
