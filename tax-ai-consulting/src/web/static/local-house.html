@@ -22,6 +22,31 @@
   .sub-box h5 { margin: 0 0 8px; font-size: 14px; color: var(--navy); }
   .sub-box.metro { border-color: #aed6f1; background: #f5fbff; }
   .sub-box.local { border-color: #a9dfbf; background: #f6fdf8; }
+  .area-search { position: relative; margin-bottom: 10px; }
+  .area-search label { display: block; font-size: 12.5px; color: #5f7180; margin-bottom: 3px; line-height: 1.5; }
+  .area-search input { width: 100%; box-sizing: border-box; }
+  .area-list { position: absolute; left: 0; right: 0; z-index: 20; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.12); max-height: 280px; overflow-y: auto; }
+  .area-list:empty { display: none; }
+  .area-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; font-size: 13.5px; cursor: pointer; border-bottom: 1px solid #f0f3f5; }
+  .area-item:hover { background: #f4f8fb; }
+  .area-item .nm { font-weight: 700; color: #2c3e50; }
+  .area-item .ok { margin-left: auto; font-size: 12px; color: #1e8449; font-weight: 700; white-space: nowrap; }
+  .area-none { padding: 8px 10px; font-size: 13px; color: #6f8496; }
+  .bd { display: inline-block; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; color: #fff; margin-left: 3px; vertical-align: middle; }
+  .bd-depop { background: #c0392b; } .bd-int { background: #b9770e; } .bd-border { background: #2874a6; } .bd-cap { background: #7f8c8d; } .bd-gun { background: #1e8449; }
+  .area-badge { font-size: 13.5px; color: #1a2733; margin-top: 6px; }
+  .area-badge:empty { display: none; }
+  .area-notes { font-size: 12.5px; color: #5f7180; line-height: 1.6; margin-top: 4px; }
+  .area-all { margin-top: 8px; font-size: 13px; }
+  .area-all summary { cursor: pointer; color: var(--navy); font-weight: 700; }
+  .area-legend { font-size: 12.5px; color: #34495e; margin: 6px 0; line-height: 1.8; }
+  .area-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .area-table th, .area-table td { border-bottom: 1px solid #eef2f4; padding: 5px 6px; text-align: left; vertical-align: top; }
+  .area-table th { background: #f4f8fb; color: var(--navy); }
+  .area-table td:first-child { white-space: nowrap; font-weight: 700; color: #34495e; width: 90px; }
+  .area-chip { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; white-space: nowrap; }
+  .area-chip:hover { background: #f4f8fb; border-color: #aed6f1; }
+  .area-chip .mini { font-size: 10.5px; color: #b03a2e; }
   .btn-primary { width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
   .btn-primary:hover { background: var(--navy-d); }
 
@@ -102,6 +127,7 @@
       <div class="flow-note">
         <b>주의:</b> 양도세 중과 주택수 제외(비수도권 기준시가 3억 이하, §167의3)와 비과세 판정의 주택수(§154)는 <b>별개</b>입니다.
         지방주택이 3억 이하라도 비과세는 별도 특례가 있어야 하고, 종부세 지방 저가주택(4억·인구감소지역 9억)은 <b>매년 9.16~9.30 신청</b>해야 적용됩니다.
+        지방주택의 <b>시·군·구 이름을 검색</b>하면 인구감소지역·관심지역·수도권 접경지역·광역시 군 여부를 자동으로 판별합니다.
       </div>
       <div id="fields"></div>
       <button class="btn-primary" id="judgeBtn">1세대1주택 판정하기</button>

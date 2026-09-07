@@ -311,7 +311,16 @@ describe('상수·목록', () => {
     expect(RURAL99_END).toBe('2028-12-31');
   });
   it('입력 목록', () => {
-    expect(REGIONS.map((r) => r.key)).toEqual(['province', 'metroCityGun', 'metroCity', 'sejongEupMyeon', 'sejongDong', 'borderCapital']);
+    expect(REGIONS.map((r) => r.key)).toEqual(['province', 'metroCityGun', 'metroCity', 'sejongEupMyeon', 'sejongDong', 'borderCapital', 'capital']);
+  });
+  it('수도권 비접경(가평 등)은 세컨드홈·농어촌·종부세 저가주택 모두 지역 요건 미충족', () => {
+    const r = judgeLocalHouse({ ...base, local: { ...base.local, region: 'capital', depop: 'depop', acquireDate: '2026-03-01', acquirePrice: 300_000_000 } });
+    expect(chk(path(r.transfer, 'secondHome'), 'region').ok).toBe(false);
+    expect(chk(path(r.transfer, 'rural99'), 'region').ok).toBe(false);
+    expect(chk(path(r.jongbu, 'lowPrice'), 'region').ok).toBe(false);
+    expect(r.transfer.heavy.otherCounted).toBe(true);
+  });
+  it('취득 경위·인구감소 구분 목록', () => {
     expect(HOW.map((h) => h.key)).toEqual(['buy', 'inherit', 'leaveFarm', 'returnFarm', 'unavoidable', 'unsold', 'hometown']);
     expect(DEPOP.map((x) => x.key)).toEqual(['none', 'depop', 'interest']);
   });
