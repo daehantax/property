@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>세법 동향 — 계산기에 영향 주는 발표·법령·판결 일지</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* 자동 점검 상태 박스 */
+  .health { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 20px; margin: 0 0 16px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .health b { color: #123a54; font-size: 15px; }
+  .health .item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #47606f; }
+  .health img { height: 20px; }
+  .health .desc { font-size: 13.5px; color: #5f7180; flex-basis: 100%; line-height: 1.6; margin-top: 2px; }
+
+  /* 필터 */
+  .filters { display: flex; gap: 16px; flex-wrap: wrap; margin: 0 0 14px; align-items: center; }
+  .filters .grp { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .filters .lbl { font-size: 14px; font-weight: 800; color: #3d5461; }
+  .chip { padding: 6px 14px; border: 1px solid var(--line); background: #fff; border-radius: 999px; font-size: 14px; font-weight: 700; color: #47606f; cursor: pointer; font-family: inherit; }
+  .chip.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+  #count { font-size: 14px; color: #5f7180; margin-left: auto; }
+
+  /* 타임라인 */
+  .entry { display: flex; gap: 18px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .e-date { font-size: 17px; font-weight: 800; color: var(--navy); white-space: nowrap; min-width: 108px; font-variant-numeric: tabular-nums; }
+  .e-body { min-width: 0; flex: 1; }
+  .e-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .e-tags .cat { color: #fff; font-size: 12.5px; font-weight: 800; border-radius: 999px; padding: 3px 12px; }
+  .e-tags .st { font-size: 12.5px; font-weight: 800; border-radius: 999px; padding: 2px 12px; border: 1px solid; }
+  .e-tags .aff { font-size: 12.5px; font-weight: 700; color: #21618c; background: #eaf2f8; border-radius: 999px; padding: 3px 11px; }
+  .e-body h3 { margin: 2px 0 6px; font-size: 17px; color: #1a2733; line-height: 1.45; }
+  .e-sum { margin: 0; font-size: 15px; line-height: 1.75; color: #2c3e50; }
+  .e-note { margin: 8px 0 0; font-size: 14px; line-height: 1.65; color: #6e5407; background: #fef9e7; border: 1px solid #f7dc6f; border-radius: 8px; padding: 8px 12px; }
+  .e-src { margin: 8px 0 0; font-size: 13px; color: #5f7180; line-height: 1.6; }
+  .e-src a { color: #21618c; }
+  .empty { color: #6f8496; text-align: center; padding: 40px 0; }
+
+  .rules { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px 22px; margin-top: 20px; }
+  .rules h3 { margin: 0 0 8px; font-size: 15.5px; color: #21618c; }
+  .rules li { font-size: 14px; color: #47606f; line-height: 1.75; }
+
+  @media (max-width: 700px) { .entry { flex-direction: column; gap: 6px; } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
+  <div class="tabs">
+    <a href="index.html">세금 계산기</a>
+    <a href="aggr-home.html">보유세 계산기</a>
+    <a href="scenarios.html">상담 시나리오</a>
+    <a href="transfer-heavy.html">양도세 중과 판정기</a>
+    <a href="acq-heavy.html">취득세 중과 판정기</a>
+    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
+    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
+    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
+    <a href="rental-lessor.html">주택임대사업자</a>
+    <a href="law-updates.html" class="active">세법 동향</a>
+  </div>
+</nav>
+
+<div class="container">
+  <p class="page-intro">
+    이 사이트 계산기·판정기의 <b>계산 로직에 영향을 주는</b> 세법 개정·시행령·정부 발표·판결만 골라
+    일자별로 기록합니다. 항목마다 영향받는 계산기와 <b>엔진 반영 여부</b>를 표시하므로,
+    계산 결과가 어느 시점 법령 기준인지 여기서 확인할 수 있습니다.
+  </p>
+
+  <div class="health">
+    <b>🩺 자동 점검</b>
+    <span class="item">매일 점검(계산 엔진·화면)
+      <a href="https://github.com/daehantax/property/actions/workflows/daily-check.yml" target="_blank" rel="noopener"><img
+        src="https://github.com/daehantax/property/actions/workflows/daily-check.yml/badge.svg" alt="daily-check 상태"></a></span>
+    <span class="item">세법 개정 감시(주 3회)
+      <a href="https://github.com/daehantax/property/actions/workflows/law-watch.yml" target="_blank" rel="noopener"><img
+        src="https://github.com/daehantax/property/actions/workflows/law-watch.yml/badge.svg" alt="law-watch 상태"></a></span>
+    <span class="desc">배지가 <b>passing(초록)</b>이면 최근 점검 통과, <b>failing(빨강)</b>이면 테스트 실패 또는 세법 개정 감지 —
+      배지를 누르면 상세 로그를 볼 수 있습니다. 매일 06:00에 계산 엔진 테스트 289개와 전 페이지 화면 동작을,
+      월·수·금에는 AI 웹검색으로 세법 가정을 점검합니다.</span>
+  </div>
+
+  <div class="filters">
+    <span class="grp"><span class="lbl">구분</span><span id="catChips" class="grp"></span></span>
+    <span class="grp"><span class="lbl">반영 상태</span><span id="statusChips" class="grp"></span></span>
+    <span id="count"></span>
+  </div>
+
+  <div id="timeline"></div>
+
+  <div class="rules">
+    <h3>📋 운영 규칙</h3>
+    <ul>
+      <li><b>등록 기준</b> — 세율·공제·기한·판정 로직이 바뀌거나 바뀔 예정인 것만 기록합니다 (단순 뉴스 제외).</li>
+      <li><b>수집 경로</b> — 자동 감시(law-watch)가 세법 가정 변화·판결을 웹검색으로 발견하면 GitHub 이슈로 후보를 올리고, 검토 후 이 일지에 추가합니다.</li>
+      <li><b>연간 주기</b> — 매년 7~8월 정부 세법개정안 발표, 12월 국회 의결, 이듬해 시행 시점마다 항목이 추가·갱신됩니다.</li>
+      <li><b>반영 상태</b> — 「반영완료」는 계산 엔진에 반영된 것, 「검토중」은 엔진 수정 대기, 「국회심의중」은 미확정 정부안(계산기 미반영)입니다.</li>
+    </ul>
+  </div>
+
+  <p class="disclaimer">본 일지는 참고용 요약입니다. 실제 의사결정 전에는 공포된 법령 원문과 세무사 상담으로 확인하세요.</p>
+</div>
+
+<script src="law-updates.js"></script>
+</body>
+</html>

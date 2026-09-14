@@ -1,15 +1,21 @@
 name: law-watch
 
 # 세법 개정 감시 정기 실행 (장치 4 독립 실행)
-# 엔진의 세법 가정 8종(공정시장가액비율·공제금액·중과 부활일 등)을 웹검색으로 대조한다.
-# 개정·시행예정 항목이 발견되면 --strict 로 인해 잡이 실패(빨간불)하여 알림 역할을 한다.
+# 엔진의 세법 가정(공정시장가액비율·공제금액·중과 부활일 등 상수 8종)과
+# 동향 2종(판결·심판·예규 / 정부안·국회 의결·규제지역)을 AI 웹검색으로 대조한다.
+# 개정·시행예정 항목이 발견되면 --strict 로 인해 잡이 실패(빨간불)하여 알림 역할을 하고,
+# "law-watch" 라벨의 GitHub 이슈가 자동 생성/갱신된다.
 # 저장소 시크릿 이름 "property"를 ANTHROPIC_API_KEY 로 매핑.
 
 on:
   workflow_dispatch:
   schedule:
-    # 매주 월요일 06:00 KST (일요일 21:00 UTC)
-    - cron: "0 21 * * 0"
+    # 매주 월·수·금 06:00 KST (일·화·목 21:00 UTC)
+    - cron: "0 21 * * 0,2,4"
+
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   law-watch:
@@ -47,3 +53,42 @@ jobs:
         with:
           name: law-watch-results
           path: tax-ai-consulting/law-watch-results/
+
+      - name: 실패 시 이슈 자동 생성/갱신
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[law-watch] 세법 개정 감시 — 확인 필요';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
+            const body = [
+              `**${today} 세법 개정 감시가 실패로 끝났습니다.** 실패 원인은 두 가지 중 하나입니다.`,
+              '',
+              `실행 로그: ${runUrl}`,
+              '',
+              '**A. 로그에 `AuthenticationError: 401` 이 보이는 경우 — API 키 문제**',
+              '- 저장소 시크릿 `property` 에 저장된 Anthropic API 키가 만료/무효입니다.',
+              '- Settings → Secrets and variables → Actions → `property` 를 유효한 키로 갱신하세요.',
+              '',
+              '**B. 로그에 감시 리포트(조치 필요 항목)가 보이는 경우 — 세법 개정 감지**',
+              '- 리포트가 알려주는 상수 위치(constants.*)를 확인해 엔진을 수정하고,',
+              '- 세법 동향 일지(`src/web/static/law-updates-data.js`)에 일자별 항목을 추가하세요.',
+              '- 판결·심판·정부안 동향(court_rulings_watch / gov_reform_watch)이면 일지 등록 여부만 검토하면 됩니다.',
+              '',
+              '처리 후 워크플로를 수동 실행해 초록불을 확인하고 이슈를 닫으세요.',
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'law-watch',
+            });
+            const existing = issues.find((i) => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number,
+                body: `${today} 감시도 실패 — ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['law-watch'],
+              });
+            }

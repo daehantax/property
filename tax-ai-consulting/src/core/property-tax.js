@@ -13,9 +13,11 @@
 
 const LAW_REF = [
   '지방세법 §110(과세표준)',
+  '지방세법 §110의2(과세표준상한액 — 2024~ 주택, 직전연도 과표 기반이라 본 계산기 미반영)',
   '지방세법 §111(재산세 세율)',
   '지방세법 §111의2(1세대1주택 특례세율 — 공시 9억 이하)',
   '지방세법 §112(도시지역분)',
+  '지방세법 §122(세부담 상한 — 주택 105~130%·건축물/법인주택 150%, 미반영)',
   '지방세법 §151(지방교육세)',
 ];
 
@@ -71,4 +73,26 @@ export function calcPropertyTax(oneOOne, gongsi) {
     },
     lawRef: LAW_REF,
   };
+}
+
+/**
+ * 지역자원시설세(소방분) 계산 — 지방세법 §146③
+ *
+ * 재산세 고지서의 ③번 세목. 과세표준은 건축물(주택은 건축물 부분)의
+ * 시가표준액 × 공정시장가액비율로 산출되며, 고지서에 "소방분 과세표준"으로
+ * 기재된 값을 그대로 입력받는다 (주택 공시가격과 다름 — 건물 부분만).
+ *
+ * @param {number} fireBase   소방분 과세표준 [원]
+ * @param {number} multiplier 화재위험건축물 중과 배수 — 1(일반) | 2(주유소·유흥장 등) | 3(대형, 11층 이상 등) (§146④·⑤)
+ * @returns {number} 소방분 지역자원시설세 [원]
+ */
+export function calcFireSafetyTax(fireBase, multiplier = 1) {
+  let tax;
+  if      (fireBase <= 6_000_000)  tax = fireBase * 0.0004;
+  else if (fireBase <= 13_000_000) tax = 2_400  + (fireBase - 6_000_000)  * 0.0005;
+  else if (fireBase <= 26_000_000) tax = 5_900  + (fireBase - 13_000_000) * 0.0006;
+  else if (fireBase <= 39_000_000) tax = 13_700 + (fireBase - 26_000_000) * 0.0008;
+  else if (fireBase <= 64_000_000) tax = 24_100 + (fireBase - 39_000_000) * 0.001;
+  else                             tax = 49_100 + (fireBase - 64_000_000) * 0.0012;
+  return tax * multiplier;
 }

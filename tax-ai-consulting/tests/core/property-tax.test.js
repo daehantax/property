@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcPropertyTax } from '../../src/core/property-tax.js';
+import { calcPropertyTax, calcFireSafetyTax } from '../../src/core/property-tax.js';
 
 describe('calcPropertyTax — 재산세', () => {
   describe('공정시장가액비율 (1세대1주택 특례)', () => {
@@ -82,5 +82,22 @@ describe('특례세율 판정 (지방세법 §111의2)', () => {
     expect(r.breakdown.specialRate).toBe(false);
     // 과표 3억: 표준세율 19.5만 + 1.5억 × 0.25% = 57만
     expect(r.propertyTax).toBeCloseTo(195_000 + 150_000_000 * 0.0025, 2);
+  });
+});
+
+describe('calcFireSafetyTax — 지역자원시설세(소방분, 지방세법 §146③)', () => {
+  it('구간 경계값이 세율표 누진공제와 일치한다', () => {
+    expect(calcFireSafetyTax(6_000_000)).toBeCloseTo(2_400, 2);    // 600만 × 0.04%
+    expect(calcFireSafetyTax(13_000_000)).toBeCloseTo(5_900, 2);   // 2,400 + 700만 × 0.05%
+    expect(calcFireSafetyTax(26_000_000)).toBeCloseTo(13_700, 2);  // 5,900 + 1,300만 × 0.06%
+    expect(calcFireSafetyTax(39_000_000)).toBeCloseTo(24_100, 2);  // 13,700 + 1,300만 × 0.08%
+    expect(calcFireSafetyTax(64_000_000)).toBeCloseTo(49_100, 2);  // 24,100 + 2,500만 × 0.1%
+  });
+  it('6,400만 초과 구간: 49,100 + 초과분 0.12%', () => {
+    expect(calcFireSafetyTax(100_000_000)).toBeCloseTo(49_100 + 36_000_000 * 0.0012, 2);
+  });
+  it('화재위험건축물 중과 배수 (2배·3배)', () => {
+    expect(calcFireSafetyTax(10_000_000, 2)).toBeCloseTo((2_400 + 4_000_000 * 0.0005) * 2, 2);
+    expect(calcFireSafetyTax(10_000_000, 3)).toBeCloseTo((2_400 + 4_000_000 * 0.0005) * 3, 2);
   });
 });
