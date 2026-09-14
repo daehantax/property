@@ -29,6 +29,7 @@ const PAGES = [
   { html: 'single-exempt.html', btn: '#judgeBtn' },
   { html: 'redev-exempt.html', btn: '#judgeBtn' },
   { html: 'marriage-exempt.html', btn: '#judgeBtn' },
+  { html: 'local-house.html', btn: '#judgeBtn' },
   { html: 'aggr-single.html', btn: '#calcBtn' },
   { html: 'aggr-couple.html', btn: '#calcBtn' },
   { html: 'property-calc.html', btn: '#calcBtn' },
