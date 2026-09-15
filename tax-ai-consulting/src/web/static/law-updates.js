@@ -1,5 +1,5 @@
 /* 세법 동향 일지 — 타임라인 렌더러 (데이터: law-updates-data.js) */
-import { LAW_UPDATES } from './law-updates-data.js';
+import { LAW_UPDATES, OFFICIAL_SOURCES } from './law-updates-data.js';
 
 const CAT_COLORS = {
   '법률': '#1a5276', '시행령': '#21618c', '예규·해석': '#6c3483',
@@ -14,6 +14,25 @@ const STATUS = {
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* 예규·질의응답·판결 공식 출처 바로가기 (데이터: OFFICIAL_SOURCES) */
+const SRC_COLORS = { '질의응답': '#884ea0', '법령': '#1a5276' };
+function renderSources() {
+  const box = $('sources');
+  if (!box) return;
+  box.innerHTML = OFFICIAL_SOURCES.map((s) => {
+    const cc = CAT_COLORS[s.kind] || SRC_COLORS[s.kind] || '#566573';
+    return `
+    <a class="src-card" href="${esc(s.url)}" target="_blank" rel="noopener">
+      <div class="src-head">
+        <span class="cat" style="background:${cc}">${esc(s.kind)}</span>
+        <b>${esc(s.org)}</b>
+      </div>
+      <div class="src-name">${esc(s.name)}</div>
+      <div class="src-how">${esc(s.how)}</div>
+    </a>`;
+  }).join('');
+}
 
 let catFilter = '전체';
 let statusFilter = '전체';
@@ -63,4 +82,5 @@ function render() {
   }).join('') || '<p class="empty">조건에 맞는 항목이 없습니다.</p>';
 }
 
+renderSources();
 render();

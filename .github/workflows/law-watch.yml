@@ -1,17 +1,19 @@
 name: law-watch
 
-# 세법 개정 감시 정기 실행 (장치 4 독립 실행)
+# 세법 개정 감시 정기 실행 (장치 4 독립 실행) — 매월 1일 1회
 # 엔진의 세법 가정(공정시장가액비율·공제금액·중과 부활일 등 상수 8종)과
-# 동향 2종(판결·심판·예규 / 정부안·국회 의결·규제지역)을 AI 웹검색으로 대조한다.
-# 개정·시행예정 항목이 발견되면 --strict 로 인해 잡이 실패(빨간불)하여 알림 역할을 하고,
-# "law-watch" 라벨의 GitHub 이슈가 자동 생성/갱신된다.
+# 동향 4종(대법원 판결·조세심판원 결정 / 국세청 예규·질의응답 / 기획재정부 유권해석 /
+# 정부안·국회 의결·규제지역)을 AI 웹검색으로 대조한다. 동향 감시 기간은 직전 한 달(31일).
+# 개정·시행예정 항목이나 신규 예규·판결이 발견되면 --strict 로 인해 잡이 실패(빨간불)하여
+# 알림 역할을 하고, "law-watch" 라벨의 GitHub 이슈가 자동 생성/갱신된다.
+# 리포트 끝의 「세법 동향 일지 등록 후보」 JS 블록을 검토해 law-updates-data.js 에 추가한다.
 # 저장소 시크릿 이름 "property"를 ANTHROPIC_API_KEY 로 매핑.
 
 on:
   workflow_dispatch:
   schedule:
-    # 매주 월·수·금 06:00 KST (일·화·목 21:00 UTC)
-    - cron: "0 21 * * 0,2,4"
+    # 매월 1일 09:00 KST (1일 00:00 UTC) — 월 1회만 실행해 API 비용을 줄인다
+    - cron: "0 0 1 * *"
 
 permissions:
   contents: read
@@ -32,7 +34,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Run law watch (strict — 개정 발견 시 실패로 알림)
+      - name: Run law watch (strict — 개정·신규 예규 발견 시 실패로 알림)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.property }}
         run: node scripts/law-watch.js --strict
@@ -63,18 +65,20 @@ jobs:
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
             const body = [
-              `**${today} 세법 개정 감시가 실패로 끝났습니다.** 실패 원인은 두 가지 중 하나입니다.`,
+              `**${today} 세법 개정 감시(월 1회)가 실패로 끝났습니다.** 실패 원인은 두 가지 중 하나입니다.`,
               '',
               `실행 로그: ${runUrl}`,
               '',
               '**A. 로그에 `AuthenticationError: 401` 이 보이는 경우 — API 키 문제**',
               '- 저장소 시크릿 `property` 에 저장된 Anthropic API 키가 만료/무효입니다.',
               '- Settings → Secrets and variables → Actions → `property` 를 유효한 키로 갱신하세요.',
+              '- 로그에 `credit balance` 문구가 보이면 콘솔 Billing 에서 크레딧을 충전하세요.',
               '',
-              '**B. 로그에 감시 리포트(조치 필요 항목)가 보이는 경우 — 세법 개정 감지**',
-              '- 리포트가 알려주는 상수 위치(constants.*)를 확인해 엔진을 수정하고,',
-              '- 세법 동향 일지(`src/web/static/law-updates-data.js`)에 일자별 항목을 추가하세요.',
-              '- 판결·심판·정부안 동향(court_rulings_watch / gov_reform_watch)이면 일지 등록 여부만 검토하면 됩니다.',
+              '**B. 로그에 감시 리포트(조치 필요 항목)가 보이는 경우 — 세법 개정·신규 예규 감지**',
+              '- 상수 대조 항목이면 리포트가 알려주는 상수 위치(constants.*)를 확인해 엔진을 수정하고,',
+              '- 동향 항목(판결·심판 / 국세청 예규·질의응답 / 기획재정부 유권해석 / 정부안)이면',
+              '  리포트 끝 「세법 동향 일지 등록 후보」의 JS 블록을 검토해',
+              '  세법 동향 일지(`src/web/static/law-updates-data.js`)에 추가하고 engineStatus 를 채우세요.',
               '',
               '처리 후 워크플로를 수동 실행해 초록불을 확인하고 이슈를 닫으세요.',
             ].join('\n');
