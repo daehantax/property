@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  judgeSingleHouseExempt, judgeTempTwoExempt, judgeSaengsang,
+  judgeExemptRequirementByYears, judgeSingleHouseExempt, judgeTempTwoExempt, judgeSaengsang,
 } from '../../src/core/single-house-exempt.js';
 
 const get = (r, key) => r.checklist.find((c) => c.key === key);
@@ -149,5 +149,35 @@ describe('일시적 2주택 비과세', () => {
     });
     expect(get(r, 'live').ok).toBe(true);
     expect(r.verdict).toBe('exempt');
+  });
+});
+
+describe('judgeExemptRequirementByYears — 계산기용 보유·거주요건 간이 판정', () => {
+  it('조정지역 취득 + 거주 2년 미만 → 비과세 불가', () => {
+    const r = judgeExemptRequirementByYears({ holdYears: 10, liveYears: 1, acquiredInAdjust: true });
+    expect(r.ok).toBe(false);
+    expect(r.needLive).toBe(true);
+    expect(r.checklist.find((c) => c.key === 'live').ok).toBe(false);
+    expect(r.headline).toContain('거주 2년 미만');
+  });
+  it('조정지역 취득 + 거주 2년 이상 → 비과세 적용', () => {
+    const r = judgeExemptRequirementByYears({ holdYears: 3, liveYears: 2, acquiredInAdjust: true });
+    expect(r.ok).toBe(true);
+    expect(r.checklist.every((c) => c.ok)).toBe(true);
+  });
+  it('비조정지역 취득 → 거주요건 없음, 보유 2년만 확인', () => {
+    const r = judgeExemptRequirementByYears({ holdYears: 2, liveYears: 0, acquiredInAdjust: false });
+    expect(r.ok).toBe(true);
+    expect(r.needLive).toBe(false);
+  });
+  it('상생임대주택 특례 → 조정지역 취득이어도 거주요건 면제', () => {
+    const r = judgeExemptRequirementByYears({ holdYears: 5, liveYears: 0, acquiredInAdjust: true, saengsangOk: true });
+    expect(r.ok).toBe(true);
+    expect(r.checklist.find((c) => c.key === 'live').detail).toContain('면제');
+  });
+  it('보유 2년 미만 → 거주와 무관하게 비과세 불가', () => {
+    const r = judgeExemptRequirementByYears({ holdYears: 1, liveYears: 1, acquiredInAdjust: false });
+    expect(r.ok).toBe(false);
+    expect(r.headline).toContain('보유기간 2년 미만');
   });
 });

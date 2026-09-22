@@ -8,6 +8,7 @@
 
 import { calcGiveTax }       from '../../core/gift-tax.js';
 import { calcSaleIncomeTax, compareSaleIncomeTaxReform2026 } from '../../core/transfer-tax.js';
+import { judgeExemptRequirementByYears } from '../../core/single-house-exempt.js';
 import { calcPropertyTax }   from '../../core/property-tax.js';
 import { calcAggrTax, calcAggrTaxCouple, compareAggrTaxReform2026 } from '../../core/comprehensive-tax.js';
 import { renderCalcSteps }   from '../../report/calc-steps.js';
@@ -79,19 +80,57 @@ const CALCULATORS = [
         { value: '1세대1주택', label: '1세대1주택(12억 비과세)' },
         { value: '기타', label: '기타' },
       ], '다주택'),
+      sel('acqAdj', '취득 당시 조정대상지역 (1세대1주택 거주요건)', [
+        { value: 'adj', label: '조정지역 취득 (2017.8.3 이후) → 2년 거주 필요' },
+        { value: 'non', label: '비조정지역 취득 또는 2017.8.2 이전 취득 → 거주요건 없음' },
+        { value: 'saengsang', label: '조정지역 취득이나 상생임대주택 특례 충족 → 거주요건 면제' },
+      ], 'adj'),
       int('ownCount', '보유 주택수', 2),
-      sel('isAdj', '조정대상지역', [{ value: 1, label: '조정지역' }, { value: 0, label: '비조정지역' }], 1),
+      sel('isAdj', '양도 당시 조정대상지역 (다주택 중과)', [{ value: 1, label: '조정지역' }, { value: 0, label: '비조정지역' }], 1),
     ],
     run: (v) => {
-      const r = calcSaleIncomeTax(
+      const calc = (isWvr) => calcSaleIncomeTax(
         v.marketPrice, v.basePrice, v.holdPeriod, v.stayPeriod,
-        v.isWvr, '주택', v.ownCount, v.isAdj,
+        isWvr, '주택', v.ownCount, v.isAdj,
       );
+      const plain = () => {
+        const r = calc(v.isWvr);
+        return {
+          headline: r.total, headlineLabel: '양도세 + 지방소득세 합계',
+          sub: `양도소득세 ${won(r.transferTax)} + 지방소득세 ${won(r.localTax)}`
+            + (r.breakdown.heavyApplied ? ' · 중과 적용' : ''),
+          computation: { kind: 'transfer', label: '양도소득세', result: r },
+        };
+      };
+      if (v.isWvr !== '1세대1주택') return plain();
+
+      // 1세대1주택: 보유 2년 + (취득 당시 조정지역이면) 거주 2년 요건을 먼저 확인한다
+      const req = judgeExemptRequirementByYears({
+        holdYears: v.holdPeriod, liveYears: v.stayPeriod,
+        acquiredInAdjust: v.acqAdj !== 'non', saengsangOk: v.acqAdj === 'saengsang',
+      });
+      const reqHtml = `
+        <div class="req-box ${req.ok ? 'ok' : 'fail'}">
+          <h4>${req.ok ? '✅' : '⚠️'} 1세대1주택 비과세 요건 — ${req.headline}</h4>
+          <ul>${req.checklist.map((c) => `<li class="${c.ok ? 'ok' : 'fail'}"><b>${c.ok ? '✓' : '✗'} ${c.label}</b> <span>${c.detail}</span></li>`).join('')}</ul>
+          ${req.ok ? '' : '<p>요건을 충족하지 못하면 12억 비과세를 적용할 수 없어 <b>양도차익 전액이 과세</b>됩니다. 아래 세액은 비과세를 배제하고 계산한 금액이며, 참고로 요건 충족 시 세액을 함께 표시합니다.</p>'}
+          <p class="law">근거: 소득세법 시행령 §154① (보유 2년 · 취득 당시 조정대상지역이면 거주 2년, 2017.8.3 이후 취득분) · §155의3 (상생임대주택 거주요건 특례)</p>
+        </div>`;
+      if (req.ok) return { ...plain(), extraHtml: reqHtml };
+
+      const taxed = calc('기타');            // 비과세 배제 (전액 과세)
+      const ifMet = calc('1세대1주택');      // 참고: 요건 충족 시
       return {
-        headline: r.total, headlineLabel: '양도세 + 지방소득세 합계',
-        sub: `양도소득세 ${won(r.transferTax)} + 지방소득세 ${won(r.localTax)}`
-          + (r.breakdown.heavyApplied ? ' · 중과 적용' : ''),
-        computation: { kind: 'transfer', label: '양도소득세', result: r },
+        headline: taxed.total, headlineLabel: '양도세 + 지방소득세 합계 (비과세 요건 미충족 → 전액 과세)',
+        sub: `양도소득세 ${won(taxed.transferTax)} + 지방소득세 ${won(taxed.localTax)}`
+          + (taxed.breakdown.heavyApplied ? ' · 중과 적용' : '')
+          + ` · 요건 충족 시 ${won(ifMet.total)}`,
+        extraHtml: reqHtml,
+        computations: [
+          { kind: 'transfer', label: '비과세 요건 미충족 — 양도차익 전액 과세', result: taxed },
+          { kind: 'transfer', label: '참고 — 보유·거주요건 충족 시 (12억 비과세 적용)', result: ifMet },
+        ],
+        lawRef: taxed.lawRef,
       };
     },
   },
