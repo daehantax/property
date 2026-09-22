@@ -501,8 +501,24 @@ $('calcTabs').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
   if (!btn) return;
   activeId = btn.dataset.id;
+  // 주소창 해시를 맞춰 두면 상단 메뉴(nav.js)의 활성 표시와 북마크가 탭을 따라간다
+  if (location.hash !== `#${activeId}`) {
+    history.replaceState(null, '', `#${activeId}`);
+    window.dispatchEvent(new Event('hashchange'));   // 상단 메뉴 활성 표시 갱신
+  }
   renderForm();
 });
 $('calcBtn').addEventListener('click', calculate);
+
+// index.html#transfer 처럼 해시로 들어오면 해당 세목 탭을 연다 (상단 메뉴·도구 모음 링크)
+function applyHash() {
+  const id = location.hash.replace(/^#/, '');
+  if (id && CALCULATORS.some((c) => c.id === id) && id !== activeId) {
+    activeId = id;
+    renderForm();
+  }
+}
+window.addEventListener('hashchange', applyHash);
+applyHash();
 
 renderForm();
