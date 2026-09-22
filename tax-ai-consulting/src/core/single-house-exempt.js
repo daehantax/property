@@ -75,6 +75,30 @@ function residenceJudge(acquiredInAdjust, acquireDate, liveYears, saengsangOk, c
   return { needLive: true, ok: liveYears >= 2, detail: `조정지역 취득(2017.8.3 이후) → 2년 거주 필요 (실거주 ${liveYears}년)` };
 }
 
+/**
+ * 1세대1주택 비과세 보유·거주요건 간이 판정 (양도세 계산기용 — 연 단위 입력)
+ *
+ * 취득 당시 조정대상지역(2017.8.3 이후 취득)이면 보유 2년에 더해 거주 2년이 필요하다.
+ * 상생임대주택 요건을 충족하면 거주요건이 면제된다(시행령 §155의3).
+ *
+ * @param {object} input { holdYears, liveYears, acquiredInAdjust, saengsangOk }
+ * @returns {{ ok: boolean, needLive: boolean, checklist: object[], headline: string, lawRef: string[] }}
+ */
+export function judgeExemptRequirementByYears({ holdYears = 0, liveYears = 0, acquiredInAdjust = false, saengsangOk = false }) {
+  const holdOk = holdYears >= 2;
+  // 조정지역 취득은 2017.8.3 이후 취득으로 본다(거주요건 도입일). 그 이전 취득은 '비조정' 선택으로 처리.
+  const live = residenceJudge(acquiredInAdjust, RESIDENCE_REQ_START, liveYears, saengsangOk, false);
+  const checklist = [
+    { key: 'hold', label: '보유기간 2년 이상', ok: holdOk, detail: `보유 ${holdYears}년` },
+    { key: 'live', label: live.needLive ? '거주기간 2년 이상 (취득 당시 조정대상지역)' : '거주요건 (해당 없음)', ok: live.ok, detail: live.detail },
+  ];
+  const ok = holdOk && live.ok;
+  const headline = ok
+    ? (live.needLive ? '보유 2년 + 거주 2년 충족 → 비과세 적용' : '보유 2년 충족 → 비과세 적용 (거주요건 없음)')
+    : (!holdOk ? '보유기간 2년 미만 → 비과세 불가' : '취득 당시 조정대상지역인데 거주 2년 미만 → 비과세 불가');
+  return { ok, needLive: live.needLive, checklist, headline, lawRef: SINGLE_LAW };
+}
+
 function highPrice(saleDate, salePrice) {
   const threshold = onOrAfter(saleDate, HIGH_PRICE_12E_START) ? HIGH_PRICE_12E : HIGH_PRICE_9E;
   return { threshold, isHigh: salePrice > threshold };

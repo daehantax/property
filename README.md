@@ -236,7 +236,7 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 
 | 페이지 | 파일 | 내용 |
 |---|---|---|
-| **세금 계산기 (메인)** | `index.html` + `calculators.js` | 증여세·양도소득세·재산세·종합부동산세 세목별 단독 계산기 (탭 전환, 계산 내역·근거 법령 표시) |
+| **세금 계산기 (메인)** | `index.html` + `calculators.js` | 증여세·양도소득세·재산세·종합부동산세 세목별 단독 계산기 (탭 전환, 계산 내역·근거 법령 표시). 양도소득세 탭은 1세대1주택 선택 시 **보유 2년 + 취득 당시 조정대상지역이면 거주 2년** 요건을 체크리스트로 확인하고, 미충족이면 비과세를 배제한 세액과 충족 시 세액을 함께 표시 (`judgeExemptRequirementByYears`) |
 | **상담 시나리오** | `scenarios.html` + `scenarios.js` | 2주택 증여 vs 양도 등 시나리오 10종 비교 보고서 |
 | **양도세 중과 판정기** | `transfer-heavy.html` + `transfer-heavy.js` | 1세대 주택수 산정 → 2주택(+20%p)·3주택 이상(+30%p) 중과·장특공 배제 판정 (`heavy-tax-judge.js`) |
 | **취득세 중과 판정기** | `acq-heavy.html` + `acq-heavy.js` | 취득 후 주택수 × 조정지역 → 8%·12% 중과 판정 (세율 매트릭스 강조) |
