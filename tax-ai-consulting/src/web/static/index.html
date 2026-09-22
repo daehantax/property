@@ -7,27 +7,14 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<nav class="topnav">
-  <div class="brand">🏢 부동산 세무 도구 <small>2026.5.10 시행 기준</small></div>
-  <div class="tabs">
-    <a href="index.html" class="active">세금 계산기</a>
-    <a href="aggr-home.html">보유세 계산기</a>
-    <a href="scenarios.html">상담 시나리오</a>
-    <a href="transfer-heavy.html">양도세 중과 판정기</a>
-    <a href="acq-heavy.html">취득세 중과 판정기</a>
-    <a href="single-exempt.html">1세대1주택 비과세 판정기</a>
-    <a href="redev-exempt.html">재건축·재개발 비과세 판정기</a>
-    <a href="marriage-exempt.html">혼인 비과세 판정기</a>
-    <a href="local-house.html">지방주택 판정기</a>
-    <a href="rental-lessor.html">주택임대사업자</a>
-    <a href="law-updates.html">세법 동향</a>
-  </div>
-</nav>
+<nav class="topnav" data-page="index"></nav>
+<script src="nav.js"></script>
 
 <div class="container">
   <p class="page-intro">
     증여세·양도소득세·재산세·종합부동산세를 세목별로 계산합니다. 모든 계산은 이 브라우저 안에서만 이뤄지며
-    입력값이 서버로 전송되지 않습니다. 탭을 눌러 세목을 선택하세요.
+    입력값이 서버로 전송되지 않습니다. 탭을 눌러 세목을 선택하세요. 상단 메뉴에서 <b>양도·상속·증여·취득·보유</b>
+    세목별로 판정기와 계산기를 찾을 수 있고, 아래 「세목별 도구 모음」에서도 한눈에 볼 수 있습니다.
   </p>
 
   <div class="calc-tabs" id="calcTabs"></div>
@@ -42,6 +29,9 @@
       <div id="result" style="display:none"></div>
     </div>
   </div>
+
+  <h2 class="section-title">세목별 도구 모음 <small>양도 · 상속 · 증여 · 취득 · 보유 · 상담 시나리오 · 세법 동향</small></h2>
+  <div class="tool-hub"></div>
 </div>
 
 <script src="calculators.js"></script>
