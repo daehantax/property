@@ -45,6 +45,9 @@ Pages가 SPA와 API 프록시를 같은 origin에서 제공 → CORS·도메인 
    - 프로젝트 → Settings → Environment variables → Production
    - `ANTHROPIC_API_KEY` 추가, **Type: Secret** 체크
    - Preview 환경에도 동일하게 등록 (PR 미리보기용)
+   - (선택) `MODEL_ID` — 일반 변수로 추가하면 기본 모델을 덮어씀
+     - 기본값: `claude-opus-5-5`
+     - 비용 절감: `claude-sonnet-5-5`
 
 3. **배포**
    - main 브랜치에 push → 자동 빌드 & 배포
@@ -104,9 +107,10 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .dev.vars
 
 - Cloudflare Pages: 무료 (500 builds/month, 무제한 요청)
 - Pages Functions: 100,000 호출/일 무료
-- Anthropic Claude Opus 4.7: ~$15/M input, ~$75/M output 토큰
-  - 시스템 프롬프트(법령 DB ~6k tokens) prompt caching 활용 시 90% 절감 가능
-  - 일 100명 × 5질문 × 평균 3k 토큰 = 약 $15~30/일 예상
+- Anthropic Claude (기본 `claude-opus-5-5`)
+  - 시스템 프롬프트(법령 DB ~6k tokens)가 매 요청 반복되므로 prompt caching 적용 시 큰 폭 절감 가능
+  - 비용이 부담되면 환경변수 `MODEL_ID=claude-sonnet-5-5` 로 교체 (재배포 불필요)
+  - 실제 단가는 https://claude.com/pricing 에서 확인
 
 ## 다음 단계
 

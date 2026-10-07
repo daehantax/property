@@ -12,8 +12,11 @@
  */
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL_ID          = 'claude-opus-4-7';
 const ANTHROPIC_VERSION = '2023-06-01';
+
+// 기본 모델. 환경변수 MODEL_ID 로 재배포 없이 교체 가능
+// (비용 절감이 필요하면 'claude-sonnet-5-5' 로 변경)
+const DEFAULT_MODEL_ID = 'claude-opus-5-5';
 
 export const onRequestPost = async ({ request, env }) => {
   if (!env.ANTHROPIC_API_KEY) {
@@ -43,7 +46,7 @@ export const onRequestPost = async ({ request, env }) => {
       'anthropic-version': ANTHROPIC_VERSION,
     },
     body: JSON.stringify({
-      model: MODEL_ID,
+      model: env.MODEL_ID || DEFAULT_MODEL_ID,
       max_tokens,
       stream: true,
       ...(system ? { system } : {}),
