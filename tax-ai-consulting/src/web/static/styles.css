@@ -216,3 +216,20 @@ dialog.fx-dialog::backdrop { background: rgba(15,35,50,.45); }
 .req-box li span { color: #47606f; font-size: 13.5px; margin-left: 4px; }
 .req-box p { margin: 8px 0 0; font-size: 14px; color: #2c3e50; line-height: 1.6; }
 .req-box p.law { font-size: 12.5px; color: #6f8496; }
+
+/* index.html 세목 하위 메뉴 화면 (상단 세목 버튼 → index.html#hub-<키>) */
+.group-view[hidden], #calcArea[hidden] { display: none; }
+.group-view .group-head { border-left: 6px solid var(--gc, var(--navy)); padding: 4px 0 4px 14px; margin: 4px 0 16px; }
+.group-view h1 { margin: 0; font-size: 22px; color: var(--gc, var(--navy)); display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.group-view h1 small { font-size: 14px; font-weight: 400; color: #6f8496; }
+.group-view .group-head p { margin: 6px 0 0; color: #5f7180; font-size: 14px; }
+.group-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.group-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 16px; background: #fff; border: 1px solid var(--line);
+  border-top: 4px solid var(--gc, var(--navy)); border-radius: 10px; text-decoration: none; color: #1a2733;
+}
+.group-card b { font-size: 16px; color: var(--gc, var(--navy)); }
+.group-card span { font-size: 13.5px; color: #5f7180; line-height: 1.5; }
+.group-card em { font-style: normal; font-size: 13px; font-weight: 700; color: var(--gc, var(--navy)); margin-top: auto; }
+a.group-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,.08); transform: translateY(-1px); }
+.group-card.soon { opacity: .55; }

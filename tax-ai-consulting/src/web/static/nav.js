@@ -9,6 +9,9 @@
  *
  * 페이지 식별: <nav data-page="transfer-heavy"> 처럼 파일명(확장자 제외)을 넣는다.
  * index.html 의 계산기 탭은 index.html#gift 처럼 해시로 구분한다.
+ *
+ * 1단 세목 버튼을 누르면 index.html#hub-<세목키> 로 이동해, 본문에 그 세목의
+ * 하위 메뉴(도구 카드)만 보여 준다. (#groupView 가 있는 index.html 에서만 표시)
  */
 (function () {
   const GROUPS = [
@@ -28,13 +31,13 @@
     },
     {
       key: 'inherit', label: '상속', icon: '📜', color: '#6c3483',
-      desc: '상속주택이 있는 세대의 주택수·특례 판정',
+      desc: '상속세 계산과 상속주택이 있는 세대의 주택수·특례 판정',
       tools: [
+        { href: 'inherit-tax.html', label: '상속세 계산기', desc: '상속공제(일괄·배우자·금융·동거주택)·세대생략 할증·상속인별 안분' },
         { href: 'transfer-heavy.html', label: '상속주택 중과 제외 판정', desc: '상속주택의 주택수 제외 → 양도세 중과 판정' },
         { href: 'acq-heavy.html', label: '상속주택 취득세 판정', desc: '상속 5년 내 주택수 제외 → 취득세 중과 판정' },
         { href: 'local-house.html', label: '상속 지방주택 1세대1주택', desc: '상속으로 받은 지방주택의 §155②·§8④ 특례' },
         { href: 'rental-lessor.html', label: '사전증여 10년 합산 점검', desc: '상속 개시 시 사전증여 합산 체크리스트' },
-        { soon: true, label: '상속세 계산기', desc: '상속공제·세율·세액공제 (준비중)' },
       ],
     },
     {
@@ -98,7 +101,16 @@
     if (f !== page.file) return false;
     return h ? h === page.hash : true;
   }
+  const HUB_PREFIX = 'hub-';
+  const hubKey = (hash) => (hash.startsWith(HUB_PREFIX) ? hash.slice(HUB_PREFIX.length) : null);
+
   function findActive(page) {
+    // 0순위: 세목 하위 메뉴 화면(index.html#hub-transfer) → 그 세목, 도구는 선택 없음
+    const hk = page.file === 'index' ? hubKey(page.hash) : null;
+    if (hk) {
+      const g = GROUPS.find((x) => x.key === hk);
+      if (g) return { g, t: null };
+    }
     // 1순위: 파일+해시 정확히 일치, 2순위: 파일만 일치 (index.html 첫 진입 → 증여 탭이 기본이므로 증여)
     for (const g of GROUPS) for (const t of g.tools) if (t.href && t.href.includes('#') && toolMatches(t, page)) return { g, t };
     if (page.file === 'index' && !page.hash) {
@@ -142,11 +154,17 @@
     };
     renderTools(open);
 
+    // 세목 버튼 → 그 세목의 하위 메뉴 화면(index.html#hub-<키>)으로 이동.
+    // 메뉴 줄만 바뀌고 본문은 종전 페이지 그대로 남던 문제를 막는다.
     nav.querySelectorAll('.nav-group').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const g = GROUPS.find((x) => x.key === btn.dataset.key);
-        nav.querySelectorAll('.nav-group').forEach((b) => { b.classList.toggle('on', b === btn); b.setAttribute('aria-selected', b === btn); });
-        renderTools(g);
+        const target = `#${HUB_PREFIX}${btn.dataset.key}`;
+        if (document.getElementById('groupView')) {
+          if (location.hash === target) window.scrollTo({ top: 0, behavior: 'smooth' });
+          else location.hash = target;   // hashchange → 메뉴·본문 갱신
+        } else {
+          location.href = `index.html${target}`;
+        }
       });
     });
     nav.querySelector('.nav-toggle').addEventListener('click', (e) => {
@@ -170,9 +188,39 @@
       </section>`).join('');
   }
 
+  // index.html 세목 하위 메뉴 화면 — #hub-<키> 이면 #groupView 에 그 세목 도구 카드를 그리고
+  // 계산기 영역(#calcArea)을 숨긴다. 그 밖의 해시(계산기 탭)면 계산기를 다시 보여 준다.
+  function renderGroupView() {
+    const view = document.getElementById('groupView');
+    if (!view) return;
+    const calc = document.getElementById('calcArea');
+    const g = GROUPS.find((x) => x.key === hubKey(location.hash.replace(/^#/, '')));
+    if (!g) {
+      view.hidden = true;
+      view.innerHTML = '';
+      if (calc) calc.hidden = false;
+      return;
+    }
+    view.style.setProperty('--gc', g.color);
+    view.innerHTML = `
+      <div class="group-head">
+        <h1><span class="ic">${g.icon}</span>${esc(g.label)} <small>${esc(g.desc)}</small></h1>
+        <p>아래에서 사용할 도구를 고르세요. 상단 메뉴 둘째 줄에서도 같은 도구로 바로 갈 수 있습니다.</p>
+      </div>
+      <div class="group-cards">
+        ${g.tools.map((t) => t.soon
+          ? `<span class="group-card soon"><b>${esc(t.label)}</b><span>${esc(t.desc)}</span><em>준비중</em></span>`
+          : `<a class="group-card" href="${t.href}"><b>${esc(t.label)}</b><span>${esc(t.desc)}</span><em>열기 →</em></a>`).join('')}
+      </div>`;
+    view.hidden = false;
+    if (calc) calc.hidden = true;
+  }
+
   function init() {
     document.querySelectorAll('nav.topnav').forEach(render);
     document.querySelectorAll('.tool-hub').forEach(renderHub);
+    renderGroupView();
+    window.addEventListener('hashchange', renderGroupView);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   window.TAX_NAV_GROUPS = GROUPS;
