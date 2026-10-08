@@ -175,6 +175,20 @@ describe('aggregateEstateItems — 재산·부채 명세 한 번 입력 → 계�
     expect(agg.anyAssigned).toBe(true);
   });
 
+  it('채무를 받는 재산보다 많이 승계하면 순취득은 음수로 남고(합계 = 순재산), 안분용 금액만 0', () => {
+    const agg = aggregateEstateItems([
+      { type: 'realEstate', amount: 1_200_000_000, heir: 0 },
+      { type: 'realEstate', amount: 300_000_000, heir: '' },
+      { type: 'financial', amount: 500_000_000, heir: '' },
+      { type: 'debt', amount: 500_000_000, heir: 1 },
+    ], heirs);
+    const sumNet = agg.allocation.reduce((s, a) => s + a.net, 0);
+    expect(Math.abs(sumNet - 1_500_000_000)).toBeLessThanOrEqual(2);   // 20억 − 채무 5억 (원 단위 절사)
+    expect(agg.allocation[1].net).toBeLessThan(0);
+    expect(agg.heirs[1].amount).toBe(0);
+    expect(agg.excessDebt).toBe(-agg.allocation[1].net);
+  });
+
   it('지정이 하나도 없으면 amount 0 → 엔진이 법정상속분으로 배분', () => {
     const agg = aggregateEstateItems([{ type: 'realEstate', amount: 1_000_000_000, heir: '' }], heirs);
     expect(agg.anyAssigned).toBe(false);
