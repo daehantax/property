@@ -3,10 +3,11 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import { LAW_UPDATES } from '../../src/web/static/law-updates-data.js';
 import {
   checkLawChanges, parseFindings, renderLawWatch, buildWatchPrompt,
   countActionable, countUpdateCandidates, renderUpdateCandidates, toLawUpdateEntry,
-  daysBefore, ENGINE_ASSUMPTIONS, TREND_WATCHES, LAW_UPDATES_FILE,
+  daysBefore, knownUpdatesSince, ENGINE_ASSUMPTIONS, TREND_WATCHES, LAW_UPDATES_FILE,
 } from '../../src/monitor/law-watch.js';
 
 const WATCH_TEXT = `확인 결과입니다.
@@ -104,6 +105,29 @@ describe('buildWatchPrompt', () => {
     const p = buildWatchPrompt(ENGINE_ASSUMPTIONS, '2026-07-12', { sinceDate: '2026-05-01' });
     expect(p).toContain('2026-05-01 ~ 2026-07-12');
   });
+
+  it('이미 일지에 등록된 동향을 「중복 보고 금지」 목록으로 넣는다', () => {
+    const p = buildWatchPrompt(ENGINE_ASSUMPTIONS, '2026-11-01', {
+      knownUpdates: [{ date: '2026-09-29', category: '시행령', title: '일시적 2주택 3년→2년' }],
+    });
+    expect(p).toContain('이미 등록된 항목');
+    expect(p).toContain('- 2026-09-29 [시행령] 일시적 2주택 3년→2년');
+  });
+});
+
+describe('knownUpdatesSince', () => {
+  it('감시 시작일 60일 전 이후 등록 항목만 고른다', () => {
+    const list = knownUpdatesSince([
+      { date: '2026-09-29', category: '시행령', title: 'A' },
+      { date: '2026-05-10', category: '법률', title: 'B' },
+    ], '2026-10-01');
+    expect(list.map((u) => u.title)).toEqual(['A']);
+  });
+
+  it('실제 세법 동향 일지에는 2026.9.29 시행령 개정이 등록돼 있다', () => {
+    const list = knownUpdatesSince(LAW_UPDATES, '2026-10-01');
+    expect(list.some((u) => u.date === '2026-09-29' && u.category === '시행령')).toBe(true);
+  });
 });
 
 describe('checkLawChanges', () => {
@@ -115,7 +139,9 @@ describe('checkLawChanges', () => {
     expect(rate.engineValue).toBe('60%');
     expect(watch.asOfDate).toBe('2026-07-12');
     expect(watch.sinceDate).toBe('2026-06-11');
-    // 웹검색 도구 포함, 기본 허용 횟수 14회 (상수 8종 + 동향 4종, 독립 실행 기준)
+    // 세법 동향 일지 기등록 항목이 프롬프트에 들어간다
+    expect(client.messages.create.mock.calls[0][0].messages[0].content).toContain('이미 등록된 항목');
+    // 웹검색 도구 포함, 기본 허용 횟수 14회 (상수 9종 + 동향 4종, 독립 실행 기준)
     const tool = client.messages.create.mock.calls[0][0].tools[0];
     expect(tool.type).toBe('web_search_20260209');
     expect(tool.max_uses).toBe(14);

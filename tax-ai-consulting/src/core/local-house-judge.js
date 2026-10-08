@@ -445,7 +445,7 @@ function judgeJongbu(input) {
   reasons.push('특례를 적용받아도 특례주택(지방주택) 공시가격은 과세표준에 합산됩니다 — 주택수에서만 빠질 뿐 과표 합산 배제가 아닙니다.');
   reasons.push(`세액공제(연령 ${(sb.ageDc * 100).toFixed(0)}% + 보유 ${(sb.prdDc * 100).toFixed(0)}% = ${(sb.combinedDc * 100).toFixed(0)}%, 한도 80%)는 산출세액 중 수도권 주택 비율(공시가격 ${(ratio * 100).toFixed(1)}%)에 해당하는 부분에만 적용됩니다.`);
   reasons.push('재산세 공제액 계산용 재산세는 두 주택을 다주택 표준세율(공정시장가액비율 60%)로 계산했습니다. 1세대1주택 재산세 특례세율(공시 9억 이하)은 재산세법상 1주택자에게만 적용되어 여기서는 반영하지 않았습니다.');
-  reasons.push('2026.8.3 세제개편안(정부안, 2027년분~): 1주택 기본공제 실거주 14억/비거주 9억, 공정시장가액비율 70%, 세액공제 한도 800만 — 확정 시 「보유세 계산기」의 개편안 모드로 재계산하세요.');
+  reasons.push('2026.8.3 세제개편안(정부안, 2027년분~): 1주택 기본공제 실거주 14억/비거주 12억(9.1 확정안), 공정시장가액비율 70%, 세액공제 한도 800만 — 확정 시 「보유세 계산기」의 개편안 모드로 재계산하세요.');
 
   return {
     verdict: specialOk ? 'exempt' : 'taxable', headline, applied: applied ? { key: applied.key, law: applied.law, title: applied.title } : null,

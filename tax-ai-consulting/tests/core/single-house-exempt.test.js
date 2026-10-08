@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  judgeExemptRequirementByYears, judgeSingleHouseExempt, judgeTempTwoExempt, judgeSaengsang,
+  judgeExemptRequirementByYears, judgeSingleHouseExempt, judgeTempTwoExempt, judgeSaengsang, tempTwoDisposeYears,
 } from '../../src/core/single-house-exempt.js';
 
 const get = (r, key) => r.checklist.find((c) => c.key === key);
@@ -149,6 +149,43 @@ describe('일시적 2주택 비과세', () => {
     });
     expect(get(r, 'live').ok).toBe(true);
     expect(r.verdict).toBe('exempt');
+  });
+});
+
+describe('일시적 2주택 처분기한 — 2026.10.1 시행 시행령 개정(조정지역 간 2년)', () => {
+  const base = {
+    prevAcquireDate: '2020-01-01', prevAcquiredInAdjust: true, prevLiveYears: 3, salePrice: 900_000_000,
+  };
+
+  it('종전·신규 모두 조정 + 2026.8.4 이후 신규 취득 + 2년 2개월 뒤 양도 → 2년 초과 과세', () => {
+    const r = judgeTempTwoExempt({ ...base, newAcquireDate: '2026-09-01', prevSaleDate: '2028-11-01', bothAdjustAtNewAcquire: true });
+    expect(r.disposeYears).toBe(2);
+    expect(get(r, 'dispose').ok).toBe(false);
+    expect(r.verdict).toBe('taxable');
+  });
+
+  it('같은 조건에서 1년 10개월 뒤 양도 → 2년 이내 비과세', () => {
+    const r = judgeTempTwoExempt({ ...base, newAcquireDate: '2026-09-01', prevSaleDate: '2028-07-01', bothAdjustAtNewAcquire: true });
+    expect(r.disposeYears).toBe(2);
+    expect(r.verdict).toBe('exempt');
+  });
+
+  it('2026.8.3까지 계약+계약금 지급 → 종전 3년', () => {
+    const r = judgeTempTwoExempt({ ...base, newAcquireDate: '2026-09-01', prevSaleDate: '2028-11-01', bothAdjustAtNewAcquire: true, contractBeforeReform: true });
+    expect(r.disposeYears).toBe(3);
+    expect(r.verdict).toBe('exempt');
+  });
+
+  it('신규 취득 2026.8.3 이전 → 종전 3년', () => {
+    expect(tempTwoDisposeYears({ newAcquireDate: '2026-08-03', prevSaleDate: '2027-01-01', bothAdjustAtNewAcquire: true }).years).toBe(3);
+  });
+
+  it('신규만 조정지역(종전 비조정) → 3년', () => {
+    expect(tempTwoDisposeYears({ newAcquireDate: '2026-09-01', prevSaleDate: '2028-11-01', bothAdjustAtNewAcquire: false }).years).toBe(3);
+  });
+
+  it('2026.10.1 전 양도 → 시행 전이므로 3년', () => {
+    expect(tempTwoDisposeYears({ newAcquireDate: '2026-08-10', prevSaleDate: '2026-09-30', bothAdjustAtNewAcquire: true }).years).toBe(3);
   });
 });
 

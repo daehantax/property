@@ -48,12 +48,12 @@ export const AGGR_DEDUCT_SINGLE = 1_200_000_000;  // 1세대1주택
 export const AGGR_DEDUCT_OTHERS = 900_000_000;    // 다주택·기타
 export const AGGR_FAIR_MARKET_RATE = 0.6;         // 공정시장가액비율 60% (2026)
 
-// ── 2026 세제개편안 — 종부세 (2026.8.3 정부안, 국회 통과 전) ──
+// ── 2026 세제개편안 — 종부세 (2026.8.3 발표 → 2026.9.1 정부안 확정, 국회 통과 전) ──
 export const AGGR_REFORM2026 = {
-  // 기본공제 (2027년분부터): 1주택 실거주 14억 / 비거주 9억,
+  // 기본공제 (2027년분부터): 1주택 실거주 14억 / 비거주 12억(9.1 확정 시 9억 축소안 철회 → 현행 유지),
   // 다주택 4억 + 5억 × (거주주택 공시가격 ÷ 전체 공시가격 합계)
   DEDUCT_SINGLE_RESIDENT: 1_400_000_000,
-  DEDUCT_SINGLE_NONRESIDENT: 900_000_000,
+  DEDUCT_SINGLE_NONRESIDENT: 1_200_000_000,
   DEDUCT_MULTI_BASE: 400_000_000,
   DEDUCT_MULTI_RESIDENT_BONUS: 500_000_000,
 

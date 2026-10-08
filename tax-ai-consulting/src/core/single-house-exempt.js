@@ -12,6 +12,9 @@
  *  - 보유기간 기산: 원칙 취득일. 2021.1.1~2022.5.9 양도분은 다주택→최종1주택 전환 시
  *      최종 1주택이 된 날부터 재기산(2022.5.10 폐지되어 취득일 기산으로 환원)
  *  - 일시적 2주택: 종전주택 취득 1년 후 신규 취득 + 신규취득 3년 내 종전주택 양도 (§155①)
+ *      · 2026.9.29 국무회의 의결 시행령 개정(2026.10.1 시행): 신규주택 취득일 현재 종전·신규
+ *        모두 조정대상지역이면 처분기한 2년. 2026.8.4 이후 신규 취득 + 2026.10.1 이후 종전주택
+ *        양도분부터 적용. 2026.8.3까지 매매계약+계약금 지급(증빙)분은 종전 3년.
  */
 
 export const RESIDENCE_REQ_START = '2017-08-03';   // 조정지역 거주요건 도입
@@ -21,6 +24,9 @@ export const HIGH_PRICE_9E = 900_000_000;
 export const FINAL_ONE_RESET_START = '2021-01-01';
 export const FINAL_ONE_RESET_ABOLISH = '2022-05-10'; // 이 날 이후 양도분은 최종1주택 리셋 폐지
 export const TEMP_TWO_DISPOSE_YEARS = 3;             // 일시적 2주택 처분기한(2023.1.12~ 지역무관 3년)
+export const TEMP_TWO_DISPOSE_YEARS_ADJ = 2;         // 종전·신규 모두 조정지역 — 2026 시행령 개정
+export const TEMP_TWO_ADJ_NEW_ACQ_FROM = '2026-08-04';   // 이 날 이후 신규주택 취득분부터
+export const TEMP_TWO_ADJ_SALE_FROM = '2026-10-01';      // 이 날 이후 종전주택 양도분부터 (시행일)
 export const SAENGSANG_CONTRACT_START = '2021-12-20';
 export const SAENGSANG_CONTRACT_END = '2026-12-31';
 export const SAENGSANG_PREV_MONTHS = 18;  // 직전 임대차 1년6개월
@@ -156,20 +162,36 @@ export function judgeSingleHouseExempt(input) {
 }
 
 const TEMP_LAW = [
-  '소득세법 시행령 §155①(일시적 2주택 비과세 특례)',
+  '소득세법 시행령 §155①(일시적 2주택 비과세 특례 — 2026.10.1 시행 개정: 조정지역 간 2년)',
   '소득세법 시행령 §154(종전주택 보유·거주 요건)',
 ];
+
+/**
+ * 일시적 2주택 처분기한(년) — 2026 시행령 개정 반영
+ * @param {object} p { newAcquireDate, prevSaleDate, bothAdjustAtNewAcquire, contractBeforeReform }
+ * @returns {{ years: number, reason: string }}
+ */
+export function tempTwoDisposeYears({ newAcquireDate, prevSaleDate, bothAdjustAtNewAcquire = false, contractBeforeReform = false }) {
+  if (!bothAdjustAtNewAcquire) return { years: TEMP_TWO_DISPOSE_YEARS, reason: '종전·신규 중 하나라도 비조정지역 → 3년' };
+  if (contractBeforeReform) return { years: TEMP_TWO_DISPOSE_YEARS, reason: '2026.8.3까지 신규주택 매매계약+계약금 지급 → 종전 3년 (경과규정)' };
+  if (!onOrAfter(newAcquireDate, TEMP_TWO_ADJ_NEW_ACQ_FROM)) return { years: TEMP_TWO_DISPOSE_YEARS, reason: '신규주택 2026.8.3 이전 취득 → 종전 3년' };
+  if (!onOrAfter(prevSaleDate, TEMP_TWO_ADJ_SALE_FROM)) return { years: TEMP_TWO_DISPOSE_YEARS, reason: '종전주택 2026.10.1 전 양도 → 개정 시행 전 3년' };
+  return { years: TEMP_TWO_DISPOSE_YEARS_ADJ, reason: '종전·신규 모두 조정지역 + 2026.8.4 이후 신규 취득 + 2026.10.1 이후 양도 → 2년 (2026 시행령 개정)' };
+}
 
 /**
  * 일시적 2주택 — 종전주택 양도 비과세 판정
  * @param {object} input {
  *   prevAcquireDate, newAcquireDate, prevSaleDate,
- *   prevAcquiredInAdjust, prevLiveYears, salePrice, saengsangOk }
+ *   prevAcquiredInAdjust, prevLiveYears, salePrice, saengsangOk,
+ *   bothAdjustAtNewAcquire  — 신규주택 취득일 현재 종전·신규 모두 조정대상지역
+ *   contractBeforeReform    — 2026.8.3까지 신규주택 매매계약+계약금 지급(증빙) }
  */
 export function judgeTempTwoExempt(input) {
   const {
     prevAcquireDate, newAcquireDate, prevSaleDate,
     prevAcquiredInAdjust = false, prevLiveYears = 0, salePrice = 0, saengsangOk = false,
+    bothAdjustAtNewAcquire = false, contractBeforeReform = false,
   } = input;
 
   const reasons = [];
@@ -179,9 +201,13 @@ export function judgeTempTwoExempt(input) {
   const gapOk = meetsYears(prevAcquireDate, newAcquireDate, 1);
   checklist.push({ key: 'gap', label: '종전주택 취득 1년 후 신규주택 취득', ok: gapOk, detail: `${yearsBetween(prevAcquireDate, newAcquireDate).toFixed(1)}년 경과` });
 
-  // 2) 신규취득일부터 3년 이내 종전주택 양도
-  const disposeOk = d(prevSaleDate).getTime() <= addYears(d(newAcquireDate), TEMP_TWO_DISPOSE_YEARS).getTime();
-  checklist.push({ key: 'dispose', label: '신규주택 취득 3년 이내 종전주택 양도', ok: disposeOk, detail: `신규취득 ${newAcquireDate} → 양도 ${prevSaleDate} (${yearsBetween(newAcquireDate, prevSaleDate).toFixed(1)}년)` });
+  // 2) 신규취득일부터 처분기한(3년, 조정지역 간 2026.10.1~ 2년) 이내 종전주택 양도
+  const dispose = tempTwoDisposeYears({ newAcquireDate, prevSaleDate, bothAdjustAtNewAcquire, contractBeforeReform });
+  const disposeOk = d(prevSaleDate).getTime() <= addYears(d(newAcquireDate), dispose.years).getTime();
+  checklist.push({ key: 'dispose', label: `신규주택 취득 ${dispose.years}년 이내 종전주택 양도`, ok: disposeOk, detail: `신규취득 ${newAcquireDate} → 양도 ${prevSaleDate} (${yearsBetween(newAcquireDate, prevSaleDate).toFixed(1)}년) · ${dispose.reason}` });
+  if (dispose.years === TEMP_TWO_DISPOSE_YEARS_ADJ) {
+    reasons.push('2026.10.1 시행 소득세법 시행령 §155① 개정 — 조정대상지역 간 일시적 2주택 처분기한 2년 적용 (취득세 처분기한은 지방세법 시행령 §28의5로 별도)');
+  }
   if (!onOrAfter(prevSaleDate, '2023-01-12')) {
     reasons.push('2023.1.12 이전 양도는 종전·신규 모두 조정지역이면 처분기한이 1~2년으로 단축됐을 수 있어 별도 확인 필요');
   }
@@ -202,7 +228,7 @@ export function judgeTempTwoExempt(input) {
   else if (isHigh) { verdict = 'partial'; headline = `종전주택 ${eok(threshold)} 이하 비과세 · 초과분 과세`; }
   else { verdict = 'exempt'; headline = '일시적 2주택 — 종전주택 양도 비과세'; }
 
-  return { mode: 'temp', verdict, headline, checklist, reasons, threshold, isHigh, lawRef: TEMP_LAW };
+  return { mode: 'temp', verdict, headline, checklist, reasons, threshold, isHigh, disposeYears: dispose.years, lawRef: TEMP_LAW };
 }
 
 export { won, eok };
