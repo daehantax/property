@@ -125,7 +125,7 @@ function calculate() {
 
   // ① 과세가액
   const valueRows = r.steps.map((s) => tableRow(s.label, s.amount, {
-    total: s.total, law: s.law ?? '', note: s.detail,
+    total: s.total || s.subtotal, law: s.law ?? '', note: s.detail,
     fx: s.label.startsWith('추정') ? 'presumed' : s.label.startsWith('장례') ? 'funeral' : s.label === '상속세 과세가액' ? 'value' : null,
   })).join('');
 
@@ -185,9 +185,15 @@ function calculate() {
 
     <h3 class="sec-title">4. 상속인별 납부세액 (받은 재산 + 본인 사전증여 비율로 안분 · 연대납부)</h3>
     <div class="notice-wrap"><table class="notice">
-      <tr><th>상속인</th><th class="num">받는 상속재산</th><th class="num">사전증여</th><th class="num">비율</th><th class="num">납부세액</th></tr>
+      <tr><th>상속인</th><th class="num">받는 순상속재산</th><th class="num">사전증여</th><th class="num">비율</th><th class="num">납부세액</th></tr>
       ${heirRows}
+      <tr class="total"><td class="rowlabel">합계</td>
+        <td class="num">${won(r.heirs.reduce((s, h) => s + h.received, 0))}</td>
+        <td class="num">${won(r.heirs.reduce((s, h) => s + h.priorGift, 0))}</td><td class="num">100%</td>
+        <td class="num">${won(r.heirs.reduce((s, h) => s + h.tax, 0))}</td></tr>
     </table></div>
+    <p class="opt-note">받는 순상속재산 = 총상속재산(간주·추정 포함) − 비과세·공과금·장례비·채무. 「받을 금액」을 비우면 이 금액을 법정상속분으로 나눕니다.
+      원 단위 절사로 합계가 납부세액과 몇 원 다를 수 있습니다.</p>
 
     ${r.notes.length ? `<h3 class="sec-title">유의사항</h3><ul class="notes">${r.notes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
     <div class="lawref"><b>근거 법령</b><br>${r.lawRef.join('<br>')}</div>
@@ -239,7 +245,8 @@ function buildFx(r, input) {
     },
     fin: {
       title: '금융재산 상속공제 (§22)',
-      html: `<p>순금융재산 = 금융재산 − 금융채무 = ${won(b.netFinancial)}</p>
+      html: `<p>순금융재산 = (금융재산 + 간주 보험금·신탁재산) − 금융채무 = ${won(b.financialAssets)} − ${won(input.liabilities.financialDebts)} = ${won(b.netFinancial)}</p>
+        <p>※ 퇴직금은 금융재산공제 대상에서 제외(금융회사 예치 전 채권)</p>
         <p>2천만 이하: 전액 · 2천만~1억: 2천만 · 1억 초과: 20% (한도 2억)</p>
         <p>= <b>${won(b.finDeduct)}</b></p>`,
     },
