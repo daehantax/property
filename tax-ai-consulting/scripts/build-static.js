@@ -11,6 +11,7 @@
  * 사용법: npm run build:static
  */
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -55,6 +56,19 @@ await build({
 for (const p of PAGES) fs.copyFileSync(path.join(staticDir, p.html), path.join(dist, p.html));
 for (const h of HTML_ONLY) fs.copyFileSync(path.join(staticDir, h), path.join(dist, h));
 for (const a of ASSETS) fs.copyFileSync(path.join(staticDir, a), path.join(dist, a));
+
+// 캐시 무효화: HTML 이 참조하는 JS·CSS 에 내용 해시를 붙인다 (예: inherit-tax.js?v=3f2a9c1b).
+// GitHub Pages 는 파일을 10분간 캐시하므로, 배포 직후 브라우저가 「새 HTML + 옛 JS」를 섞어 받아
+// 화면이 깨지는 것을 막는다. 파일 내용이 바뀔 때만 주소가 바뀐다.
+const hashOf = (f) => crypto.createHash('sha256').update(fs.readFileSync(path.join(dist, f))).digest('hex').slice(0, 10);
+for (const h of [...PAGES.map((p) => p.html), ...HTML_ONLY]) {
+  const file = path.join(dist, h);
+  const html = fs.readFileSync(file, 'utf8').replace(
+    /(<(?:script[^>]*\ssrc|link[^>]*\shref)=")([\w.-]+\.(?:js|css))(")/g,
+    (m, pre, ref, post) => (fs.existsSync(path.join(dist, ref)) ? `${pre}${ref}?v=${hashOf(ref)}${post}` : m),
+  );
+  fs.writeFileSync(file, html);
+}
 
 const kb = (f) => `${(fs.statSync(path.join(dist, f)).size / 1024).toFixed(0)}KB`;
 console.log('✔ 정적 빌드 완료 (dist/):');
