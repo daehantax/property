@@ -26,6 +26,41 @@
   .notes li { font-size: 14px; line-height: 1.6; margin: 3px 0; color: #34495e; }
   .crumb { font-size: 14px; margin: 0 0 10px; }
   .crumb a { color: #6c3483; }
+  .item-row { display: grid; grid-template-columns: 1fr 1fr auto; grid-template-areas: "type name del" "amt heir heir"; gap: 4px 6px; align-items: end; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .item-row > div:nth-child(1) { grid-area: type; } .item-row > div:nth-child(2) { grid-area: name; }
+  .item-row > div:nth-child(3) { grid-area: amt; } .item-row > div:nth-child(4) { grid-area: heir; }
+  .item-row > .i-del { grid-area: del; }
+  #itResult .heir-tbl td.rowlabel { white-space: nowrap; }
+  @media print { .notice-wrap { overflow: visible; } .notice td.rowlabel div { white-space: normal; } }
+  .item-row label { font-size: 12.5px; margin: 0 0 2px; }
+  .item-row input, .item-row select { padding: 6px 8px; font-size: 14px; }
+  .item-row .money-hint { grid-column: auto; font-size: 12px; }
+  .item-add-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .item-add-row .heir-add { margin-top: 8px; }
+  .item-summary { margin-top: 10px; font-size: 13.5px; background: #f4f6f8; border-radius: 8px; padding: 8px 10px; line-height: 1.7; }
+  .item-summary b { color: #123a54; }
+  .report-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .btn-print { background: #6c3483; color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 800; font-size: 15px; cursor: pointer; }
+  .btn-print:hover { background: #512e5f; }
+  .report-head { display: none; }
+  @media print {
+    @page { size: A4; margin: 14mm 12mm; }
+    body { background: #fff; }
+    nav.topnav, #itForm, .crumb, .page-intro, .report-actions, .fx-dialog { display: none !important; }
+    .container { max-width: none; padding: 0; }
+    .it-layout { display: block; }
+    #itResult { border: none; box-shadow: none; padding: 0; min-height: 0; }
+    .report-head { display: block; border-bottom: 2px solid #123a54; padding-bottom: 8px; margin-bottom: 12px; }
+    .report-head h1 { font-size: 21px; margin: 0 0 6px; color: #123a54; }
+    .report-head table { font-size: 12.5px; border-collapse: collapse; }
+    .report-head td { padding: 1px 12px 1px 0; }
+    .fx-btn { text-decoration: none; color: inherit; }
+    .fx-btn::after { content: ''; }
+    .notice th, .notice td { font-size: 12.5px; padding: 5px 8px; }
+    .sec-title { break-after: avoid; }
+    .notice-wrap, .notice tr { break-inside: avoid; }
+    .result-headline { border: 1px solid #aed6f1; }
+  }
   @media (max-width: 900px) { .it-layout { flex-direction: column; } #itForm { width: 100%; } }
   @media (max-width: 520px) { .heir-row { grid-template-columns: 1fr 1fr; } .grid2 { grid-template-columns: 1fr; } }
 </style>
@@ -47,28 +82,33 @@
   <div class="it-layout">
     <div id="itForm">
       <details open>
-        <summary>① 상속인 <small>관계·나이로 인적공제, 받을 금액으로 배우자공제·세액 안분</small></summary>
+        <summary>① 기본 정보 · 상속인 <small>관계·나이로 인적공제</small></summary>
+        <div class="grid2">
+          <div><label>피상속인 성명 (보고서 표시)</label><input id="decedent" value=""></div>
+          <div><label>작성자 (보고서 표시)</label><input id="preparer" value=""></div>
+          <div><label>상속개시일(사망일)</label><input id="deathDate" type="date" value="2026-10-01"></div>
+          <div><label>국외 거주(신고기한 9개월)</label><select id="abroad"><option value="0">아니오</option><option value="1">예</option></select></div>
+        </div>
         <div id="heirs"></div>
         <button class="heir-add" id="addHeir" type="button">+ 상속인 추가</button>
-        <p class="opt-note">「받을 금액」을 모두 비우면 <b>법정상속분</b>(배우자 1.5 : 자녀 각 1)으로 나눈 것으로 계산합니다.
-          손자녀(세대생략)는 자녀가 생존한 상태에서 유증받는 경우 — 30% 할증(미성년 20억 초과 40%).
+        <p class="opt-note">손자녀(세대생략)는 자녀가 생존한 상태에서 유증받는 경우 — 30% 할증(미성년 20억 초과 40%).
           장애인은 기대여명 연수(통계청 생명표)를 입력하면 연 1,000만원씩 공제합니다(배우자도 가능).</p>
       </details>
 
       <details open>
-        <summary>② 상속재산 <small>사망일 현재 시가</small></summary>
-        <div class="grid2">
-          <div><label>상속개시일(사망일)</label><input id="deathDate" type="date" value="2026-10-01"></div>
-          <div><label>국외 거주(신고기한 9개월)</label><select id="abroad"><option value="0">아니오</option><option value="1">예</option></select></div>
+        <summary>② 상속재산·부채 명세 <small>항목별로 한 번만 입력 · 누가 가져가는지 지정</small></summary>
+        <div id="items"></div>
+        <div class="item-add-row">
+          <button class="heir-add" type="button" data-add="realEstate">+ 부동산</button>
+          <button class="heir-add" type="button" data-add="financial">+ 금융재산</button>
+          <button class="heir-add" type="button" data-add="other">+ 기타·간주재산</button>
+          <button class="heir-add" type="button" data-add="debt">+ 채무·공과금</button>
+          <button class="heir-add" type="button" data-add="giftHeir">+ 사전증여</button>
         </div>
-        <label>부동산 (시가·감정가·유사매매사례가)</label><input id="realEstate" data-kind="money" inputmode="numeric" value="1,500,000,000"><div class="money-hint"></div>
-        <label>금융재산 (예금·주식·채권 등)</label><input id="financial" data-kind="money" inputmode="numeric" value="500,000,000"><div class="money-hint"></div>
-        <label>기타 재산 (차량·회원권·대여금 등)</label><input id="other" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
-        <div class="grid2">
-          <div><label>간주 — 보험금 (피상속인 납입분)</label><input id="insurance" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-          <div><label>간주 — 퇴직금·퇴직수당</label><input id="retirement" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-        </div>
-        <label>간주 — 신탁재산</label><input id="trust" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
+        <div id="itemSummary" class="item-summary"></div>
+        <p class="opt-note">「취득 상속인」을 정하면 그 상속인이 받는 재산(채무는 승계)으로 계산합니다 — 배우자공제의 실제 상속액과
+          상속인별 세액 안분이 여기서 자동으로 정해집니다. 「법정상속분대로」로 둔 항목은 배우자 1.5 : 자녀 각 1로 나눕니다.
+          금융재산공제는 금융재산·보험금·신탁(− 금융채무)으로, 사전증여는 그 상속인의 몫으로 자동 반영됩니다.</p>
       </details>
 
       <details>
@@ -84,37 +124,30 @@
       </details>
 
       <details>
-        <summary>④ 비과세·불산입 / 채무·장례비</summary>
+        <summary>④ 비과세·불산입 / 장례비</summary>
         <div class="grid2">
           <div><label>금양임야·묘토 (2억 한도)</label><input id="graveLand" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
           <div><label>국가지정문화유산 등 비과세</label><input id="cultural" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
           <div><label>공익법인 출연 (신고기한 내)</label><input id="publicDonation" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-          <div><label>공과금 (미납 재산세 등)</label><input id="publicCharges" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
           <div><label>장례비 (증빙액)</label><input id="funeral" data-kind="money" inputmode="numeric" value="10,000,000"><div class="money-hint"></div></div>
           <div><label>봉안시설·자연장지 비용</label><input id="enshrine" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-          <div><label>채무 (임대보증금·사채 등)</label><input id="debts" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-          <div><label>금융채무 (대출금)</label><input id="financialDebts" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
         </div>
-        <p class="opt-note">장례비는 증빙이 없어도 500만원, 최대 1,000만원 + 봉안 500만원까지 공제(§14). 금융채무는 금융재산공제 계산 시 금융재산에서 뺍니다.</p>
+        <p class="opt-note">장례비는 증빙이 없어도 500만원, 최대 1,000만원 + 봉안 500만원까지 공제(§14). 채무·공과금은 ② 명세에 입력합니다.</p>
       </details>
 
       <details>
-        <summary>⑤ 사전증여재산 <small>상속인 10년 · 비상속인 5년 이내</small></summary>
+        <summary>⑤ 사전증여 세액 정보 <small>증여세 과세표준·산출세액</small></summary>
         <div class="grid2">
-          <div><label>상속인에게 증여 (10년)</label><input id="toHeirs" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-          <div><label>비상속인에게 증여 (5년)</label><input id="toOthers" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
           <div><label>가산 증여의 증여세 과세표준 합계</label><input id="heirGiftTaxBase" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
           <div><label>가산 증여의 증여세 산출세액 합계</label><input id="giftTaxPaid" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
         </div>
         <label>그중 배우자 사전증여 과세표준</label><input id="spouseGiftTaxBase" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
-        <p class="opt-note">증여 당시 가액으로 가산합니다. 과세표준은 공제적용 한도(§24)와 증여세액공제 한도(§28)에, 산출세액은 증여세액공제에 씁니다.
-          상속인별 사전증여액은 ① 상속인 칸에 입력하면 세액 안분에 반영됩니다.</p>
+        <p class="opt-note">사전증여 금액은 ② 명세에 「사전증여」 항목으로 입력합니다(증여 당시 가액). 여기에는 그 증여의 증여세
+          과세표준(공제적용 한도 §24·증여세액공제 한도 §28용)과 산출세액(증여세액공제)을 넣습니다.</p>
       </details>
 
       <details>
         <summary>⑥ 공제·세액공제 옵션</summary>
-        <label>배우자 실제 상속액 (비우면 ① 배우자 받을 금액 → 없으면 법정상속분)</label>
-        <input id="spouseActual" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
         <div class="grid2">
           <div><label>동거주택 가액 (요건 충족 시)</label><input id="cohabitHouse" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
           <div><label>부동산 감정평가수수료</label><input id="appraisalFee" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
@@ -139,6 +172,11 @@
     </div>
 
     <div class="panel" id="itResult">
+      <div class="report-actions" id="reportActions" style="display:none">
+        <button class="btn-print" id="printBtn" type="button">🖨 보고서 인쇄 / PDF 저장</button>
+        <span class="opt-note">인쇄 창에서 대상(프린터)을 「PDF로 저장」으로 고르면 PDF 파일이 됩니다.</span>
+      </div>
+      <div class="report-head" id="reportHead"></div>
       <div class="result-empty" id="empty">입력값을 넣고 「계산하기」를 누르세요.</div>
       <div id="result" style="display:none"></div>
     </div>
