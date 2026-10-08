@@ -188,7 +188,7 @@ export const LAW_UPDATES = [
       + '같은 상황을 비과세로 본 국세청 해석(서면-2016-부동산-5934, 2016.12.30)과 다른 판단.',
     affects: ['양도세', '판정기'],
     engineStatus: '반영완료',
-    engineNote: '1세대1주택 비과세 판정기 일시적 2주택 탭에 「신규주택 취득 직후 세대 보유 주택 수」 추가 — 3채 이상이면 비과세 불가 (single-house-exempt.js judgeTempTwoExempt, 체크 oneAtNew).',
+    engineNote: '1세대1주택 비과세 판정기(일시적 2주택 탭)·지방주택 판정기(일시적 2주택 경로)에 「신규주택 취득 직후 세대 보유 주택 수」 추가 — 3채 이상이면 일시적 2주택 비과세 불가 (single-house-exempt.js·local-house-judge.js, 체크 oneAtNew). 상속·농어촌·세컨드홈 등 다른 특례 경로는 별도 조문이라 그대로.',
     sources: [
       { label: '대법원 종합법률정보 — 2024두55426', url: 'https://glaw.scourt.go.kr' },
     ],

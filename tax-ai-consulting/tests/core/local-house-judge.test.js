@@ -36,6 +36,21 @@ describe('양도세 — 조특법 §99의4 농어촌주택 / 일시적 2주택',
     expect(r.verdict).toBe('exempt');
   });
 
+  it('대법원 2024두55426: 지방주택(신규) 취득 당시 3주택 → 일시적 2주택 경로 불가, 다른 특례는 그대로', () => {
+    const r = judgeLocalHouse({ ...base, saleDate: '2024-09-01', housesAtNewAcquire: 3 }).transfer;
+    const t = path(r, 'temp');
+    expect(t.ok).toBe(false);
+    expect(t.checklist.find((c) => c.key === 'oneAtNew').ok).toBe(false);
+    expect(r.reasons.join(' ')).toContain('2024두55426');
+    expect(path(r, 'rural99').ok).toBe(true);        // §99의4 농어촌주택 특례는 별도 조문 → 영향 없음
+    expect(r.applied.key).toBe('rural99');
+  });
+
+  it('대법원 2024두55426: 지방주택을 먼저 양도(수도권 신규 취득 당시 3주택) → 일시적 2주택 불가', () => {
+    const r = judgeLocalHouse({ ...base, sellFirst: 'local', saleDate: '2024-09-01', housesAtNewAcquire: 3 }).transfer;
+    expect(path(r, 'temp').ok).toBe(false);
+  });
+
   it('동 지역(읍·면 아님) 일반 매입 → 특례 없음 → 과세, 단 3억 이하라 중과 주택수 제외', () => {
     const r = judgeLocalHouse(withLocal({ eupMyeon: false })).transfer;
     expect(r.applied).toBeNull();
