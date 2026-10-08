@@ -2,7 +2,7 @@
 /**
  * 세법 개정 감시 독립 실행기 (장치 4 전용)
  *
- * 케이스와 무관하게 엔진의 세법 가정 8종 + 동향 4종(판결·심판 / 국세청 예규·질의응답 /
+ * 케이스와 무관하게 엔진의 세법 가정 9종 + 동향 4종(판결·심판 / 국세청 예규·질의응답 /
  * 기획재정부 유권해석 / 정부안·규제지역)을 웹검색으로 대조한다.
  * 심화 검토(advise.js)에 끼워 돌리면 검색 예산이 부족해지므로,
  * 개정 감시는 이 스크립트로 단독 실행하는 것을 권장한다 (매월 1일 정기 스케줄용).
@@ -40,7 +40,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 
-console.error(`▶ 세법 개정 감시 실행 (엔진 가정 8종 + 동향 4종, 최근 ${lookbackDays}일, 웹검색 최대 14회)`);
+console.error(`▶ 세법 개정 감시 실행 (엔진 가정 9종 + 동향 4종, 최근 ${lookbackDays}일, 웹검색 최대 14회)`);
 const started = Date.now();
 const watch = await checkLawChanges({ lookbackDays });
 const seconds = ((Date.now() - started) / 1000).toFixed(1);

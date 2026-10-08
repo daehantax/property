@@ -117,7 +117,7 @@ function aggrSteps(result) {
   } else if (!reform) {
     deductLabel = b.oneOOne === '1세대1주택' ? '1세대1주택 12억' : '다주택·기타 9억';
   } else if (b.oneOOne === '1세대1주택') {
-    deductLabel = b.isResident ? '실거주 1주택 14억 (개편안)' : '비거주 1주택 9억 (개편안)';
+    deductLabel = b.isResident ? '실거주 1주택 14억 (개편안)' : '비거주 1주택 12억 (개편안 — 9.1 확정)';
   } else {
     deductLabel = '다주택 4억 + 5억 × 거주주택 가액비중 (개편안)';
   }

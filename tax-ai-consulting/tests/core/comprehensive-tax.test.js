@@ -71,10 +71,10 @@ describe('2026 세제개편안 — 종부세 (reformOpts.reformYear)', () => {
       expect(r.breakdown.deductAmt).toBe(1_400_000_000);
     });
 
-    it('비거주 1주택: 12억 → 9억', () => {
+    it('비거주 1주택: 12억 유지 (9.1 확정 정부안 — 9억 축소안 철회)', () => {
       const r = calcAggrTax('1세대1주택', '비조정지역', 2_000_000_000, 5, 50, 1_000_000,
         { reformYear: 2027, isResident: 0 });
-      expect(r.breakdown.deductAmt).toBe(900_000_000);
+      expect(r.breakdown.deductAmt).toBe(1_200_000_000);
     });
 
     it('다주택: 4억 + 5억 × 거주주택 가액비중', () => {
@@ -180,7 +180,7 @@ describe('2026 세제개편안 — 종부세 (reformOpts.reformYear)', () => {
       expect(cmp.diff.y2027).toBe(cmp.y2027.total - cmp.current.total);
     });
 
-    it('비거주 1주택(공시 15억): 공제 축소·비율 인상으로 세액 증가', () => {
+    it('비거주 1주택(공시 15억): 공제 12억 유지, 비율·세율 인상으로 세액 증가', () => {
       const cmp = compareAggrTaxReform2026('1세대1주택', '비조정지역', 1_500_000_000, 10, 60, 1_000_000,
         { isResident: 0, ownCount: 1 });
       expect(cmp.y2027.total).toBeGreaterThan(cmp.current.total);

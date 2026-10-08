@@ -25,6 +25,10 @@ import {
   AGGR_FAIR_MARKET_RATE, AGGR_DEDUCT_SINGLE, AGGR_DEDUCT_OTHERS,
   SINGLE_HH_NONTAX_THRESHOLD, HEAVY_RESUME_DATE, GIVE_DEDUCT, INDEPENDENT_HH_AGE,
 } from '../core/constants.js';
+import {
+  TEMP_TWO_DISPOSE_YEARS, TEMP_TWO_DISPOSE_YEARS_ADJ, TEMP_TWO_ADJ_SALE_FROM,
+} from '../core/single-house-exempt.js';
+import { LAW_UPDATES } from '../web/static/law-updates-data.js';
 
 /** 세법 동향 일지 파일 경로 (동향 감시의 "고칠 위치") */
 export const LAW_UPDATES_FILE = 'src/web/static/law-updates-data.js (세법 동향 일지)';
@@ -56,6 +60,7 @@ export const ENGINE_ASSUMPTIONS = [
   { id: 'heavy_resume', label: '조정대상지역 다주택 양도세 중과 부활일', value: HEAVY_RESUME_DATE, where: 'constants.HEAVY_RESUME_DATE', law: '소득세법 §104⑦' },
   { id: 'give_deduct_spouse', label: '배우자 증여재산공제 한도', value: `${(GIVE_DEDUCT.SPOUSE / 1e8).toFixed(1)}억원`, where: 'constants.GIVE_DEDUCT.SPOUSE', law: '상증세법 §53' },
   { id: 'give_deduct_child_adult', label: '성년 자녀 증여재산공제 한도', value: `${(GIVE_DEDUCT.CHILD_ADULT / 1e4).toLocaleString('ko-KR')}만원`, where: 'constants.GIVE_DEDUCT.CHILD_ADULT', law: '상증세법 §53' },
+  { id: 'temp_two_dispose', label: '일시적 2주택 종전주택 처분기한(양도세)', value: `${TEMP_TWO_DISPOSE_YEARS}년 (신규 취득일 현재 종전·신규 모두 조정지역이면 ${TEMP_TWO_ADJ_SALE_FROM} 이후 양도분 ${TEMP_TWO_DISPOSE_YEARS_ADJ}년)`, where: 'single-house-exempt.TEMP_TWO_DISPOSE_YEARS / TEMP_TWO_DISPOSE_YEARS_ADJ', law: '소득세법 시행령 §155①' },
   { id: 'independent_hh_age', label: '별도세대 인정 연령(시나리오 전제)', value: `${INDEPENDENT_HH_AGE}세`, where: 'constants.INDEPENDENT_HH_AGE', law: '소득세법 시행령 §152의3 등' },
 
   // ── 동향 감시 4종 — 발견 내용은 세법 동향 일지(law-updates-data.js)에 기록한다 ──
@@ -95,7 +100,7 @@ export const ENGINE_ASSUMPTIONS = [
     category: '정부발표',
     orgs: ['기획재정부', '국회', '국토교통부'],
     label: '정부 세법개정안·국회 의결·규제지역 지정 동향 (부동산 세제)',
-    value: '2026 세제개편안(2026.8.3 발표) 국회 심의 중 — 의결·수정·조정대상지역 변경 여부 확인',
+    value: '2026 세제개편안 — 2026.9.1 정부안 확정·국회 제출(심의 중, 12월 의결 예정), 2026.9.29 소득세법 시행령 개정(조정지역 일시적 2주택 2년·매입임대 아파트 중과배제 2027년말) 반영 완료 — 이후 국회 의결·수정·조정대상지역 변경 여부 확인',
     where: LAW_UPDATES_FILE,
     law: '연간 세법개정 절차(7~8월 정부안, 12월 국회 의결)',
   },
@@ -155,7 +160,10 @@ const WATCH_SYSTEM = `당신은 한국 부동산 세법 개정 동향을 추적�
 - items 에는 세율·공제·기한·판정 로직에 영향을 주는 것만 담고 단순 뉴스는 제외하십시오.
 - affects 태그는 '양도세' '종부세' '취득세' '재산세' '증여세' '보유세' '임대' '시나리오' '판정기' 중에서 고르십시오.
 - 추측·논의 단계는 note에만 적고 status는 uncertain으로 두십시오.
-- 제공된 모든 항목(id)에 대해 하나씩 findings를 반환하십시오.`;
+- 제공된 모든 항목(id)에 대해 하나씩 findings를 반환하십시오.
+- 「세법 동향 일지에 이미 등록된 항목」 목록에 있는 발표·개정·판결·예규는 이미 반영된 것이므로
+  items 에 다시 넣지 말고, 그것만 있다면 status 를 "current" 로 두십시오. 그 이후의 새 진행
+  (예: 국회 의결, 공포, 수정)만 신규로 보고하십시오.`;
 
 /** asOfDate 에서 days 일 전 날짜 (YYYY-MM-DD) */
 export function daysBefore(asOfDate, days) {
@@ -164,8 +172,23 @@ export function daysBefore(asOfDate, days) {
   return d.toISOString().slice(0, 10);
 }
 
-export function buildWatchPrompt(assumptions, asOfDate, { sinceDate } = {}) {
+/** 프롬프트에 넣을 기등록 동향 — 감시 시작일 60일 전부터 등록된 항목 (제목·일자·구분) */
+export function knownUpdatesSince(updates, sinceDate, marginDays = 60) {
+  const from = daysBefore(sinceDate, marginDays);
+  return (updates ?? [])
+    .filter((u) => u && u.date >= from)
+    .map((u) => ({ date: u.date, category: u.category, title: u.title }));
+}
+
+export function buildWatchPrompt(assumptions, asOfDate, { sinceDate, knownUpdates = [] } = {}) {
   const since = sinceDate ?? daysBefore(asOfDate, 31);
+  const known = knownUpdates.length
+    ? [
+      '',
+      '세법 동향 일지에 이미 등록된 항목 (중복 보고 금지 — 이후 새 진행만 보고):',
+      ...knownUpdates.map((u) => `- ${u.date} [${u.category}] ${u.title}`),
+    ]
+    : [];
   return [
     `확인 기준일(오늘): ${asOfDate}`,
     `동향 감시 기간: ${since} ~ ${asOfDate} (이 기간에 나온 판결·예규·질의응답·발표만 items 에 담을 것)`,
@@ -178,6 +201,7 @@ export function buildWatchPrompt(assumptions, asOfDate, { sinceDate } = {}) {
     '```json',
     JSON.stringify(assumptions.map(({ id, kind, label, value, law, orgs }) => ({ id, kind, label, value, law, orgs })), null, 2),
     '```',
+    ...known,
   ].join('\n');
 }
 
@@ -221,7 +245,8 @@ export function parseFindings(text) {
  * @param {string} [options.asOfDate]     확인 기준일 (기본: 오늘). Date.now 미사용 위해 주입 권장.
  * @param {number} [options.lookbackDays] 동향 감시 기간(일). 기본 31 — 매월 1일 실행 기준 한 달치.
  * @param {Array}  [options.assumptions]  점검 대상 (기본: ENGINE_ASSUMPTIONS)
- * @param {number} [options.webSearchMaxUses] 웹검색 허용 횟수 (기본 14 — 상수 8종 + 동향 4종을 근거 있게 확인하려면 넉넉해야 함)
+ * @param {number} [options.webSearchMaxUses] 웹검색 허용 횟수 (기본 14 — 상수 9종 + 동향 4종을 근거 있게 확인하려면 넉넉해야 함)
+ * @param {Array}  [options.knownUpdates] 이미 일지에 등록된 동향 (기본: law-updates-data.js 에서 감시기간+60일)
  * @param {object} [options.client] { model, maxTokens }
  * @returns {Promise<{asOfDate, sinceDate, summary, findings, reportText, usage}>}
  */
@@ -236,6 +261,7 @@ export async function checkLawChanges(options = {}) {
     webSearchMaxUses = 14,
   } = options;
   const sinceDate = daysBefore(asOfDate, lookbackDays);
+  const knownUpdates = options.knownUpdates ?? knownUpdatesSince(LAW_UPDATES, sinceDate);
 
   const request = {
     model,
@@ -243,7 +269,7 @@ export async function checkLawChanges(options = {}) {
     thinking: { type: 'adaptive' },
     output_config: { effort: 'medium' },
     system: WATCH_SYSTEM,
-    messages: [{ role: 'user', content: buildWatchPrompt(assumptions, asOfDate, { sinceDate }) }],
+    messages: [{ role: 'user', content: buildWatchPrompt(assumptions, asOfDate, { sinceDate, knownUpdates }) }],
     tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: webSearchMaxUses }],
   };
 

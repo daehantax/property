@@ -180,6 +180,9 @@ export function judgeTransferHeavy({ target, others = [] }) {
   } else if (excludedByTarget) {
     exemptReason = excludedByTarget;
     reasons.push(`조정대상지역이나 ${excludedByTarget}`);
+    if (target.status === 'rental') {
+      reasons.push('⚠️ 2026.9.29 의결 소득세법 시행령 개정: 조정대상지역 매입임대 「아파트」의 중과배제는 2027.12.31 양도분까지로 한정 — 2028년 이후 양도하면 중과 대상 (비아파트·건설임대·공공지원임대는 종전 유지)');
+    }
   } else if (houseCount >= 3) {
     isHeavy = true; surcharge = 0.30; ltdExcluded = true; heavyType = '3주택 이상 중과';
     reasons.push(`조정대상지역 + 1세대 ${houseCount}주택(3주택 이상) → 기본세율 +30%p 중과, 장기보유특별공제 배제 (소득세법 §104⑦·§95②)`);
