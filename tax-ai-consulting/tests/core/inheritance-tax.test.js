@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calcInheritanceTax, inheritRawTax, presumedAsset, funeralDeduct, financialDeduct,
-  legalShares, reportDeadline,
+  legalShares, reportDeadline, aggregateEstateItems,
 } from '../../src/core/inheritance-tax.js';
 
 describe('상속세 — 구성 요소', () => {
@@ -148,5 +148,42 @@ describe('calcInheritanceTax — 계산 사례', () => {
     expect(b.finDeduct).toBe(40_000_000);
     expect(b.reportCredit).toBe(0);
     expect(b.taxBase).toBe(1_230_000_000 - 1_140_000_000);
+  });
+});
+
+describe('aggregateEstateItems — 재산·부채 명세 한 번 입력 → 계산 입력', () => {
+  const heirs = [{ relation: 'spouse', name: '배우자' }, { relation: 'child', name: '자녀1' }, { relation: 'child', name: '자녀2' }];
+
+  it('구분별 합산 + 지정 상속인 순취득 + 미지정분은 법정상속분 배분', () => {
+    const agg = aggregateEstateItems([
+      { type: 'realEstate', amount: 1_200_000_000, heir: 0 },
+      { type: 'realEstate', amount: 300_000_000, heir: '' },
+      { type: 'financial', amount: 500_000_000, heir: '' },
+      { type: 'insurance', amount: 100_000_000, heir: 1 },
+      { type: 'financialDebt', amount: 200_000_000, heir: 0 },
+      { type: 'giftHeir', amount: 50_000_000, heir: 2 },
+      { type: 'giftOther', amount: 30_000_000, heir: '' },
+    ], heirs);
+    expect(agg.assets.realEstate).toBe(1_500_000_000);
+    expect(agg.assets.insurance).toBe(100_000_000);
+    expect(agg.liabilities.financialDebts).toBe(200_000_000);
+    expect(agg.priorGifts).toEqual({ toHeirs: 50_000_000, toOthers: 30_000_000 });
+    // 미지정 순재산 8억 → 배우자 1.5/3.5, 자녀 각 1/3.5
+    expect(agg.allocation[0].net).toBe(1_200_000_000 - 200_000_000 + Math.floor(800_000_000 * 1.5 / 3.5));
+    expect(agg.allocation[1].net).toBe(100_000_000 + Math.floor(800_000_000 / 3.5));
+    expect(agg.heirs[2].priorGift).toBe(50_000_000);
+    expect(agg.anyAssigned).toBe(true);
+  });
+
+  it('지정이 하나도 없으면 amount 0 → 엔진이 법정상속분으로 배분', () => {
+    const agg = aggregateEstateItems([{ type: 'realEstate', amount: 1_000_000_000, heir: '' }], heirs);
+    expect(agg.anyAssigned).toBe(false);
+    expect(agg.heirs.every((h) => h.amount === 0)).toBe(true);
+  });
+
+  it('명세로 배우자 몫이 0원이면 배우자공제는 최소 5억 (법정지분 가정 아님)', () => {
+    const agg = aggregateEstateItems([{ type: 'realEstate', amount: 2_000_000_000, heir: 1 }], heirs);
+    const r = calcInheritanceTax({ assets: agg.assets, heirs: agg.heirs, options: { spouseActual: agg.heirs[0].amount } });
+    expect(r.breakdown.spouseDeduct).toBe(500_000_000);
   });
 });

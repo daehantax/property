@@ -7,7 +7,7 @@
  */
 
 import {
-  calcInheritanceTax, HEIR_RELATIONS, INH_RATE_TABLE,
+  calcInheritanceTax, aggregateEstateItems, ESTATE_ITEM_TYPES, HEIR_RELATIONS, INH_RATE_TABLE,
 } from '../../core/inheritance-tax.js';
 import { won, bindMoneyInputs, moneyVal, initFxDialog, bindFxButtons } from './notice-ui.js';
 
@@ -18,79 +18,170 @@ let fxMap = {};
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const pct = (r) => `${(r * 100).toFixed(1)}%`;
 
-// ── 상속인 입력 행 ──
+// ── 상속인 입력 행 ── (각 행에 고정 id 를 붙여, 재산 명세의 「취득 상속인」 선택이 행 삭제에도 어긋나지 않게 한다)
 const DEFAULT_HEIRS = [
   { relation: 'spouse', name: '배우자', age: 68 },
   { relation: 'child', name: '자녀1', age: 40 },
   { relation: 'child', name: '자녀2', age: 37 },
 ];
+let heirSeq = 0;
 
 function heirRowHtml(h = {}) {
   const opts = Object.entries(HEIR_RELATIONS)
     .map(([k, v]) => `<option value="${k}"${k === (h.relation ?? 'child') ? ' selected' : ''}>${v}</option>`).join('');
   return `
-    <div class="heir-row">
+    <div class="heir-row" data-hid="${++heirSeq}">
       <div><label>관계</label><select class="h-rel">${opts}</select></div>
       <div><label>이름</label><input class="h-name" value="${esc(h.name ?? '')}"></div>
       <div><label>나이</label><input class="h-age" inputmode="numeric" value="${h.age ?? ''}"></div>
       <div><label>장애 기대여명(년)</label><input class="h-dis" inputmode="numeric" value="${h.disabledYears ?? ''}" placeholder="0"></div>
       <button class="heir-del" type="button" title="삭제">✕</button>
-      <div class="money-row">
-        <div><label>받을 상속재산 (비우면 법정지분)</label><input class="h-amt" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-        <div><label>본인 사전증여 (가산분)</label><input class="h-gift" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div></div>
-      </div>
     </div>`;
 }
 
 function addHeir(h) {
   const wrap = document.createElement('div');
   wrap.innerHTML = heirRowHtml(h);
-  const row = wrap.firstElementChild;
-  $('heirs').appendChild(row);
-  bindMoneyInputs(row);
+  $('heirs').appendChild(wrap.firstElementChild);
+  refreshHeirSelects();
 }
+
+const heirRows = () => [...$('heirs').querySelectorAll('.heir-row')];
+const heirLabel = (row, i) => {
+  const name = row.querySelector('.h-name').value.trim();
+  return name || `${HEIR_RELATIONS[row.querySelector('.h-rel').value]} ${i + 1}`;
+};
 
 $('heirs').addEventListener('click', (e) => {
   const del = e.target.closest('.heir-del');
-  if (del && $('heirs').children.length > 1) del.closest('.heir-row').remove();
+  if (del && heirRows().length > 1) { del.closest('.heir-row').remove(); refreshHeirSelects(); }
 });
-$('addHeir').addEventListener('click', () => addHeir({ relation: 'child', name: `자녀${$('heirs').children.length}` }));
-DEFAULT_HEIRS.forEach(addHeir);
-bindMoneyInputs($('itForm'));
+$('heirs').addEventListener('input', refreshHeirSelects);
+$('heirs').addEventListener('change', refreshHeirSelects);
+$('addHeir').addEventListener('click', () => addHeir({ relation: 'child', name: `자녀${heirRows().length}` }));
+
+// ── 재산·부채 명세 ──
+const TYPE_BY_KEY = new Map(ESTATE_ITEM_TYPES.map((t) => [t.key, t]));
+const DEFAULT_ITEMS = [
+  { type: 'realEstate', name: '거주 아파트', amount: 1_200_000_000, heir: 'spouse' },
+  { type: 'realEstate', name: '상가', amount: 300_000_000, heir: '' },
+  { type: 'financial', name: '예금·주식', amount: 500_000_000, heir: '' },
+];
+
+function itemRowHtml(it = {}) {
+  const typeOpts = ESTATE_ITEM_TYPES
+    .map((t) => `<option value="${t.key}"${t.key === (it.type ?? 'realEstate') ? ' selected' : ''}>${t.label}</option>`).join('');
+  return `
+    <div class="item-row">
+      <div><label>구분</label><select class="i-type">${typeOpts}</select></div>
+      <div><label>명칭·내역</label><input class="i-name" value="${esc(it.name ?? '')}" placeholder="예: ○○아파트"></div>
+      <div><label>금액 (사망일 시가)</label><input class="i-amt" data-kind="money" inputmode="numeric" value="${it.amount ? it.amount.toLocaleString('ko-KR') : ''}"><div class="money-hint"></div></div>
+      <div><label class="i-heir-label">취득 상속인</label><select class="i-heir" data-want="${esc(it.heir ?? '')}"></select></div>
+      <button class="heir-del i-del" type="button" title="삭제">✕</button>
+    </div>`;
+}
+
+function addItem(it) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = itemRowHtml(it);
+  const row = wrap.firstElementChild;
+  $('items').appendChild(row);
+  bindMoneyInputs(row);
+  refreshHeirSelects();
+  return row;
+}
+
+/** 명세 각 행의 「취득 상속인」 선택지를 현재 상속인 목록으로 다시 그린다 (선택값은 상속인 고정 id 로 유지) */
+function refreshHeirSelects() {
+  const rows = heirRows();
+  for (const sel of $('items').querySelectorAll('.i-heir')) {
+    const itemRow = sel.closest('.item-row');
+    const t = TYPE_BY_KEY.get(itemRow.querySelector('.i-type').value);
+    let want = sel.value || sel.dataset.want || '';
+    if (want === 'spouse') want = rows.find((r) => r.querySelector('.h-rel').value === 'spouse')?.dataset.hid ?? '';
+    sel.dataset.want = '';
+    if (t.kind === 'giftOther') {
+      sel.innerHTML = '<option value="">비상속인 (해당 없음)</option>';
+      sel.disabled = true;
+      continue;
+    }
+    sel.disabled = false;
+    const first = t.kind === 'gift' ? '' : '<option value="">법정상속분대로 (미정)</option>';
+    sel.innerHTML = first + rows.map((r, i) => `<option value="${r.dataset.hid}">${esc(heirLabel(r, i))}</option>`).join('');
+    if (want && rows.some((r) => r.dataset.hid === want)) sel.value = want;
+    itemRow.querySelector('.i-heir-label').textContent = t.kind === 'gift' ? '증여받은 상속인' : t.kind === 'debt' ? '승계 상속인' : '취득 상속인';
+  }
+  renderItemSummary();
+}
+
+$('items').addEventListener('click', (e) => {
+  const del = e.target.closest('.i-del');
+  if (del) { del.closest('.item-row').remove(); renderItemSummary(); }
+});
+$('items').addEventListener('change', (e) => { if (e.target.matches('.i-type')) refreshHeirSelects(); else renderItemSummary(); });
+$('items').addEventListener('input', renderItemSummary);
+document.querySelector('.item-add-row').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-add]');
+  if (b) addItem({ type: b.dataset.add }).querySelector('.i-amt').focus();
+});
+
+function readItems() {
+  const ids = heirRows().map((r) => r.dataset.hid);
+  return [...$('items').querySelectorAll('.item-row')].map((row) => {
+    const hid = row.querySelector('.i-heir').value;
+    return {
+      type: row.querySelector('.i-type').value,
+      name: row.querySelector('.i-name').value.trim(),
+      amount: moneyVal(row.querySelector('.i-amt')),
+      heir: hid ? ids.indexOf(hid) : '',
+    };
+  });
+}
+
+function readHeirs() {
+  return heirRows().map((row, i) => ({
+    relation: row.querySelector('.h-rel').value,
+    name: heirLabel(row, i),
+    age: Number(row.querySelector('.h-age').value) || 0,
+    disabledYears: Number(row.querySelector('.h-dis').value) || 0,
+  }));
+}
+
+/** 명세 합계 요약 (입력 중 실시간) */
+function renderItemSummary() {
+  const el = $('itemSummary');
+  if (!el) return;
+  const agg = aggregateEstateItems(readItems(), readHeirs());
+  const a = agg.assets, l = agg.liabilities;
+  const assetSum = Object.values(a).reduce((x, y) => x + y, 0);
+  const debtSum = Object.values(l).reduce((x, y) => x + y, 0);
+  el.innerHTML = `재산 합계 <b>${won(assetSum)}</b> · 채무·공과금 <b>${won(debtSum)}</b>
+    · 사전증여 <b>${won(agg.priorGifts.toHeirs + agg.priorGifts.toOthers)}</b>
+    ${agg.unassigned ? `<br>법정상속분대로 나눌 순재산 ${won(agg.unassigned)}` : ''}`;
+}
 
 const m = (id) => moneyVal($(id));
 
 function readInput() {
-  const heirs = [...$('heirs').querySelectorAll('.heir-row')].map((row) => ({
-    relation: row.querySelector('.h-rel').value,
-    name: row.querySelector('.h-name').value.trim(),
-    age: Number(row.querySelector('.h-age').value) || 0,
-    disabledYears: Number(row.querySelector('.h-dis').value) || 0,
-    amount: moneyVal(row.querySelector('.h-amt')),
-    priorGift: moneyVal(row.querySelector('.h-gift')),
-  }));
+  const items = readItems();
+  const agg = aggregateEstateItems(items, readHeirs());
   const reportType = $('reportType').value;
-  const spouseActualRaw = $('spouseActual').value.trim();
+  const spouse = agg.heirs.find((h) => h.relation === 'spouse');
   return {
     deathDate: $('deathDate').value,
     abroad: $('abroad').value === '1',
-    assets: {
-      realEstate: m('realEstate'), financial: m('financial'), other: m('other'),
-      insurance: m('insurance'), retirement: m('retirement'), trust: m('trust'),
-    },
+    assets: agg.assets,
     presumed: { y1: { withdrawn: m('w1'), unexplained: m('u1') }, y2: { withdrawn: m('w2'), unexplained: m('u2') } },
     exclusions: { graveLand: m('graveLand'), cultural: m('cultural'), publicDonation: m('publicDonation') },
-    liabilities: {
-      publicCharges: m('publicCharges'), funeral: m('funeral'), enshrine: m('enshrine'),
-      debts: m('debts'), financialDebts: m('financialDebts'),
-    },
+    liabilities: { ...agg.liabilities, funeral: m('funeral'), enshrine: m('enshrine') },
     priorGifts: {
-      toHeirs: m('toHeirs'), toOthers: m('toOthers'), heirGiftTaxBase: m('heirGiftTaxBase'),
+      ...agg.priorGifts, heirGiftTaxBase: m('heirGiftTaxBase'),
       giftTaxPaid: m('giftTaxPaid'), spouseGiftTaxBase: m('spouseGiftTaxBase'),
     },
-    heirs,
+    heirs: agg.heirs,
     options: {
-      spouseActual: spouseActualRaw ? m('spouseActual') : null,
+      // 명세에서 상속인을 지정했으면 배우자 순취득액이 곧 실제 상속액 (0원이어도 최소 5억 공제)
+      spouseActual: spouse && agg.anyAssigned ? spouse.amount : null,
       cohabitHouse: m('cohabitHouse'), appraisalFee: m('appraisalFee'),
       businessDeduct: m('businessDeduct'), farmingDeduct: m('farmingDeduct'),
       bequestToOthers: m('bequestToOthers'), renouncedToNext: m('renouncedToNext'),
@@ -98,8 +189,14 @@ function readInput() {
       reportOnTime: reportType === 'ontime',
       noReturn: reportType === 'none',
     },
+    _items: items,
+    _agg: agg,
   };
 }
+
+DEFAULT_HEIRS.forEach(addHeir);
+DEFAULT_ITEMS.forEach(addItem);
+bindMoneyInputs($('itForm'));
 
 const RATE_TABLE_HTML = `
   <table>
@@ -153,12 +250,42 @@ function calculate() {
   // ④ 상속인별 안분
   const heirRows = r.heirs.map((h) => `
     <tr>
-      <td class="rowlabel">${esc(h.name)} <span style="font-weight:400;color:#6f8496">(${esc(h.relationLabel)})</span></td>
+      <td class="rowlabel">${esc(h.name)}${h.name === h.relationLabel ? '' : ` <span style="font-weight:400;color:#6f8496">(${esc(h.relationLabel)})</span>`}</td>
       <td class="num">${won(h.received)}</td>
       <td class="num">${h.priorGift ? won(h.priorGift) : '—'}</td>
       <td class="num">${pct(h.ratio)}</td>
       <td class="num">${won(h.tax)}${h.skipSurcharge ? `<div style="font-size:12.5px;color:#943126">할증 ${won(h.skipSurcharge)} 포함</div>` : ''}</td>
     </tr>`).join('');
+
+  // 상속재산·부채 명세 + 상속인별 배분
+  const heirNames = input.heirs.map((h) => h.name);
+  const kindOf = (t) => ESTATE_ITEM_TYPES.find((x) => x.key === t);
+  const itemRows = input._items.filter((it) => it.amount > 0).map((it) => {
+    const t = kindOf(it.type);
+    const who = t.kind === 'giftOther' ? '비상속인' : it.heir === '' ? '법정상속분대로' : heirNames[it.heir];
+    const debt = t.kind === 'debt';
+    return `<tr class="${debt ? 'minus' : ''}"><td>${esc(t.label)}</td><td>${esc(it.name || '—')}</td>
+      <td class="num">${debt ? `− ${won(it.amount)}` : won(it.amount)}</td><td>${esc(who)}</td></tr>`;
+  }).join('');
+  const al = input._agg.allocation;
+  const allocRows = input.heirs.map((h, i) => `<tr>
+      <td class="rowlabel">${esc(h.name)}${h.name === HEIR_RELATIONS[h.relation] ? '' : ` <span style="font-weight:400;color:#6f8496">(${esc(HEIR_RELATIONS[h.relation])})</span>`}</td>
+      <td class="num">${won(al[i].assets)}</td><td class="num">${al[i].debts ? `− ${won(al[i].debts)}` : '—'}</td>
+      <td class="num">${al[i].legalPart ? won(al[i].legalPart) : '—'}</td><td class="num"><b>${won(al[i].net)}</b></td>
+      <td class="num">${al[i].gifts ? won(al[i].gifts) : '—'}</td></tr>`).join('');
+  const sum = (k) => al.reduce((x, y) => x + y[k], 0);
+
+  // 인쇄용 보고서 머리말
+  const today = new Date().toISOString().slice(0, 10);
+  $('reportHead').innerHTML = `
+    <h1>상속세 계산 보고서</h1>
+    <table>
+      <tr><td>피상속인</td><td><b>${esc($('decedent').value.trim() || '—')}</b></td><td>상속개시일</td><td>${esc(input.deathDate || '—')}</td></tr>
+      <tr><td>신고·납부기한</td><td>${esc(b.deadline || '—')}</td><td>작성일</td><td>${today}</td></tr>
+      <tr><td>상속인</td><td colspan="3">${input.heirs.map((h) => `${esc(h.name)}(${esc(HEIR_RELATIONS[h.relation])}${h.age ? `, ${h.age}세` : ''})`).join(' · ')}</td></tr>
+      ${$('preparer').value.trim() ? `<tr><td>작성자</td><td colspan="3">${esc($('preparer').value.trim())}</td></tr>` : ''}
+    </table>`;
+  $('reportActions').style.display = 'flex';
 
   fxMap = buildFx(r, input);
 
@@ -170,21 +297,37 @@ function calculate() {
         ${b.deadline ? ` · 신고기한 <b>${b.deadline}</b>` : ''}</div>
     </div>
 
-    <h3 class="sec-title">1. 상속세 과세가액</h3>
+    <h3 class="sec-title">1. 상속재산·부채 명세</h3>
+    <div class="notice-wrap"><table class="notice">
+      <tr><th>구분</th><th>명칭·내역</th><th class="num">금액</th><th>취득(승계) 상속인</th></tr>
+      ${itemRows || '<tr><td colspan="4">입력된 항목 없음</td></tr>'}
+    </table></div>
+
+    <h3 class="sec-title">2. 상속인별 재산 배분</h3>
+    <div class="notice-wrap"><table class="notice heir-tbl">
+      <tr><th>상속인</th><th class="num">지정 재산</th><th class="num">승계 채무</th><th class="num">법정지분 배분</th><th class="num">순취득액</th><th class="num">사전증여</th></tr>
+      ${allocRows}
+      <tr class="total"><td class="rowlabel">합계</td><td class="num">${won(sum('assets'))}</td><td class="num">${sum('debts') ? `− ${won(sum('debts'))}` : '—'}</td>
+        <td class="num">${won(sum('legalPart'))}</td><td class="num">${won(sum('net'))}</td><td class="num">${won(sum('gifts'))}</td></tr>
+    </table></div>
+    <p class="opt-note">법정지분 배분 = 「법정상속분대로」로 둔 재산 − 채무를 배우자 1.5 : 자녀 각 1로 나눈 금액. 배우자 순취득액이 배우자상속공제의 실제 상속액이 됩니다.
+      ${input._agg.anyAssigned ? '' : '취득 상속인을 지정한 항목이 없어 전부 법정상속분으로 배분했습니다(배우자공제는 법정상속분 한도 가정).'}</p>
+
+    <h3 class="sec-title">3. 상속세 과세가액</h3>
     <div class="notice-wrap"><table class="notice">${valueRows}</table></div>
 
-    <h3 class="sec-title">2. 상속공제</h3>
+    <h3 class="sec-title">4. 상속공제</h3>
     <div class="notice-wrap"><table class="notice">${deductRows}
       ${tableRow('상속공제 합계', b.deductSum, { total: true, law: '' })}
       ${tableRow('공제적용 한도 (§24)', b.deductLimit, { law: '§24', fx: 'limit' })}
     </table></div>
     ${b.personal.length ? `<p class="opt-note">인적공제 내역: ${b.personal.map((x) => `${esc(x.who)} ${x.kind} ${won(x.amount)}`).join(' · ')}</p>` : ''}
 
-    <h3 class="sec-title">3. 세액 계산</h3>
+    <h3 class="sec-title">5. 세액 계산</h3>
     <div class="notice-wrap"><table class="notice">${taxRows}</table></div>
 
-    <h3 class="sec-title">4. 상속인별 납부세액 (받은 재산 + 본인 사전증여 비율로 안분 · 연대납부)</h3>
-    <div class="notice-wrap"><table class="notice">
+    <h3 class="sec-title">6. 상속인별 납부세액 (받은 재산 + 본인 사전증여 비율로 안분 · 연대납부)</h3>
+    <div class="notice-wrap"><table class="notice heir-tbl">
       <tr><th>상속인</th><th class="num">받는 순상속재산</th><th class="num">사전증여</th><th class="num">비율</th><th class="num">납부세액</th></tr>
       ${heirRows}
       <tr class="total"><td class="rowlabel">합계</td>
@@ -192,7 +335,7 @@ function calculate() {
         <td class="num">${won(r.heirs.reduce((s, h) => s + h.priorGift, 0))}</td><td class="num">100%</td>
         <td class="num">${won(r.heirs.reduce((s, h) => s + h.tax, 0))}</td></tr>
     </table></div>
-    <p class="opt-note">받는 순상속재산 = 총상속재산(간주·추정 포함) − 비과세·공과금·장례비·채무. 「받을 금액」을 비우면 이 금액을 법정상속분으로 나눕니다.
+    <p class="opt-note">받는 순상속재산은 2번 배분표의 순취득액입니다(취득 상속인 미지정 시 장례비 등 차감 후 순재산을 법정상속분으로 배분).
       원 단위 절사로 합계가 납부세액과 몇 원 다를 수 있습니다.</p>
 
     ${r.notes.length ? `<h3 class="sec-title">유의사항</h3><ul class="notes">${r.notes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
@@ -276,4 +419,12 @@ function buildFx(r, input) {
 }
 
 bindFxButtons($('result'), () => fxMap, showFx);
+$('printBtn').addEventListener('click', () => {
+  // 접힌 산식 등은 인쇄 CSS 가 정리 — 파일 이름은 브라우저가 문서 제목으로 정한다
+  const prev = document.title;
+  const who = $('decedent').value.trim();
+  document.title = `상속세계산보고서${who ? `-${who}` : ''}-${new Date().toISOString().slice(0, 10)}`;
+  window.print();
+  document.title = prev;
+});
 $('calcBtn').addEventListener('click', calculate);

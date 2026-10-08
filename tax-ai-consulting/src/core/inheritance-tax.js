@@ -286,8 +286,9 @@ export function calcInheritanceTax(p) {
     // 한도 = (총상속재산 − 비상속인 유증 + 상속인 사전증여 − 비과세·불산입 − 공과금·채무) × 법정상속분 − 배우자 사전증여 과세표준
     const limitBase = grossEstate - n(o.bequestToOthers) + priorHeirs - nonTaxable - publicDonation - publicCharges - debts;
     spouseLimit = Math.max(floor(limitBase * legal) - n(pg.spouseGiftTaxBase), 0);
-    const actualInput = o.spouseActual != null && o.spouseActual !== '' ? n(o.spouseActual) : heirs[spouseIdx].amount;
-    if (!actualInput) {
+    // spouseActual 을 주면 0원이라도 「실제 상속액」으로 본다(→ 최소 5억). 없으면 상속인 amount, 그것도 0이면 법정지분 가정
+    const actualInput = o.spouseActual != null && o.spouseActual !== '' ? n(o.spouseActual) : (heirs[spouseIdx].amount || null);
+    if (actualInput == null) {
       spouseDeduct = Math.max(INH_SPOUSE_MIN, Math.min(spouseLimit, INH_SPOUSE_MAX));
       spouseDetail = `실제 상속액 미입력 → 법정상속분(${(legal * 100).toFixed(1)}%)만큼 상속받는 것으로 가정: 한도 ${won(spouseLimit)} (최소 5억·최대 30억)`;
     } else if (actualInput < INH_SPOUSE_MIN) {
@@ -429,3 +430,75 @@ export function reportDeadline(deathDate, abroad = false) {
 }
 
 function won(v) { return `${Math.round(v).toLocaleString('ko-KR')}원`; }
+
+/**
+ * 재산·부채 명세 항목 구분 — 상속세 계산기는 항목을 한 번만 입력하고 「누가 가져가는지」를 지정한다.
+ *   field: calcInheritanceTax 입력의 어느 칸으로 합산되는지
+ *   kind : 'asset'(상속재산) | 'debt'(채무·공과금, 받은 상속인이 승계) | 'gift'(상속인 사전증여) | 'giftOther'(비상속인 사전증여)
+ */
+export const ESTATE_ITEM_TYPES = [
+  { key: 'realEstate', label: '부동산', kind: 'asset', field: 'assets.realEstate' },
+  { key: 'financial', label: '금융재산 (예금·주식·채권)', kind: 'asset', field: 'assets.financial' },
+  { key: 'other', label: '기타 재산 (차량·회원권·대여금 등)', kind: 'asset', field: 'assets.other' },
+  { key: 'insurance', label: '보험금 (간주상속)', kind: 'asset', field: 'assets.insurance' },
+  { key: 'trust', label: '신탁재산 (간주상속)', kind: 'asset', field: 'assets.trust' },
+  { key: 'retirement', label: '퇴직금 (간주상속)', kind: 'asset', field: 'assets.retirement' },
+  { key: 'debt', label: '채무 (임대보증금·사채 등)', kind: 'debt', field: 'liabilities.debts' },
+  { key: 'financialDebt', label: '금융채무 (대출금)', kind: 'debt', field: 'liabilities.financialDebts' },
+  { key: 'publicCharge', label: '공과금 (미납 세금 등)', kind: 'debt', field: 'liabilities.publicCharges' },
+  { key: 'giftHeir', label: '사전증여 — 상속인 (10년 이내)', kind: 'gift', field: 'priorGifts.toHeirs' },
+  { key: 'giftOther', label: '사전증여 — 비상속인 (5년 이내)', kind: 'giftOther', field: 'priorGifts.toOthers' },
+];
+
+/**
+ * 재산·부채 명세(항목별 금액 + 취득 상속인)를 계산 입력으로 모은다.
+ *
+ * @param {Array} items  [{ type, name, amount, heir }]  heir: 상속인 index (null/'' 이면 법정상속분대로 배분)
+ * @param {Array} heirs  [{ name, relation, ... }]
+ * @returns {{ assets, liabilities, priorGifts, heirs, allocation }}
+ *   - heirs[i].amount   : 그 상속인이 받는 순상속재산(지정 재산 − 지정 채무 + 미지정 순재산 × 법정상속분)
+ *                         명세에 상속인 지정이 하나도 없으면 0(→ 엔진이 법정상속분으로 배분)
+ *   - heirs[i].priorGift: 그 상속인이 받은 사전증여(지정분)
+ *   - allocation        : 상속인별 { assets, debts, gifts, legalPart, net } — 보고서 배분표용
+ */
+export function aggregateEstateItems(items, heirs) {
+  const types = new Map(ESTATE_ITEM_TYPES.map((t) => [t.key, t]));
+  const assets = { realEstate: 0, financial: 0, other: 0, insurance: 0, trust: 0, retirement: 0 };
+  const liabilities = { debts: 0, financialDebts: 0, publicCharges: 0 };
+  const priorGifts = { toHeirs: 0, toOthers: 0 };
+  const alloc = heirs.map(() => ({ assets: 0, debts: 0, gifts: 0, legalPart: 0, net: 0 }));
+  let unassigned = 0;
+  let anyAssigned = false;
+
+  for (const it of items ?? []) {
+    const t = types.get(it.type);
+    const amt = n(it.amount);
+    if (!t || !amt) continue;
+    const [grp, key] = t.field.split('.');
+    ({ assets, liabilities, priorGifts })[grp][key] += amt;
+    const idx = it.heir === '' || it.heir == null ? -1 : Number(it.heir);
+    const has = idx >= 0 && idx < heirs.length;
+    if (t.kind === 'gift') { if (has) alloc[idx].gifts += amt; continue; }
+    if (t.kind === 'giftOther') continue;
+    const signed = t.kind === 'debt' ? -amt : amt;
+    if (has) {
+      anyAssigned = true;
+      if (t.kind === 'debt') alloc[idx].debts += amt; else alloc[idx].assets += amt;
+    } else {
+      unassigned += signed;
+    }
+  }
+
+  const shares = legalShares(heirs);
+  for (let i = 0; i < heirs.length; i++) {
+    alloc[i].legalPart = Math.floor(unassigned * (shares.get(i) ?? 0));
+    alloc[i].net = Math.max(alloc[i].assets - alloc[i].debts + alloc[i].legalPart, 0);
+  }
+  return {
+    assets, liabilities, priorGifts,
+    heirs: heirs.map((h, i) => ({ ...h, amount: anyAssigned ? alloc[i].net : 0, priorGift: alloc[i].gifts })),
+    allocation: alloc,
+    anyAssigned,
+    unassigned,
+  };
+}
