@@ -271,7 +271,7 @@ function calculate() {
   const allocRows = input.heirs.map((h, i) => `<tr>
       <td class="rowlabel">${esc(h.name)}${h.name === HEIR_RELATIONS[h.relation] ? '' : ` <span style="font-weight:400;color:#6f8496">(${esc(HEIR_RELATIONS[h.relation])})</span>`}</td>
       <td class="num">${won(al[i].assets)}</td><td class="num">${al[i].debts ? `− ${won(al[i].debts)}` : '—'}</td>
-      <td class="num">${al[i].legalPart ? won(al[i].legalPart) : '—'}</td><td class="num"><b>${won(al[i].net)}</b></td>
+      <td class="num">${al[i].legalPart ? won(al[i].legalPart) : '—'}</td><td class="num"><b>${al[i].net < 0 ? `− ${won(-al[i].net)}` : won(al[i].net)}</b></td>
       <td class="num">${al[i].gifts ? won(al[i].gifts) : '—'}</td></tr>`).join('');
   const sum = (k) => al.reduce((x, y) => x + y[k], 0);
 
@@ -311,7 +311,9 @@ function calculate() {
         <td class="num">${won(sum('legalPart'))}</td><td class="num">${won(sum('net'))}</td><td class="num">${won(sum('gifts'))}</td></tr>
     </table></div>
     <p class="opt-note">법정지분 배분 = 「법정상속분대로」로 둔 재산 − 채무를 배우자 1.5 : 자녀 각 1로 나눈 금액. 배우자 순취득액이 배우자상속공제의 실제 상속액이 됩니다.
-      ${input._agg.anyAssigned ? '' : '취득 상속인을 지정한 항목이 없어 전부 법정상속분으로 배분했습니다(배우자공제는 법정상속분 한도 가정).'}</p>
+      ${input._agg.anyAssigned ? '' : '취득 상속인을 지정한 항목이 없어 전부 법정상속분으로 배분했습니다(배우자공제는 법정상속분 한도 가정).'}
+      순취득액 합계 = 재산 합계 − 채무·공과금 합계 (장례비·비과세는 상속인에게 배분하지 않아 과세가액과 차이가 날 수 있음).
+      ${input._agg.excessDebt ? `<br><b style="color:#943126">받는 재산보다 채무를 ${won(input._agg.excessDebt)} 더 승계한 상속인이 있습니다</b> — 그 상속인의 안분세액은 0원이고(연대납부 의무는 남음), 나머지 상속인이 받는 재산 비율로 세액을 나눕니다. 채무 승계 배분을 다시 확인하세요.` : ''}</p>
 
     <h3 class="sec-title">3. 상속세 과세가액</h3>
     <div class="notice-wrap"><table class="notice">${valueRows}</table></div>
@@ -335,7 +337,7 @@ function calculate() {
         <td class="num">${won(r.heirs.reduce((s, h) => s + h.priorGift, 0))}</td><td class="num">100%</td>
         <td class="num">${won(r.heirs.reduce((s, h) => s + h.tax, 0))}</td></tr>
     </table></div>
-    <p class="opt-note">받는 순상속재산은 2번 배분표의 순취득액입니다(취득 상속인 미지정 시 장례비 등 차감 후 순재산을 법정상속분으로 배분).
+    <p class="opt-note">받는 순상속재산은 2번 배분표의 순취득액입니다(채무 초과 상속인은 0원, 취득 상속인 미지정 시 장례비 등 차감 후 순재산을 법정상속분으로 배분).
       원 단위 절사로 합계가 납부세액과 몇 원 다를 수 있습니다.</p>
 
     ${r.notes.length ? `<h3 class="sec-title">유의사항</h3><ul class="notes">${r.notes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}

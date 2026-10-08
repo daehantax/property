@@ -459,7 +459,8 @@ export const ESTATE_ITEM_TYPES = [
  *   - heirs[i].amount   : 그 상속인이 받는 순상속재산(지정 재산 − 지정 채무 + 미지정 순재산 × 법정상속분)
  *                         명세에 상속인 지정이 하나도 없으면 0(→ 엔진이 법정상속분으로 배분)
  *   - heirs[i].priorGift: 그 상속인이 받은 사전증여(지정분)
- *   - allocation        : 상속인별 { assets, debts, gifts, legalPart, net } — 보고서 배분표용
+ *   - allocation        : 상속인별 { assets, debts, gifts, legalPart, net } — 보고서 배분표용 (net 은 음수 가능)
+ *   - excessDebt        : 받는 재산보다 많이 승계한 채무 합계 (안분 비율에서 빠지는 금액)
  */
 export function aggregateEstateItems(items, heirs) {
   const types = new Map(ESTATE_ITEM_TYPES.map((t) => [t.key, t]));
@@ -492,12 +493,17 @@ export function aggregateEstateItems(items, heirs) {
   const shares = legalShares(heirs);
   for (let i = 0; i < heirs.length; i++) {
     alloc[i].legalPart = Math.floor(unassigned * (shares.get(i) ?? 0));
-    alloc[i].net = Math.max(alloc[i].assets - alloc[i].debts + alloc[i].legalPart, 0);
+    // 승계 채무가 받는 재산보다 크면 음수 그대로 둔다 — 0으로 자르면 초과 채무가 사라져
+    // 상속인별 순취득액 합계가 실제 순상속재산보다 커진다(채무가 더해진 것처럼 보임)
+    alloc[i].net = alloc[i].assets - alloc[i].debts + alloc[i].legalPart;
   }
+  const excessDebt = alloc.reduce((s, a) => s + Math.max(-a.net, 0), 0);
   return {
     assets, liabilities, priorGifts,
-    heirs: heirs.map((h, i) => ({ ...h, amount: anyAssigned ? alloc[i].net : 0, priorGift: alloc[i].gifts })),
+    // 세액 안분 비율용 금액은 0 미만이 될 수 없다 (채무 초과 상속인은 안분세액 0, 연대납부 의무는 남음)
+    heirs: heirs.map((h, i) => ({ ...h, amount: anyAssigned ? Math.max(alloc[i].net, 0) : 0, priorGift: alloc[i].gifts })),
     allocation: alloc,
+    excessDebt,
     anyAssigned,
     unassigned,
   };
