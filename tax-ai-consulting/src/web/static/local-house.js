@@ -37,6 +37,8 @@ function renderFields() {
       </div>
       <div><label>양도(예정)일</label>${date('l-sale', '2026-09-01')}</div>
       <div><label>양도가액</label>${money('l-price', 1_100_000_000)}</div>
+      <div><label>나중에 취득한 주택 취득 직후 세대 보유 주택 수</label>
+        <select class="l-houses"><option value="2" selected>2채 (수도권 1 + 지방 1)</option><option value="3">3채 (다른 주택이 더 있었음)</option><option value="4">4채 이상</option></select></div>
       <div><label>종부세 귀속연도 (과세기준일 6.1)</label><input class="l-year" inputmode="numeric" value="2026"></div>
       <div><label>소유자 만 나이 (종부세 연령공제)</label><input class="l-age" inputmode="numeric" value="62"></div>
     </div>
@@ -259,6 +261,7 @@ function judge() {
   const how = val('s-how');
   const r = judgeLocalHouse({
     sellFirst: val('l-sell'), saleDate: val('l-sale'), salePrice: num('l-price'),
+    housesAtNewAcquire: Number(q('.l-houses')?.value) || 2,
     taxYear: num('l-year') || 2026, age: num('l-age'), soleOwner: checked('l-sole'),
     metro: {
       acquireDate: val('m-acq'), acquiredInAdjust: val('m-adj') === '1', adjustNow: val('m-adjnow') === '1',
@@ -277,7 +280,7 @@ function judge() {
     },
   });
   $('result').innerHTML = renderTransfer(r.transfer) + renderJongbu(r.jongbu)
-    + `<div class="muted">※ 참고용 판정입니다. 세대 판정, 주택 수(입주권·분양권·오피스텔 포함), 3주택 이상, 임대주택 합산배제, 다른 특례와의 중복, 사후관리 요건은 반영되지 않을 수 있어 실제 신고·신청 전 세무 전문가 확인이 필요합니다.</div>`;
+    + `<div class="muted">※ 참고용 판정입니다. 세대 판정, 주택 수(입주권·분양권·오피스텔 포함), 3주택 이상 보유 중 양도(일시적 2주택은 대법원 2024두55426 반영), 임대주택 합산배제, 다른 특례와의 중복, 사후관리 요건은 반영되지 않을 수 있어 실제 신고·신청 전 세무 전문가 확인이 필요합니다.</div>`;
   $('empty').style.display = 'none';
   $('result').style.display = 'block';
 }

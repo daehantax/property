@@ -4,6 +4,8 @@
  *
  * ─ 양도소득세 (수도권 일반주택을 먼저 양도할 때 1세대1주택으로 보는 특례) ─
  *  ① 시행령 §155①   일시적 2주택 (종전 취득 1년 후 신규 취득 + 신규 취득 3년 내 종전 양도)
+ *       · 대법원 2024두55426: 신규 취득 당시 1주택 세대여야 함 — 3주택에서 1채 처분 후 남은 2주택은 제외
+ *         (input.housesAtNewAcquire > 2 이면 이 경로만 불가. 상속·농어촌 등 다른 특례 경로는 별도 조문)
  *  ② 시행령 §155②   상속주택 + 일반주택 (상속개시 당시 보유 일반주택 양도)
  *  ③ 시행령 §155⑦   농어촌주택(상속·이농·귀농) — 수도권 밖 읍(도시지역 밖)·면 지역
  *       · 상속: 피상속인 5년 이상 거주 / 이농: 이농인 5년 이상 거주
@@ -35,7 +37,20 @@ import { calcPropertyTax } from './property-tax.js';
 import { RURAL_TRANSFER_EXCLUDE } from './heavy-tax-judge.js';
 import {
   RESIDENCE_REQ_START, HIGH_PRICE_12E_START, HIGH_PRICE_12E, HIGH_PRICE_9E, TEMP_TWO_DISPOSE_YEARS,
+  TEMP_TWO_SC_CASE,
 } from './single-house-exempt.js';
+
+/** 일시적 2주택 「신규 취득 당시 1주택 세대」 점검 (대법원 2024두55426) */
+function oneAtNewRow(housesAtNewAcquire, newName) {
+  const n = Math.max(Number(housesAtNewAcquire) || 2, 1);
+  const ok = n <= 2;
+  return {
+    key: 'oneAtNew', label: `${newName} 취득 당시 1주택 세대 (취득 후 2주택)`, ok,
+    detail: ok ? `${newName} 취득 직후 ${n}주택`
+      : `${newName} 취득 직후 ${n}주택 → 이후 다른 주택을 처분해 2주택이 되었어도 일시적 2주택 아님 (${TEMP_TWO_SC_CASE})`,
+  };
+}
+const SC_TEMP_REASON = `${TEMP_TWO_SC_CASE}: 일시적 2주택(§155①1호)은 1주택 세대가 신규주택을 취득해 일시적으로 2주택이 된 경우만 적용됩니다. 3주택 이상에서 1채를 처분해 2주택이 된 경우는 제외 — 상속·농어촌·세컨드홈 등 다른 특례(별도 조문)로 비과세되는지 확인하세요. 판례는 유추적용하더라도 보유기간을 「2주택이 된 날」부터 기산해야 한다는 취지도 밝혔습니다.`;
 
 // ── 상수 (세법 개정 시 여기만 수정) ──────────────────────────────
 export const JONGBU_LOWPRICE = 400_000_000;         // §8④3 지방 저가주택 공시가격 (2025.2.28~, 종전 3억)
@@ -200,9 +215,10 @@ const LAW_TRANSFER = [
 ];
 
 function judgeTransfer(input) {
-  const { metro, local, sellFirst = 'metro', saleDate, salePrice = 0 } = input;
+  const { metro, local, sellFirst = 'metro', saleDate, salePrice = 0, housesAtNewAcquire = 2 } = input;
   const rg = REGION[local.region] ?? REGION.province;
   const reasons = [];
+  if ((Number(housesAtNewAcquire) || 2) > 2) reasons.push(SC_TEMP_REASON);
   const paths = [];
   const add = (key, law, title, list, extra = {}) => paths.push({ key, law, title, ok: list.every((c) => c.ok), checklist: list, ...extra });
 
@@ -211,6 +227,7 @@ function judgeTransfer(input) {
     const gapOk = !!(local.acquireDate && metro.acquireDate) && meetsYears(local.acquireDate, metro.acquireDate, 1);
     const dispOk = !!metro.acquireDate && withinYears(metro.acquireDate, saleDate, TEMP_TWO_DISPOSE_YEARS);
     add('temp', '시행령 §155①', '일시적 2주택 (지방주택 = 종전주택, 수도권 주택 = 신규주택)', [
+      oneAtNewRow(housesAtNewAcquire, '수도권 주택(신규)'),
       { key: 'gap', label: '지방주택(종전) 취득 1년 후 수도권 주택(신규) 취득', ok: gapOk, detail: local.acquireDate && metro.acquireDate ? `${fy(local.acquireDate, metro.acquireDate)} 경과` : '취득일 미입력' },
       { key: 'dispose', label: `수도권 주택 취득 ${TEMP_TWO_DISPOSE_YEARS}년 이내 지방주택 양도`, ok: dispOk, detail: metro.acquireDate ? `신규취득 ${metro.acquireDate} → 양도 ${saleDate} (${fy(metro.acquireDate, saleDate)})` : '취득일 미입력' },
     ]);
@@ -229,6 +246,7 @@ function judgeTransfer(input) {
     const gapOk = sp.orderOk && meetsYears(metro.acquireDate, local.acquireDate, 1);
     const dispOk = !!local.acquireDate && withinYears(local.acquireDate, saleDate, TEMP_TWO_DISPOSE_YEARS);
     add('temp', '시행령 §155①', '일시적 2주택 (수도권 주택 = 종전주택, 지방주택 = 신규주택)', [
+      oneAtNewRow(housesAtNewAcquire, '지방주택(신규)'),
       { key: 'gap', label: '종전(수도권) 취득 1년 후 신규(지방) 취득', ok: gapOk, detail: metro.acquireDate && local.acquireDate ? `${fy(metro.acquireDate, local.acquireDate)} 경과` : '취득일 미입력' },
       { key: 'dispose', label: `신규(지방) 취득 ${TEMP_TWO_DISPOSE_YEARS}년 이내 종전(수도권) 양도`, ok: dispOk, detail: local.acquireDate ? `신규취득 ${local.acquireDate} → 양도 ${saleDate} (${fy(local.acquireDate, saleDate)})` : '취득일 미입력' },
     ]);
