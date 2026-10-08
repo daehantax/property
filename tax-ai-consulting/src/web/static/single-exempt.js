@@ -68,7 +68,10 @@ function renderFields() {
         <div><label>신규 취득일 현재 종전·신규 모두 조정지역</label>${YN('t-bothadj', false)}</div>
         <div><label>종전주택 실거주(년)</label><input class="t-live" inputmode="numeric" value="0"></div>
         <div><label>종전주택 양도가액</label>${money('t-price', 900_000_000)}</div>
+        <div><label>신규주택 취득 직후 세대 보유 주택 수 (신규 포함)</label>
+          <select class="t-houses"><option value="2" selected>2채 (1주택 → 신규 취득)</option><option value="3">3채</option><option value="4">4채 이상</option></select></div>
       </div>
+      <p class="muted" style="font-size:13px;margin:4px 0 8px">※ 대법원 2024두55426(2025.2.13): 신규 취득 당시 3주택 이상이었다가 1채를 처분해 2주택이 된 경우는 일시적 2주택 비과세 <b>불가</b>.</p>
       <div class="chk"><input type="checkbox" class="t-contract"> 신규주택을 2026.8.3까지 매매계약하고 계약금 지급(증빙 있음) → 종전 3년 적용</div>
       <p class="muted" style="font-size:13px;margin:4px 0 8px">※ 2026.10.1 시행 시행령 개정: 종전·신규 모두 조정지역이고 2026.8.4 이후 신규 취득 + 2026.10.1 이후 양도하면 처분기한이 <b>2년</b>으로 단축됩니다.</p>
       <div class="chk"><input type="checkbox" class="f-saeng"> 종전주택이 상생임대주택 (거주요건 면제)</div>
@@ -161,6 +164,7 @@ function judge() {
       prevAcquiredInAdjust: val('t-adj') === '1',
       bothAdjustAtNewAcquire: val('t-bothadj') === '1',
       contractBeforeReform: checked('t-contract'),
+      housesAtNewAcquire: Number($('fields').querySelector('.t-houses').value) || 2,
       prevLiveYears: num($('fields').querySelector('.t-live')),
       salePrice: num($('fields').querySelector('.t-price')),
       saengsangOk: saeng.ok,
