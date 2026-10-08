@@ -15,6 +15,10 @@
  *      · 2026.9.29 국무회의 의결 시행령 개정(2026.10.1 시행): 신규주택 취득일 현재 종전·신규
  *        모두 조정대상지역이면 처분기한 2년. 2026.8.4 이후 신규 취득 + 2026.10.1 이후 종전주택
  *        양도분부터 적용. 2026.8.3까지 매매계약+계약금 지급(증빙)분은 종전 3년.
+ *      · 대법원 2024두55426(2025.2.13): §155①1호는 「국내에 1주택을 소유한 1세대가 신규주택을
+ *        취득해 일시적으로 2주택이 된 경우」만 대상. 3주택 상태에서 1채를 처분해 2주택이 된 경우는
+ *        종전주택 양도 비과세 불가 (종전 국세청 해석 서면-2016-부동산-5934와 다름)
+ *        → 신규주택 취득 직후 세대 보유 주택 수가 2채를 넘으면 특례 배제
  */
 
 export const RESIDENCE_REQ_START = '2017-08-03';   // 조정지역 거주요건 도입
@@ -161,8 +165,11 @@ export function judgeSingleHouseExempt(input) {
   return { mode: 'single', verdict, headline, checklist, reasons, threshold, isHigh, lawRef: SINGLE_LAW };
 }
 
+export const TEMP_TWO_SC_CASE = '대법원 2025.2.13. 선고 2024두55426';
+
 const TEMP_LAW = [
   '소득세법 시행령 §155①(일시적 2주택 비과세 특례 — 2026.10.1 시행 개정: 조정지역 간 2년)',
+  `${TEMP_TWO_SC_CASE}(1주택 세대가 신규주택을 취득해 2주택이 된 경우만 적용 — 3주택에서 처분해 2주택이 된 경우 제외)`,
   '소득세법 시행령 §154(종전주택 보유·거주 요건)',
 ];
 
@@ -185,17 +192,31 @@ export function tempTwoDisposeYears({ newAcquireDate, prevSaleDate, bothAdjustAt
  *   prevAcquireDate, newAcquireDate, prevSaleDate,
  *   prevAcquiredInAdjust, prevLiveYears, salePrice, saengsangOk,
  *   bothAdjustAtNewAcquire  — 신규주택 취득일 현재 종전·신규 모두 조정대상지역
- *   contractBeforeReform    — 2026.8.3까지 신규주택 매매계약+계약금 지급(증빙) }
+ *   contractBeforeReform    — 2026.8.3까지 신규주택 매매계약+계약금 지급(증빙)
+ *   housesAtNewAcquire      — 신규주택 취득 직후 세대 보유 주택 수(신규 포함, 기본 2) }
  */
 export function judgeTempTwoExempt(input) {
   const {
     prevAcquireDate, newAcquireDate, prevSaleDate,
     prevAcquiredInAdjust = false, prevLiveYears = 0, salePrice = 0, saengsangOk = false,
-    bothAdjustAtNewAcquire = false, contractBeforeReform = false,
+    bothAdjustAtNewAcquire = false, contractBeforeReform = false, housesAtNewAcquire = 2,
   } = input;
 
   const reasons = [];
   const checklist = [];
+
+  // 0) 신규주택 취득 당시 1주택 세대였는지 (대법원 2024두55426)
+  const housesAtNew = Math.max(Number(housesAtNewAcquire) || 2, 1);
+  const oneHouseAtNewOk = housesAtNew <= 2;
+  checklist.push({
+    key: 'oneAtNew', label: '신규주택 취득 당시 1주택 세대 (취득 후 2주택)', ok: oneHouseAtNewOk,
+    detail: oneHouseAtNewOk
+      ? `신규 취득 직후 ${housesAtNew}주택`
+      : `신규 취득 직후 ${housesAtNew}주택 → 이후 다른 주택을 처분해 2주택이 되었어도 일시적 2주택 아님 (${TEMP_TWO_SC_CASE})`,
+  });
+  if (!oneHouseAtNewOk) {
+    reasons.push(`${TEMP_TWO_SC_CASE}: 시행령 §155①1호는 1주택 세대가 신규주택을 취득해 일시적으로 2주택이 된 경우를 전제한다. 3주택 이상을 보유하다 1채를 처분해 2주택이 된 경우 종전주택 양도는 비과세 대상이 아니다(국세청 서면-2016-부동산-5934 해석과 달리 판단). 최종 1주택이 된 뒤 양도하는 방안을 검토하세요.`);
+  }
 
   // 1) 종전주택 취득 후 1년 이상 지나 신규 취득
   const gapOk = meetsYears(prevAcquireDate, newAcquireDate, 1);
@@ -222,7 +243,7 @@ export function judgeTempTwoExempt(input) {
   const { threshold, isHigh } = highPrice(prevSaleDate, salePrice);
   checklist.push({ key: 'high', label: `고가주택(양도가액 ${eok(threshold)} 기준)`, ok: !isHigh, warn: isHigh, detail: isHigh ? `초과분 과세(부분 비과세)` : '전액 비과세 가능' });
 
-  const baseOk = gapOk && disposeOk && holdOk && live.ok;
+  const baseOk = oneHouseAtNewOk && gapOk && disposeOk && holdOk && live.ok;
   let verdict, headline;
   if (!baseOk) { verdict = 'taxable'; headline = '일시적 2주택 비과세 불가 — 요건 미충족'; }
   else if (isHigh) { verdict = 'partial'; headline = `종전주택 ${eok(threshold)} 이하 비과세 · 초과분 과세`; }

@@ -189,6 +189,29 @@ describe('일시적 2주택 처분기한 — 2026.10.1 시행 시행령 개정(�
   });
 });
 
+describe('일시적 2주택 — 대법원 2024두55426 (취득 당시 3주택이면 불가)', () => {
+  // 사진 사례: 2015.4 A(차익 3억) · 2016.9 B · 2021.2 C 취득(3주택) → 2021.7 A 양도(2주택) → 2021.9 B 양도
+  it('신규(C) 취득 당시 3주택 → 이후 2주택이 되어 종전주택(B) 양도해도 비과세 불가', () => {
+    const r = judgeTempTwoExempt({
+      prevAcquireDate: '2016-09-01', newAcquireDate: '2021-02-01', prevSaleDate: '2021-09-01',
+      prevAcquiredInAdjust: false, salePrice: 1_000_000_000, housesAtNewAcquire: 3,
+    });
+    expect(get(r, 'oneAtNew').ok).toBe(false);
+    expect(r.verdict).toBe('taxable');
+    expect(r.reasons.join(' ')).toContain('2024두55426');
+  });
+
+  it('신규 취득 당시 2주택(1주택 세대가 취득) → 기존대로 비과세', () => {
+    const r = judgeTempTwoExempt({
+      prevAcquireDate: '2016-09-01', newAcquireDate: '2021-02-01', prevSaleDate: '2021-09-01',
+      prevAcquiredInAdjust: false, salePrice: 1_000_000_000, housesAtNewAcquire: 2,
+    });
+    expect(get(r, 'oneAtNew').ok).toBe(true);
+    // 2021.9 양도 → 당시 고가주택 기준 9억: 9억 이하 비과세·초과분 과세
+    expect(r.verdict).toBe('partial');
+  });
+});
+
 describe('judgeExemptRequirementByYears — 계산기용 보유·거주요건 간이 판정', () => {
   it('조정지역 취득 + 거주 2년 미만 → 비과세 불가', () => {
     const r = judgeExemptRequirementByYears({ holdYears: 10, liveYears: 1, acquiredInAdjust: true });

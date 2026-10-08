@@ -179,4 +179,18 @@ export const LAW_UPDATES = [
       { label: '국가법령정보센터 — 소득세법 시행령 개정이유', url: 'https://www.law.go.kr/LSW/lsRvsRsnListP.do?lsId=003956' },
     ],
   },
+  {
+    date: '2025-02-13',
+    category: '판결·심판',
+    title: '대법원 2024두55426 — 3주택에서 1채 처분 후 남은 2주택은 일시적 2주택 비과세 불가',
+    summary: '소득세법 시행령 §155①1호는 국내에 1주택을 소유한 1세대가 신규주택을 취득해 일시적으로 2주택이 된 경우를 전제한 규정이다. '
+      + '3주택을 보유하다 1채를 처분해 2주택이 된 뒤 종전주택을 양도한 경우는 비과세 대상이 아니다. '
+      + '같은 상황을 비과세로 본 국세청 해석(서면-2016-부동산-5934, 2016.12.30)과 다른 판단.',
+    affects: ['양도세', '판정기'],
+    engineStatus: '반영완료',
+    engineNote: '1세대1주택 비과세 판정기 일시적 2주택 탭에 「신규주택 취득 직후 세대 보유 주택 수」 추가 — 3채 이상이면 비과세 불가 (single-house-exempt.js judgeTempTwoExempt, 체크 oneAtNew).',
+    sources: [
+      { label: '대법원 종합법률정보 — 2024두55426', url: 'https://glaw.scourt.go.kr' },
+    ],
+  },
 ];
