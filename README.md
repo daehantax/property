@@ -36,7 +36,7 @@
 1. **절세 대안 생성기** (`src/advisor/alternatives.js`) — AI가 고정 케이스 밖의 절세 대안을 제안하고, 입력값 조정으로 표현 가능한 대안은 **실제 계산 엔진에 통과시켜 검증된 세액**을 붙입니다(AI가 지어낸 숫자가 아님). 현재 시나리오로 표현할 수 없는 대안(예: 증여vs양도 케이스의 부담부증여)은 `altScenarioId`로 **다른 시나리오에 매핑해 그 엔진으로 재계산**합니다.
 2. **리스크·함정 스캐너** (`src/advisor/risk-scan.js`) — 과세관청 시각에서 이월과세·부당행위계산부인·저가양도·자금출처·취득세 중과 함정 등 **거래 구조의 세무 리스크**를 위험도·근거법령·확인사항 체크리스트로 뽑습니다.
 3. **민감도·손익분기 분석** (`src/analysis/sensitivity.js`) — 핵심 변수(대출 승계액·취득가액·보유기간 등)를 범위로 스윕해 **유불리가 뒤바뀌는 손익분기점**을 찾습니다. 순수 엔진 계산이라 AI·네트워크가 필요 없습니다.
-4. **세법 개정 감시** (`src/monitor/law-watch.js`) — 엔진이 박아둔 세법 가정(공정시장가액비율·공제금액·중과 부활일 등 상수 8종)과 동향 4종(대법원 판결·조세심판원 결정 / **국세청 예규·질의응답** / **기획재정부 유권해석** / 정부안·규제지역)을 웹검색으로 대조해 **바뀐 항목과 고쳐야 할 상수 위치**를 경고하고, 직전 한 달에 나온 예규·판결·회신을 **세법 동향 일지 등록 후보(JS 블록)**로 리포트에 붙입니다. 케이스와 무관하므로 `scripts/law-watch.js`로 **단독 실행**하며, `law-watch` GitHub Actions 워크플로가 **매월 1일 09:00 KST에 자동 실행**되어 개정·신규 예규가 발견되면 잡이 실패(빨간불)하고 `law-watch` 라벨 이슈가 자동 생성됩니다.
+4. **세법 개정 감시** (`src/monitor/law-watch.js`) — 엔진이 박아둔 세법 가정(공정시장가액비율·공제금액·중과 부활일·일시적 2주택 처분기한 등 상수 9종)과 동향 4종(대법원 판결·조세심판원 결정 / **국세청 예규·질의응답** / **기획재정부 유권해석** / 정부안·규제지역)을 웹검색으로 대조해 **바뀐 항목과 고쳐야 할 상수 위치**를 경고하고, 직전 한 달에 나온 예규·판결·회신을 **세법 동향 일지 등록 후보(JS 블록)**로 리포트에 붙입니다. 케이스와 무관하므로 `scripts/law-watch.js`로 **단독 실행**하며, `law-watch` GitHub Actions 워크플로가 **매월 1일 09:00 KST에 자동 실행**되어 개정·신규 예규가 발견되면 잡이 실패(빨간불)하고 `law-watch` 라벨 이슈가 자동 생성됩니다.
 
 네 장치는 `adviseCase()`로 한 번에 실행해 하나의 심화 리포트로 합칠 수 있습니다(`src/advisor/index.js`).
 
@@ -50,9 +50,10 @@
 | 전체 파이프라인 / CLI | ✅ 구현 완료 | `tax-ai-consulting/src/pipeline.js`, `src/cli.js` |
 | 심화 검토 장치 (대안·리스크·민감도·개정감시) | ✅ 구현 완료 | `tax-ai-consulting/src/advisor`, `src/analysis`, `src/monitor` |
 | 웹 입력폼 + 보고서 (Word·PDF 내보내기) | ✅ 구현 완료 | `tax-ai-consulting/src/web` |
+| 상속세 계산기 (간주·추정재산, 일괄·배우자·금융·동거주택 공제, 공제한도, 세대생략 할증, 증여세액공제, 상속인별 안분) | ✅ 구현 완료 | `tax-ai-consulting/src/core/inheritance-tax.js`, `src/web/static/inherit-tax.html` |
 | 세무 판정기 (양도세·취득세 중과, 1세대1주택·재건축·혼인 비과세, 지방주택 1세대1주택) | ✅ 구현 완료 | `tax-ai-consulting/src/core/heavy-tax-judge.js`, `single-house-exempt.js`, `redev-exempt.js`, `marriage-exempt.js`, `local-house-judge.js` |
 
-테스트 342개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 381개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -62,6 +63,7 @@ property/
     ├── src/
     │   ├── core/               # 1단계: 세금 계산 엔진 (2026.5.10 시행 기준)
     │   │   ├── gift-tax.js           # 증여세 (calcGiveTax)
+    │   │   ├── inheritance-tax.js    # 상속세 (calcInheritanceTax — 공제·할증·세액공제·상속인별 안분)
     │   │   ├── acquisition-tax.js    # 취득세 (calcTakingTax, calcGiveTakingEtcTax)
     │   │   ├── transfer-tax.js       # 양도세 (calcSaleIncomeTax)
     │   │   ├── property-tax.js       # 재산세 (calcPropertyTax)
@@ -193,7 +195,7 @@ node scripts/law-watch.js --days 62   # 동향 감시 기간 변경 (기본 31�
 ## 매일 자동 점검 (daily-check)
 
 `daily-check` 워크플로가 **매일 06:00 KST**에 API 키 없이 3단계를 점검합니다:
-① 계산 엔진 회귀 테스트(vitest 289개) → ② 정적 사이트 빌드 → ③ 화면 스모크 테스트(`scripts/smoke-test.js` — 13개 페이지 로드·JS 에러 0건, 계산기/판정기 버튼 클릭 후 결과 표시 확인). 실패 시 `daily-check` 라벨 이슈가 자동 생성됩니다. 로컬 실행: `npm run smoke`.
+① 계산 엔진 회귀 테스트(vitest 381개) → ② 정적 사이트 빌드 → ③ 화면 스모크 테스트(`scripts/smoke-test.js` — 15개 페이지 로드·JS 에러 0건, 계산기/판정기 버튼 클릭 후 결과 표시 확인, 메인 화면 세목 클릭 시 하위 메뉴 화면 전환 확인). 실패 시 `daily-check` 라벨 이슈가 자동 생성됩니다. 로컬 실행: `npm run smoke`.
 
 ## 프롬프트 튜닝 (사례 일괄 실행)
 

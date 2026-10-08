@@ -3,8 +3,8 @@
  * 화면 스모크 테스트 — 배포되는 정적 사이트(dist/)의 전 페이지가 실제로 동작하는지 매일 점검한다.
  *
  * 점검 내용:
- *   1) 13개 페이지 전부: 로드 시 자바스크립트 에러 0건
- *   2) 계산기·판정기 9개 페이지: 기본 입력값으로 [계산하기/판정하기] 클릭 → #result 에 결과 표시
+ *   1) 15개 페이지 전부: 로드 시 자바스크립트 에러 0건
+ *   2) 계산기·판정기 10개 페이지 (+ 메인 화면 세목 하위 메뉴 전환): 기본 입력값으로 [계산하기/판정하기] 클릭 → #result 에 결과 표시
  *   3) 세법 동향 페이지: 타임라인 항목이 1건 이상 렌더링
  *
  * 사용법:  npm run build:static && node scripts/smoke-test.js
@@ -23,7 +23,7 @@ const dist = path.join(root, 'dist');
 
 // { 페이지, 누를 버튼(없으면 로드만), 결과 확인 방법 }
 const PAGES = [
-  { html: 'index.html', tabs: ['증여세', '양도소득세', '재산세', '종합부동산세'], btn: '#calcBtn' },
+  { html: 'index.html', tabs: ['증여세', '양도소득세', '재산세', '종합부동산세'], btn: '#calcBtn', hubCheck: true },
   { html: 'transfer-heavy.html', btn: '#judgeBtn' },
   { html: 'acq-heavy.html', btn: '#judgeBtn' },
   { html: 'single-exempt.html', btn: '#judgeBtn' },
@@ -33,6 +33,7 @@ const PAGES = [
   { html: 'aggr-single.html', btn: '#calcBtn' },
   { html: 'aggr-couple.html', btn: '#calcBtn' },
   { html: 'property-calc.html', btn: '#calcBtn' },
+  { html: 'inherit-tax.html', btn: '#calcBtn' },
   { html: 'aggr-home.html' },
   { html: 'scenarios.html' },
   { html: 'rental-lessor.html' },
@@ -93,6 +94,14 @@ for (const spec of PAGES) {
         await page.waitForTimeout(300);
         const txt = await page.textContent('#result').catch(() => '');
         if (!txt || !txt.includes('원')) note(spec.html, `[${tab}] 계산 결과가 표시되지 않음`);
+      }
+      // 상단 세목 버튼 → 본문이 그 세목 하위 메뉴(도구 카드)로 바뀌어야 한다
+      if (spec.hubCheck) {
+        await page.click('.nav-group[data-key="transfer"]');
+        await page.waitForTimeout(200);
+        const hubOn = await page.isVisible('#groupView .group-card').catch(() => false);
+        const calcOff = !(await page.isVisible('#calcArea').catch(() => true));
+        if (!hubOn || !calcOff) note(spec.html, '세목(양도) 클릭 후 하위 메뉴 화면이 표시되지 않음');
       }
     } else if (spec.btn) {
       await page.click(spec.btn);
