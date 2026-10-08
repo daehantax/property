@@ -190,8 +190,17 @@ export function calcInheritanceTax(p) {
   // 2년 기준은 1년분을 포함한 누계 — 두 기준 중 큰 금액을 추정액으로 본다(중복 가산 방지)
   const presumedTotal = Math.max(p1.amount, p2.amount);
   const grossEstate = ownAssets + deemed + presumedTotal;
-  steps.push({ group: '상속재산', label: '본래 상속재산 (부동산·금융·기타)', amount: ownAssets, law: '§7' });
-  if (deemed) steps.push({ group: '상속재산', label: '간주상속재산 (보험금·퇴직금·신탁)', amount: deemed, law: '§8~§10' });
+  // 항목별로 보여 준 뒤 소계 — 입력값과 대조할 수 있게
+  const assetRows = [
+    ['부동산', a.realEstate, '§7'], ['금융재산 (예금·주식·채권 등)', a.financial, '§7'], ['기타 재산', a.other, '§7'],
+  ].filter(([, v]) => n(v) > 0);
+  for (const [label, v, law] of assetRows) steps.push({ group: '상속재산', label: `　${label}`, amount: n(v), law });
+  steps.push({ group: '상속재산', label: '본래 상속재산 소계', amount: ownAssets, law: '§7', subtotal: true });
+  const deemedRows = [
+    ['간주 — 보험금', a.insurance, '§8'], ['간주 — 신탁재산', a.trust, '§9'], ['간주 — 퇴직금·퇴직수당', a.retirement, '§10'],
+  ].filter(([, v]) => n(v) > 0);
+  for (const [label, v, law] of deemedRows) steps.push({ group: '상속재산', label: `　${label}`, amount: n(v), law });
+  if (deemedRows.length > 1) steps.push({ group: '상속재산', label: '간주상속재산 소계', amount: deemed, law: '§8~§10', subtotal: true });
   if (presumedTotal) {
     steps.push({ group: '상속재산', label: '추정상속재산 (용도 불분명 인출)', amount: presumedTotal, law: '§15',
       detail: [p1.applies ? `1년 내 ${won(p1.amount)}` : null, p2.applies ? `2년 내 ${won(p2.amount)}` : null].filter(Boolean).join(' · ') });
@@ -291,8 +300,9 @@ export function calcInheritanceTax(p) {
     notes.push('배우자상속공제(5억 초과분)는 상속세 신고기한 다음날부터 9개월 내 배우자 명의 등기·이전 등 재산분할을 마쳐야 합니다(§19②). 2026년부터 신청절차가 간소화되었습니다.');
   }
 
-  // 5-3. 금융재산 (§22)
-  const netFinancial = Math.max(n(a.financial) - n(li.financialDebts), 0);
+  // 5-3. 금융재산 (§22) — 금융회사 취급 예금·주식·채권 + 보험금·신탁재산 포함 (퇴직금은 제외)
+  const financialAssets = n(a.financial) + n(a.insurance) + n(a.trust);
+  const netFinancial = Math.max(financialAssets - n(li.financialDebts), 0);
   const finDeduct = financialDeduct(netFinancial);
 
   // 5-4. 동거주택 (§23의2)
@@ -307,7 +317,7 @@ export function calcInheritanceTax(p) {
   const deductItems = [
     { label: '기초공제 + 인적공제 / 일괄공제', amount: basicDeduct, detail: lumpChoice, law: '§18·§20·§21' },
     { label: '배우자상속공제', amount: spouseDeduct, detail: spouseDetail, law: '§19', hide: !hasSpouse },
-    { label: '금융재산 상속공제', amount: finDeduct, detail: `순금융재산 ${won(netFinancial)} (2천만 이하 전액 / 1억 이하 2천만 / 초과 20%·한도 2억)`, law: '§22', hide: !finDeduct },
+    { label: '금융재산 상속공제', amount: finDeduct, detail: `순금융재산 ${won(netFinancial)} = 금융재산·보험금·신탁 ${won(financialAssets)} − 금융채무 ${won(n(li.financialDebts))} (2천만 이하 전액 / 1억 이하 2천만 / 초과 20%·한도 2억)`, law: '§22', hide: !finDeduct },
     { label: '동거주택 상속공제', amount: cohabit, detail: '주택가액(담보채무 차감) 100%, 한도 6억', law: '§23의2', hide: !cohabit },
     { label: '가업상속공제', amount: business, law: '§18의2', hide: !business },
     { label: '영농상속공제', amount: farming, law: '§18의3', hide: !farming },
@@ -394,7 +404,7 @@ export function calcInheritanceTax(p) {
       grossEstate, ownAssets, deemed, presumedTotal, nonTaxable, publicDonation,
       publicCharges, funeral, debts, priorHeirs, priorOthers, taxableValue,
       personal, personalSum, basicDeduct, lumpChoice, spouseDeduct, spouseLimit, spouseDetail,
-      finDeduct, netFinancial, cohabit, business, farming,
+      finDeduct, financialAssets, netFinancial, cohabit, business, farming,
       deductItems: deductItems.filter((x) => !x.hide),
       deductSum, deductLimit, deductApplied, appraisal,
       taxBase, rate: raw.rate, accDeduct: raw.acc, computedTax,

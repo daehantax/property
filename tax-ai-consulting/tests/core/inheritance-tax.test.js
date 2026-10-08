@@ -53,6 +53,9 @@ describe('calcInheritanceTax — 계산 사례', () => {
     });
     const b = r.breakdown;
     expect(b.taxableValue).toBe(1_990_000_000);
+    // 본래 상속재산은 항목별 + 소계로 표시
+    expect(r.steps.map((s) => s.label.trim())).toEqual(expect.arrayContaining(['부동산', '금융재산 (예금·주식·채권 등)', '본래 상속재산 소계']));
+    expect(r.steps.find((s) => s.label === '본래 상속재산 소계').amount).toBe(2_000_000_000);
     expect(b.basicDeduct).toBe(500_000_000);
     expect(b.spouseDeduct).toBe(857_142_857);
     expect(b.finDeduct).toBe(100_000_000);
@@ -140,7 +143,10 @@ describe('calcInheritanceTax — 계산 사례', () => {
     const b = r.breakdown;
     expect(b.grossEstate).toBe(1_240_000_000);
     expect(b.cohabit).toBe(600_000_000);
+    // 간주 보험금 2억도 금융재산공제 대상 → 20% = 4천만
+    expect(b.netFinancial).toBe(200_000_000);
+    expect(b.finDeduct).toBe(40_000_000);
     expect(b.reportCredit).toBe(0);
-    expect(b.taxBase).toBe(1_230_000_000 - 1_100_000_000);
+    expect(b.taxBase).toBe(1_230_000_000 - 1_140_000_000);
   });
 });
