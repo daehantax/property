@@ -298,7 +298,7 @@ export function calcInheritanceTax(p) {
       spouseDeduct = Math.max(INH_SPOUSE_MIN, Math.min(actualInput, spouseLimit, INH_SPOUSE_MAX));
       spouseDetail = `min(실제 상속액 ${won(actualInput)}, 법정상속분 한도 ${won(spouseLimit)}, 30억) = ${won(spouseDeduct)}`;
     }
-    notes.push('배우자상속공제(5억 초과분)는 상속세 신고기한 다음날부터 9개월 내 배우자 명의 등기·이전 등 재산분할을 마쳐야 합니다(§19②). 2026년부터 신청절차가 간소화되었습니다.');
+    notes.push('배우자상속공제(5억 초과분)는 상속세 신고기한 다음날부터 9개월 내 배우자 명의 등기·이전 등 재산분할을 마쳐야 합니다(§19②). ');
   }
 
   // 5-3. 금융재산 (§22) — 금융회사 취급 예금·주식·채권 + 보험금·신탁재산 포함 (퇴직금은 제외)
@@ -313,7 +313,7 @@ export function calcInheritanceTax(p) {
   // 5-5. 가업·영농 (직접 입력)
   const business = n(o.businessDeduct);
   const farming = n(o.farmingDeduct);
-  if (business || farming) notes.push('가업·영농상속공제는 사후관리(가업 5년·영농 5년 유지, 고용·자산 처분 제한) 위반 시 추징됩니다. 2026.1.1 시행 개정으로 가업상속 대상 중견기업 매출 기준(4천억 미만)과 영농상속공제 한도가 확대되었으니 한도는 법령 원문으로 확인하세요.');
+  if (business || farming) notes.push('가업·영농상속공제는 사후관리(가업 5년·영농 5년 유지, 고용·자산 처분 제한) 위반 시 추징됩니다. 현행 한도: 가업상속공제 경영기간 10년 300억·20년 400억·30년 이상 600억(중견기업은 매출 5천억 미만), 영농상속공제 30억.');
 
   const deductItems = [
     { label: '기초공제 + 인적공제 / 일괄공제', amount: basicDeduct, detail: lumpChoice, law: '§18·§20·§21' },

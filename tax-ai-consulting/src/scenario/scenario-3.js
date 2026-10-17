@@ -9,7 +9,7 @@
  */
 
 import {
-  CHILD, EXT_REL, SKIP_T, SKIP_F,
+  CHILD, EXT_REL, SKIP_T, SKIP_F, INDEPENDENT_HH_AGE,
 } from '../core/constants.js';
 import { calcGiveTax }         from '../core/gift-tax.js';
 import { calcTakingTax, calcGiveTakingEtcTax } from '../core/acquisition-tax.js';
@@ -108,9 +108,12 @@ export function runScenario3(inputs) {
   const beforeTotal = beforeOwnerPropertyTotal + beforeAggrTax.total;
 
   // 증여 후 소유자: 계속보유주택만
-  const afterOwnerPropTax = calcPropertyTax('다주택', holdOfficialPrice);
+  // 증여 후 소유자: 계속보유주택 1채. 수증 자녀가 별도세대(만 30세 이상 가정 — 시나리오 9·10과 같은 기준)이면
+  // 세대 주택수가 1채가 되어 1세대1주택(재산세 43~45%·특례세율, 종부세 12억 공제·세액공제), 동일세대면 2주택 그대로
+  const ownerAfterType = child.age >= INDEPENDENT_HH_AGE ? '1세대1주택' : '다주택';
+  const afterOwnerPropTax = calcPropertyTax(ownerAfterType, holdOfficialPrice);
   const afterOwnerAggrTax = calcAggrTax(
-    '다주택', heavyStr,
+    ownerAfterType, heavyStr,
     holdOfficialPrice, holdPeriod2, ownerAge,
     afterOwnerPropTax.propertyTax
   );

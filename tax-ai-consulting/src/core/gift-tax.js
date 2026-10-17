@@ -41,7 +41,9 @@ export function calcGiveTax(giveRel, isSkip, giftPrice, recipientAge) {
   }
   // ETC(타인): 공제 없음
 
-  const taxBase = Math.max(giftPrice - deduct, 0);
+  // 과세최저한 (상증세법 §55②): 과세표준 50만원 미만이면 증여세를 부과하지 않음
+  const rawBase = Math.max(giftPrice - deduct, 0);
+  const taxBase = rawBase < 500_000 ? 0 : rawBase;
 
   // 누진세율 적용
   let taxRate, accDeduct;

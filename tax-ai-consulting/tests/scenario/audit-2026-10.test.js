@@ -283,3 +283,48 @@ describe('시나리오 10 — 배우자 단독 부담부증여 vs 분산 부담�
     expect(r.case2.recipientAcqTax).toBe(52_200_000);
   });
 });
+
+/**
+ * 2026-10-17 최종 감사 추가분
+ *  [보유세·처분 후 소유자] 2주택 중 1채를 별도세대 자녀(만 30세 이상)에게 증여하거나 타인에게 양도하면
+ *    소유자 세대는 계속보유주택 1채 → 1세대1주택 (재산세 45%, 종부세 12억 공제)
+ *    공시 10억: 10억×45% = 4.5억(9억 초과 → 표준세율) → 570,000 + 1.5억×0.4% = 1,170,000
+ *               + 도시지역분 630,000 + 교육세 234,000 = 2,034,000, 종부세 0 (12억 이하)
+ *    동일세대(자녀 30세 미만·배우자) 증여면 세대 2주택 유지 → 다주택: 재산세 2,964,000
+ *               + 종부세 (10억−9억)×60% = 6천만×0.5% = 300,000 − 재산세공제 144,000 = 156,000 × 1.2 = 187,200 → 3,151,200
+ */
+describe('처분 후 소유자 보유세 — 1세대1주택 판정 (최종 감사)', () => {
+  it('시나리오1: 자녀(32세) 증여·타인 양도 모두 소유자 1세대1주택 2,034,000', () => {
+    const r = S.runScenario1(def(1));
+    expect(r.holdingTax.afterCase1.ownerPropertyTax).toBe(2_034_000);
+    expect(r.holdingTax.afterCase1.ownerAggrTax).toBe(0);
+    expect(r.holdingTax.afterCase2.total).toBe(2_034_000);
+  });
+  it('시나리오1 변형: 자녀 25세(동일세대) → 증여 후 소유자 다주택 3,151,200, 양도 후는 1세대1주택', () => {
+    const r = S.runScenario1(def(1, { childAge: 25 }));
+    expect(r.holdingTax.afterCase1.ownerPropertyTax + r.holdingTax.afterCase1.ownerAggrTax).toBe(3_151_200);
+    expect(r.holdingTax.afterCase2.total).toBe(2_034_000);
+  });
+  it('시나리오1 변형: 3주택 → 처분 후에도 2주택 → 다주택', () => {
+    const r = S.runScenario1(def(1, { ownCount: 3 }));
+    expect(r.holdingTax.afterCase2.total).toBe(3_151_200);
+  });
+  it('시나리오2·3·4: 32세 자녀 증여 후 소유자 2,034,000 / 25세면 3,151,200', () => {
+    expect(S.runScenario2(def(2)).holdingTax.after.ownerTotal).toBe(2_034_000);
+    expect(S.runScenario2(def(2, { childAge: 25 })).holdingTax.after.ownerTotal).toBe(3_151_200);
+    expect(S.runScenario3(def(3)).holdingTax.afterCase2.ownerTotal).toBe(2_034_000);
+    expect(S.runScenario4(def(4)).holdingTax.afterCase1.ownerTotal).toBe(2_034_000);
+    expect(S.runScenario4(def(4, { child: { price: 600_000_000, age: 25 } })).holdingTax.afterCase1.ownerTotal).toBe(3_151_200);
+  });
+  it('시나리오8: 배우자 증여(같은 세대) 후 다주택 3,151,200 / 타인 양도 후 1세대1주택 2,034,000', () => {
+    const r = S.runScenario8(def(8));
+    expect(r.holdingTax.afterCase1.ownerTotal).toBe(3_151_200);
+    expect(r.holdingTax.afterCase2.ownerTotal).toBe(2_034_000);
+    expect(r.holdingTax.changeCase2).toBe(2_034_000 - r.holdingTax.before.ownerTotal);
+  });
+  it('시나리오5·9·10: 배우자 수증(같은 세대) → 소유자 다주택 유지', () => {
+    expect(S.runScenario5(def(5)).holdingTax.after.ownerTotal).toBe(3_151_200);
+    expect(S.runScenario9(def(9)).holdingTax.afterCase1.ownerTotal).toBe(3_151_200);
+    expect(S.runScenario10(def(10)).holdingTax.afterCase2.ownerTotal).toBe(3_151_200);
+  });
+});

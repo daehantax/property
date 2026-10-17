@@ -52,6 +52,15 @@ function rateCurrent(base) {
   else                            return base * 0.027 - 101_800_000;
 }
 
+/** 주택분 종부세 세율표 — 현행 3주택 이상 (과표 12억 초과분 2.0~5.0%, 종부세법 §9①2호) */
+function rateCurrentHeavy(base) {
+  if (base <= 1_200_000_000)      return rateCurrent(base);
+  else if (base <= 2_500_000_000) return base * 0.020 - 14_400_000;
+  else if (base <= 5_000_000_000) return base * 0.030 - 39_400_000;
+  else if (base <= 9_400_000_000) return base * 0.040 - 89_400_000;
+  else                            return base * 0.050 - 183_400_000;
+}
+
 /** 개편안 2027년 과도기 세율표 (0.5~3.5%, 6억 초과 구간 인상) */
 function rate2027(base) {
   if      (base <= 300_000_000)   return base * 0.005;
@@ -93,7 +102,8 @@ function rate2028(base) {
  *   @param {number} [reformOpts.reformYear=0]  귀속연도 (0=현행법, 2027 | 2028~)
  *   @param {number} [reformOpts.isResident=1]  1주택 실거주 여부 (0/1) — 공제 14억/12억 판정
  *   @param {number} [reformOpts.residentShare=0] 다주택: 거주주택 공시가격 ÷ 합계 (0~1)
- *   @param {number} [reformOpts.ownCount=1]    보유 주택수 — 2028년~ 공정시장가액비율 판정
+ *   @param {number} [reformOpts.ownCount=1]    보유 주택수 — 현행: 3주택 이상(다주택)이면 §9①2호 중과세율표,
+ *                                               개편안 2028년~: 공정시장가액비율 판정
  *   @param {number} [reformOpts.prevYearTotal=0] 직전연도 보유세 상당액(재산세+종부세) [원]
  *     — 0보다 크면 세부담상한(§10, 150%) 적용: 당해 재산세+종부세가 전년의 150%를
  *       넘지 않도록 초과분을 종부세에서 차감
@@ -134,7 +144,10 @@ export function calcAggrTax(oneOOne, heavy, gongsi, period, age, propertyTax, re
   const aggrTaxBase = Math.max((gongsi - deductAmt), 0) * fairMarketRate;
 
   // 주택분 종부세 세율
-  const rateFn = !reformYear ? rateCurrent : (reformYear === 2027 ? rate2027 : rate2028);
+  // 현행: 3주택 이상 소유자는 과표 12억 초과분에 2.0~5.0% (2주택 이하 0.5~2.7%)
+  const rateFn = !reformYear
+    ? (oneOOne === '다주택' && ownCount >= 3 ? rateCurrentHeavy : rateCurrent)
+    : (reformYear === 2027 ? rate2027 : rate2028);
   const aggrTax = Math.max(rateFn(aggrTaxBase), 0);
 
   // 장기보유 세액공제 (1세대1주택만)

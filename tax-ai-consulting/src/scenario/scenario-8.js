@@ -84,7 +84,8 @@ export function runScenario8(inputs) {
   const beforeAggrTax = calcAggrTax(
     '다주택', heavyStr,   // ※ 버그 수정: 원본의 "다세대" → "다주택"
     officialPrice + holdOfficialPrice, holdPeriod, ownerAge,
-    sPropertyTax.propertyTax + hPropertyTax.propertyTax
+    sPropertyTax.propertyTax + hPropertyTax.propertyTax,
+    { ownCount }   // 3주택 이상이면 과표 12억 초과분 중과세율(종부세법 §9①2)
   );
   const beforeOwnerTotal = sPropertyTax.total + hPropertyTax.total + beforeAggrTax.total;
 
@@ -96,6 +97,11 @@ export function runScenario8(inputs) {
     afterOwnerPropTax.propertyTax
   );
   const afterOwnerTotal = afterOwnerPropTax.total + afterOwnerAggrTax.total;
+  // 양도(Case2) 후: 대상주택이 타인에게 넘어가 남은 주택이 1채면 1세대1주택 (배우자 증여는 같은 세대라 2주택 유지)
+  const c2OwnerType = ownCount - 1 === 1 ? '1세대1주택' : '다주택';
+  const c2OwnerPropTax = calcPropertyTax(c2OwnerType, holdOfficialPrice);
+  const c2OwnerAggrTax = calcAggrTax(c2OwnerType, heavyStr, holdOfficialPrice, holdPeriod2, ownerAge, c2OwnerPropTax.propertyTax);
+  const c2OwnerTotal = c2OwnerPropTax.total + c2OwnerAggrTax.total;
 
   // 증여 후 배우자(수증자) 보유세
   const spousePropTax = calcPropertyTax('다주택', officialPrice);
@@ -114,12 +120,12 @@ export function runScenario8(inputs) {
       grandTotal:  afterOwnerTotal + spouseTotal,
     },
     afterCase2: {  // 양도 후
-      ownerTotal:  afterOwnerTotal,
+      ownerTotal:  c2OwnerTotal,
       spouseTotal: 0,
-      grandTotal:  afterOwnerTotal,
+      grandTotal:  c2OwnerTotal,
     },
     changeCase1: (afterOwnerTotal + spouseTotal) - beforeOwnerTotal,
-    changeCase2: afterOwnerTotal - beforeOwnerTotal,
+    changeCase2: c2OwnerTotal - beforeOwnerTotal,
   };
 
   return {

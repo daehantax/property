@@ -267,3 +267,21 @@ describe('세부담상한 (reformOpts.prevYearTotal)', () => {
     expect(r.aggrTax).toBe(0);
   });
 });
+
+// 최종 감사: 현행 3주택 이상 중과세율 (종부세법 §9①2호 — 과표 12억 초과분 2.0~5.0%)
+describe('calcAggrTax — 현행 3주택 이상 세율표', () => {
+  it('공시 합계 40억, 3주택: 과표 (40억−9억)×60% = 18.6억 → 2% − 1,440만 = 22,800,000 (2주택 이하면 1.3% − 600만 = 18,180,000)', () => {
+    expect(calcAggrTax('다주택', '조정지역', 4_000_000_000, 0, 0, 0, { ownCount: 3 }).breakdown.aggrTaxBeforeDc).toBeCloseTo(22_800_000, 0);
+    expect(calcAggrTax('다주택', '조정지역', 4_000_000_000, 0, 0, 0, { ownCount: 2 }).breakdown.aggrTaxBeforeDc).toBeCloseTo(18_180_000, 0);
+    expect(calcAggrTax('다주택', '조정지역', 4_000_000_000, 0, 0, 0).breakdown.aggrTaxBeforeDc).toBeCloseTo(18_180_000, 0);
+  });
+  it('3주택이라도 과표 12억 이하면 일반세율과 같다: 공시 25억 → 9.6억 × 1% − 240만 = 7,200,000', () => {
+    expect(calcAggrTax('다주택', '조정지역', 2_500_000_000, 0, 0, 0, { ownCount: 3 }).breakdown.aggrTaxBeforeDc).toBeCloseTo(7_200_000, 0);
+  });
+  it('과표 94억 초과 3주택: 100억 × 5% − 1억 8,340만 = 316,600,000', () => {
+    // 과표 100억 ← 공시 (100억/0.6 + 9억)
+    const g = Math.round(10_000_000_000 / 0.6) + 900_000_000;
+    near3(calcAggrTax('다주택', '조정지역', g, 0, 0, 0, { ownCount: 3 }).breakdown.aggrTaxBeforeDc, 316_600_000);
+  });
+});
+function near3(a, b) { expect(Math.abs(a - b)).toBeLessThan(5); }

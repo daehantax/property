@@ -7,7 +7,7 @@
  */
 
 import {
-  CHILD, SKIP_F,
+  CHILD, SKIP_F, INDEPENDENT_HH_AGE,
 } from '../core/constants.js';
 import { calcGiveTax }       from '../core/gift-tax.js';
 import { calcTakingTax }     from '../core/acquisition-tax.js';
@@ -81,18 +81,26 @@ export function runScenario1(inputs) {
     '다주택', heavy === 1 ? '조정지역' : '비조정지역',
     officialPrice + holdOfficialPrice,
     holdPeriod, ownerAge,
-    sPropertyTax.propertyTax + hPropertyTax.propertyTax
+    sPropertyTax.propertyTax + hPropertyTax.propertyTax,
+    { ownCount }   // 3주택 이상이면 과표 12억 초과분 중과세율(종부세법 §9①2)
   );
   const beforeHoldingTotal = beforePropertyTax + beforeAggrTax.total;
 
-  // 처분 후: 소유자는 1주택만 보유 → 1세대1주택 혜택
-  const afterOwnerPropertyTax = calcPropertyTax('다주택', holdOfficialPrice);
-  const afterOwnerAggrTax = calcAggrTax(
-    '다주택', heavy === 1 ? '조정지역' : '비조정지역',
-    holdOfficialPrice, holdPeriod2, ownerAge,
-    afterOwnerPropertyTax.propertyTax
-  );
-  const afterOwnerHoldingTotal = afterOwnerPropertyTax.total + afterOwnerAggrTax.total;
+  // 처분 후 소유자: 계속보유주택만 남고(ownCount−1 = 1) 대상주택이 세대 밖으로 나가면 1세대1주택
+  //  - 양도(Case2): 타인에게 넘어가므로 남은 주택이 1채면 1세대1주택
+  //  - 증여(Case1): 자녀가 별도세대(만 30세 이상 가정)일 때만 1세대1주택, 동일세대 자녀면 세대 2주택 그대로
+  const ownerAfter = (one) => {
+    const type = one ? '1세대1주택' : '다주택';
+    const p = calcPropertyTax(type, holdOfficialPrice);
+    const a = calcAggrTax(type, heavy === 1 ? '조정지역' : '비조정지역', holdOfficialPrice, holdPeriod2, ownerAge, p.propertyTax);
+    return { p, a, total: p.total + a.total };
+  };
+  const remainOne = ownCount - 1 === 1;
+  const ownerAfterC1 = ownerAfter(remainOne && childAge >= INDEPENDENT_HH_AGE);
+  const ownerAfterC2 = ownerAfter(remainOne);
+  const afterOwnerPropertyTax = ownerAfterC1.p;
+  const afterOwnerAggrTax = ownerAfterC1.a;
+  const afterOwnerHoldingTotal = ownerAfterC1.total;
 
   // 증여 후 자녀(수증자) 보유세
   const recipientPropertyTax = calcPropertyTax('다주택', officialPrice);
@@ -119,14 +127,14 @@ export function runScenario1(inputs) {
       total: afterOwnerHoldingTotal + recipientHoldingTotal,
     },
     afterCase2: {  // 양도 후
-      ownerPropertyTax: afterOwnerPropertyTax.total,
-      ownerAggrTax: afterOwnerAggrTax.total,
+      ownerPropertyTax: ownerAfterC2.p.total,
+      ownerAggrTax: ownerAfterC2.a.total,
       recipientPropertyTax: 0,
       recipientAggrTax: 0,
-      total: afterOwnerHoldingTotal,
+      total: ownerAfterC2.total,
     },
     changeCase1: (afterOwnerHoldingTotal + recipientHoldingTotal) - beforeHoldingTotal,
-    changeCase2: afterOwnerHoldingTotal - beforeHoldingTotal,
+    changeCase2: ownerAfterC2.total - beforeHoldingTotal,
   };
 
   return {

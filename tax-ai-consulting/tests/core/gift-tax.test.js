@@ -90,3 +90,14 @@ describe('calcGiveTax — 증여세', () => {
     expect(r.lawRef.length).toBeGreaterThan(0);
   });
 });
+
+// 최종 감사: 증여세 과세최저한 (상증세법 §55② — 과세표준 50만원 미만 비과세)
+describe('calcGiveTax — 과세최저한 50만원', () => {
+  it('성년 자녀 50,400,000원 → 과세표준 40만 < 50만 → 0', () => {
+    expect(calcGiveTax(1, 2, 50_400_000, 30).tax).toBe(0);
+    expect(calcGiveTax(1, 2, 50_400_000, 30).breakdown.taxBase).toBe(0);
+  });
+  it('성년 자녀 50,600,000원 → 과세표준 60만 × 10% = 60,000 × 0.97 = 58,200', () => {
+    expect(calcGiveTax(1, 2, 50_600_000, 30).tax).toBe(58_200);
+  });
+});
