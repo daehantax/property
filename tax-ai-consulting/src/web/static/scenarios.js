@@ -147,6 +147,20 @@ $('scenario').addEventListener('change', renderForm);
 
 $('scenario').innerHTML = SCENARIO_FORMS
   .map((s) => `<option value="${s.id}">${s.id}. ${s.title}</option>`).join('');
+
+// 외부 랜딩(상속·증여 랜딩 daehantax.github.io/inherit/gift.html)의 카드에서
+// scenarios.html?s=3&from=inherit 처럼 들어오면 해당 시나리오를 바로 선택하고,
+// 목록으로 돌아가는 링크를 위에 보여 준다.
+const params = new URLSearchParams(location.search);
+const preset = Number(params.get('s'));
+if (SCENARIO_FORMS.some((s) => s.id === preset)) $('scenario').value = String(preset);
+if (params.get('from') === 'inherit') {
+  const back = document.createElement('a');
+  back.href = 'https://daehantax.github.io/inherit/gift.html';
+  back.textContent = '← 상황별 증여세 목록으로';
+  back.style.cssText = 'display:inline-block;margin:4px 0 12px;font-weight:700;color:#9F244D;text-decoration:none';
+  document.querySelector('.container')?.prepend(back);
+}
 renderForm();
 // 기본값 확인용 (콘솔)
 console.log('시나리오 폼 로드 완료:', SCENARIO_FORMS.length, buildDefaults(1) ? 'defaults ok' : '');
