@@ -60,7 +60,8 @@ export function runScenario4(inputs) {
   // ── Case 1: 자녀에게만 부담부증여 ────────────────────
   const c1NetPrice = marketPrice - loanPrice;  // 증여세 과세기준
   const c1GiftResult = calcGiveTax(CHILD, SKIP_F, c1NetPrice, child.age);
-  const c1AcqResult  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy);
+  // 증여취득 12% 중과(지방세법 §13의2②)는 시가표준액(공시가격) 3억 이상으로 판정 — 과세표준(시가)이 아님
+  const c1AcqResult  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, 'give', officialPrice);
 
   const case1 = {
     label: '자녀에게만 부담부증여',
@@ -90,8 +91,8 @@ export function runScenario4(inputs) {
     const netPrice = r.price - partLoan;  // 지분별 증여세 과세액
 
     // 취득세: 지분 시가 중 승계채무(유상)·나머지(무상) 구분 과세
-    // 무상분 12% 중과 판정은 지분이 아닌 주택 전체 시가(marketPrice) 기준
-    const acqResult = calcBurdenedGiveTakingTax(r.price, partLoan, space, heavy, 'give', marketPrice);
+    // 무상분 12% 중과 판정은 지분이 아닌 주택 전체 시가표준액(officialPrice) 기준
+    const acqResult = calcBurdenedGiveTakingTax(r.price, partLoan, space, heavy, 'give', officialPrice);
     const giftResult = rel === EXT_REL
       ? calcGiveTax(EXT_REL, SKIP_F, netPrice, r.age)
       : calcGiveTax(rel, skip, netPrice, r.age);
@@ -139,13 +140,14 @@ export function runScenario4(inputs) {
   const afterCase1RecipientTotal = c1RecipientPropTax.total + c1RecipientAggrTax.total;
 
   // Case2 수증자 보유세 (각 지분 비례)
+  // 재산세는 물건별 과세 — 주택 전체 누진세액을 지분비율로 안분 (지방세법 §113③)
   let afterCase2RecipientTotal = 0;
   c2Recipients.forEach(rec => {
     const rate = rec.price / marketPrice;
     const partOfficialPrice = Math.floor(officialPrice * rate);
-    const partPropTax = calcPropertyTax('다주택', partOfficialPrice);
-    const partAggrTax = calcAggrTax('다주택', heavyStr, partOfficialPrice, 0, 0, partPropTax.propertyTax);
-    afterCase2RecipientTotal += partPropTax.total + partAggrTax.total;
+    const partPropTotal = sPropertyTax.total * rate;
+    const partAggrTax = calcAggrTax('다주택', heavyStr, partOfficialPrice, 0, 0, sPropertyTax.propertyTax * rate);
+    afterCase2RecipientTotal += partPropTotal + partAggrTax.total;
   });
 
   const holdingTax = {

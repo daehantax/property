@@ -60,7 +60,8 @@ export function runScenario10(inputs) {
   // ── Case 1: 배우자에게만 부담부증여 ──────────────────
   const c1NetPrice = marketPrice - loanPrice;
   const c1GiftResult = calcGiveTax(SPOUSE, SKIP_F, c1NetPrice, spouse.age);
-  const c1AcqResult  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy);
+  // 증여취득 12% 중과(지방세법 §13의2②)는 시가표준액(공시가격) 3억 이상으로 판정 — 과세표준(시가)이 아님
+  const c1AcqResult  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, 'give', officialPrice);
 
   const case1 = {
     label: '배우자에게만 부담부증여',
@@ -89,8 +90,8 @@ export function runScenario10(inputs) {
     const netPrice = r.price - partLoan;
 
     // 취득세: 지분 시가 중 승계채무(유상)·나머지(무상) 구분 과세
-    // 무상분 12% 중과 판정은 지분이 아닌 주택 전체 시가(marketPrice) 기준
-    const acqResult = calcBurdenedGiveTakingTax(r.price, partLoan, space, heavy, 'give', marketPrice);
+    // 무상분 12% 중과 판정은 지분이 아닌 주택 전체 시가표준액(officialPrice) 기준
+    const acqResult = calcBurdenedGiveTakingTax(r.price, partLoan, space, heavy, 'give', officialPrice);
     const giftResult = calcGiveTax(rel === EXT_REL ? EXT_REL : rel, SKIP_F, netPrice, r.age);
     c2TotalGift += giftResult.tax;
     c2TotalAcq  += acqResult.total;
@@ -150,12 +151,13 @@ export function runScenario10(inputs) {
     const rel = r.rel;
 
     if (rel === SPOUSE || age < INDEPENDENT_HH_AGE) {
-      const partPropTax = calcPropertyTax('다주택', partOfficialPrice);
+      // 재산세는 주택 전체(다주택) 누진세액을 지분비율로 안분 (지방세법 §113③)
+      const partPropTotal = sPropertyTax.total * rate;
       const partAggrTax = calcAggrTax(
         '다주택', heavyStr, partOfficialPrice, 0, age,
         sPropertyTax.propertyTax * rate
       );
-      afterCase2RecipientTotal += partPropTax.total + partAggrTax.total;
+      afterCase2RecipientTotal += partPropTotal + partAggrTax.total;
     } else {
       const partPropTaxAmt = (r1PropTax.propertyTax + r1PropTax.pEduTax + r1PropTax.dosiTax) * rate;
       const partAggrTax = calcAggrTax(

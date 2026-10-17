@@ -40,7 +40,8 @@ export function runScenario2(inputs) {
 
   // ── Case 1: 일반증여 ──────────────────────────────────
   const gift1Result = calcGiveTax(CHILD, SKIP_F, marketPrice, childAge);
-  const acq1Result  = calcTakingTax('give', marketPrice, 0, 0, space, heavy);
+  // 증여취득 12% 중과(지방세법 §13의2②)는 시가표준액(공시가격) 3억 이상으로 판정 — 과세표준(시가)이 아님
+  const acq1Result  = calcTakingTax('give', marketPrice, 0, 0, space, heavy, officialPrice);
 
   const case1 = {
     label: '일반증여',
@@ -57,7 +58,7 @@ export function runScenario2(inputs) {
   // 자녀 증여세: 시가 − 승계대출
   const gift2Result = calcGiveTax(CHILD, SKIP_F, marketPrice - loanPrice, childAge);
   // 자녀 취득세: 유상분(승계채무, 매매세율) + 무상분(시가-채무, 증여세율) 구분 과세
-  const acq2Result  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy);
+  const acq2Result  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, 'give', officialPrice);
 
   // 소유자 양도세: 대출분에 대해 양도한 것으로 간주
   // 대출분 취득원가 = 취득가액 × (대출/시가)

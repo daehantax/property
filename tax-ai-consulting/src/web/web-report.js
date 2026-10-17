@@ -99,6 +99,35 @@ function comparisonSection(calculation) {
   ];
 }
 
+/** 분산증여 수증자별 세부담 표 (case.recipients 배열이 있는 시나리오 3·4·9·10) */
+function recipientsSection(calculation) {
+  const out = [];
+  for (const [no, c] of [[1, calculation.case1], [2, calculation.case2]]) {
+    const list = c?.recipients;
+    if (!Array.isArray(list) || list.length < 2) continue;
+    const hasLoan = list.some((r) => typeof r.partLoan === 'number');
+    const hasPrice = list.some((r) => typeof r.price === 'number');
+    const head = ['수증자', ...(hasPrice ? ['지분 가액'] : []), ...(hasLoan ? ['승계 채무'] : []), '증여세', '취득세', '합계'];
+    out.push('', `### 수증자별 세부담 — 케이스${no} (${c.label ?? ''})`, '',
+      `| ${head.join(' | ')} |`, `|---|${head.slice(1).map(() => '---:').join('|')}|`);
+    const sum = { price: 0, partLoan: 0, giftTax: 0, acqTax: 0 };
+    for (const r of list) {
+      const cells = [r.label];
+      if (hasPrice) { cells.push(won(r.price ?? 0)); sum.price += r.price ?? 0; }
+      if (hasLoan) { cells.push(won(r.partLoan ?? 0)); sum.partLoan += r.partLoan ?? 0; }
+      cells.push(won(r.giftTax), won(r.acqTax), `**${won(r.giftTax + r.acqTax)}**`);
+      sum.giftTax += r.giftTax; sum.acqTax += r.acqTax;
+      out.push(`| ${cells.join(' | ')} |`);
+    }
+    const tot = ['**합계**'];
+    if (hasPrice) tot.push(`**${won(sum.price)}**`);
+    if (hasLoan) tot.push(`**${won(sum.partLoan)}**`);
+    tot.push(`**${won(sum.giftTax)}**`, `**${won(sum.acqTax)}**`, `**${won(sum.giftTax + sum.acqTax)}**`);
+    out.push(`| ${tot.join(' | ')} |`);
+  }
+  return out;
+}
+
 /** 보유세 변화 표 (시나리오별 구조 차이를 일반화) */
 function holdingSection(calculation) {
   const h = calculation.holdingTax;
@@ -151,6 +180,41 @@ function conclusionSection(calculation) {
   return out;
 }
 
+/** 유의사항 — 계산에 반영되지 않은 사후 과세·요건 (시나리오 구성에 따라 선택) */
+function cautionSection(calculation) {
+  const id = Number(calculation.scenarioId);
+  const burdened = [2, 4, 5, 6, 7, 10].includes(id);
+  const spouseShare = [6, 7].includes(id);
+  const toSpouse = [5, 6, 7, 8, 9, 10].includes(id);
+  const items = [
+    '**이월과세(소득세법 §97의2)**: 배우자·직계존비속이 증여받은 주택을 증여일부터 **10년 이내 양도**하면 '
+      + '취득가액은 증여 당시 평가액이 아니라 **증여자의 당초 취득가액**으로 계산하고, 납부한 증여세는 필요경비로 공제합니다. '
+      + '본 보고서의 증여 케이스는 증여 시점의 세부담만 비교하며, 수증자의 향후 양도세는 포함하지 않습니다.',
+    '**증여재산공제 10년 합산(상증세법 §47②·§53)**: 공제액(배우자 6억·성년 자녀 5천만·미성년 2천만·기타친족 1천만)은 '
+      + '동일인에게서 10년간 받은 증여를 합산해 한 번만 적용됩니다. 10년 내 사전증여가 있으면 증여세가 위 계산보다 늘어납니다.',
+  ];
+  if (burdened) {
+    items.push(
+      '**부담부증여 채무 요건(상증세법 §47③)**: 배우자·직계존비속 간에는 수증자가 실제로 인수·상환하는 것이 객관적으로 '
+        + '입증되는 채무만 차감됩니다. 이후 증여자가 대신 상환하면 그 금액은 다시 증여로 과세됩니다. '
+        + '채무 인수분 취득세는 수증자의 보유 주택수에 따른 유상취득세율(1~3%, 중과 시 8·12%)이 적용되며 본 계산은 수증자 무주택을 전제합니다.',
+    );
+  }
+  if (spouseShare) {
+    items.push(
+      '**1세대1주택 보유·거주기간**: 같은 세대인 배우자로부터 증여받은 지분은 양도세 비과세 판정 시 '
+        + '증여자의 보유·거주기간을 통산합니다(소득세법 시행령 §154⑤). 다만 10년 내 양도 시 이월과세는 별도로 적용됩니다.',
+    );
+  }
+  if (toSpouse) {
+    items.push(
+      '**배우자 증여 후 보유세**: 배우자는 같은 세대이므로 증여 후에도 세대 기준 주택수는 그대로입니다. '
+        + '종부세는 인별 과세로 각자 공제를 적용해 계산했으며, 재산세는 주택 전체 세액을 지분비율로 안분했습니다.',
+    );
+  }
+  return ['## 5. 유의사항 (계산에 반영되지 않은 사후 과세·요건)', '', ...items.map((t) => `> ${t}`).flatMap((l, i, a) => (i < a.length - 1 ? [l, '>'] : [l]))];
+}
+
 /**
  * 계산 결과로 고객용 보고서 마크다운을 만든다.
  * @param {object} calculation runScenarioN() 반환값
@@ -159,17 +223,18 @@ function conclusionSection(calculation) {
 export function buildWebReport(calculation, { generatedAt } = {}) {
   const date = generatedAt ?? new Date().toISOString().slice(0, 10);
   const parts = [
-    '# 부동산 세금 상담 보고서',
+    '# 상황별 증여세 비교 보고서',
     '',
     `**${calculation.title}**`,
     '',
-    `작성일: ${date} · 세법 기준: 2026.5.10 시행분 · 계산: 결정적 엔진 (동일 입력 = 동일 결과)`,
+    `작성일: ${date} · 세법 기준: 2026.5.10 시행분 (2026.10 세법 감사 반영) · 계산: 결정적 엔진 (동일 입력 = 동일 결과)`,
     '',
     '---',
     '',
     ...inputsSection(calculation),
     '',
     ...comparisonSection(calculation),
+    ...recipientsSection(calculation),
   ];
 
   const calcSteps = renderCalcSteps(calculation.computations);
@@ -182,6 +247,7 @@ export function buildWebReport(calculation, { generatedAt } = {}) {
   if (holdingSteps) parts.push('', holdingSteps);
 
   parts.push('', ...conclusionSection(calculation));
+  parts.push('', ...cautionSection(calculation));
 
   if (Array.isArray(calculation.lawRef) && calculation.lawRef.length) {
     parts.push('', '## 근거 법령', '', ...calculation.lawRef.map((r) => `- ${r}`));

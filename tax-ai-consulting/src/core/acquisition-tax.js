@@ -86,8 +86,9 @@ export function calcTakingTax(type, price, newHouse, inheritHouse, space, heavy,
     eduRate = 0.0016;
   }
 
-  const takeTax = price * takeRate;
-  const eduTax  = price * eduRate;
+  // 원 단위 반올림 — 부동소수점 오차(예: 26,100,000.000000004) 제거
+  const takeTax = Math.round(price * takeRate);
+  const eduTax  = Math.round(price * eduRate);
   // 농특세: 국민주택규모(85㎡) 이하 면제, 초과(86 코드) 적용
   const agTax = space === 86 ? Math.floor(price * agRate) : 0;
 

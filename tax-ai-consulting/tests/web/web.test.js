@@ -54,7 +54,9 @@ describe('buildWebReport', () => {
   it('시나리오 1 보고서에 비교표·계산내역·보유세·결론이 있다', () => {
     const calc = scenarios.runScenario1(buildDefaults(1));
     const md = buildWebReport(calc, { generatedAt: '2026-07-12' });
-    expect(md).toContain('# 부동산 세금 상담 보고서');
+    expect(md).toContain('# 상황별 증여세 비교 보고서');
+    expect(md).toContain('## 5. 유의사항');
+    expect(md).toContain('이월과세');
     expect(md).toContain('## 1. 상담 개요');
     expect(md).toContain('## 2. 케이스별 세부담 비교');
     expect(md).toContain('### 세금 계산 내역');
@@ -77,8 +79,14 @@ describe('buildWebReport', () => {
 
 describe('renderReportHtml', () => {
   it('마크다운을 인쇄용 HTML 문서로 감싼다', () => {
-    const html = renderReportHtml('# 제목\n\n| a | b |\n|---|---|\n| 1 | 2 |');
+    const html = renderReportHtml('# 제목\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n## 4. 결론\n\n유리합니다.', { title: '상황별 증여세 비교 보고서 – 시나리오 1', generatedAt: '2026-10-17' });
     expect(html).toContain('<!DOCTYPE html>');
+    expect(html).toContain('<title>상황별 증여세 비교 보고서 – 시나리오 1</title>');
+    expect(html).toContain('대한세무법인');
+    expect(html).toContain('기준일 2026-10-17 (법 시행 기준 2026.5.10)');
+    expect(html).toContain('<section class="conclusion"><h2>4. 결론</h2>');
+    expect(html).toContain('계산 결과는 참고용');
+    expect(html).toContain('#9F244D');
     expect(html).toContain('lang="ko"');
     expect(html).toContain('@page');
     expect(html).toContain('<table>');

@@ -22,9 +22,11 @@ describe('calcGiveTax — 증여세', () => {
     expect(r.breakdown.deduct).toBe(GIVE_DEDUCT.CHILD_MINOR);
   });
 
-  it('성년 기준 경계: 만 19세는 미성년 공제 적용', () => {
+  it('성년 기준 경계: 만 19세는 성년(민법 §4) → 5천만 공제, 만 18세는 미성년 2천만', () => {
     const r = calcGiveTax(CHILD, SKIP_F, 100_000_000, ADULT_AGE);
-    expect(r.breakdown.deduct).toBe(GIVE_DEDUCT.CHILD_MINOR);
+    expect(r.breakdown.deduct).toBe(GIVE_DEDUCT.CHILD_ADULT);
+    const m = calcGiveTax(CHILD, SKIP_F, 100_000_000, ADULT_AGE - 1);
+    expect(m.breakdown.deduct).toBe(GIVE_DEDUCT.CHILD_MINOR);
   });
 
   it('배우자: 6억 공제', () => {
@@ -66,9 +68,14 @@ describe('calcGiveTax — 증여세', () => {
     expect(r.breakdown.skipRate).toBe(0.3);
   });
 
-  it('세대생략 할증: 20억 초과 → 40% 가산', () => {
+  it('세대생략 할증: 미성년 수증자 + 20억 초과 → 40% 가산', () => {
     const r = calcGiveTax(CHILD, SKIP_T, 2_500_000_000, 10);
     expect(r.breakdown.skipRate).toBe(0.4);
+  });
+
+  it('세대생략 할증: 성년 수증자는 20억 초과여도 30% (상증세법 §57①)', () => {
+    const r = calcGiveTax(CHILD, SKIP_T, 2_500_000_000, 25);
+    expect(r.breakdown.skipRate).toBe(0.3);
   });
 
   it('공제액 > 증여가액인 경우 과세표준 0, 세액 0', () => {

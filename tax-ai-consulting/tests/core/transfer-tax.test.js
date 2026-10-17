@@ -9,6 +9,18 @@ describe('calcSaleIncomeTax — 양도소득세', () => {
       expect(r.transferTax).toBe(0);
     });
 
+    it('지분·부담부증여: 고가주택 판정은 주택 전체 가액(exemptBasePrice) 기준 (시행령 §156③)', () => {
+      // 주택 전체 18억, 채무 인수분(양도가액) 3억·취득가액 1.5억 → 차익 1.5억 × (18−12)/18 = 5천만 과세
+      const r = calcSaleIncomeTax(300_000_000, 150_000_000, 10, 10, '1세대1주택', '주택',
+        0, 0, 0, '', 0, 0, 1_800_000_000);
+      expect(r.breakdown.taxableIncome).toBeCloseTo(50_000_000, 0);
+      // 전체 가액이 12억 이하면 전액 비과세
+      const r2 = calcSaleIncomeTax(300_000_000, 150_000_000, 10, 10, '1세대1주택', '주택',
+        0, 0, 0, '', 0, 0, 1_000_000_000);
+      expect(r2.breakdown.taxableIncome).toBe(0);
+      expect(r2.transferTax).toBe(0);
+    });
+
     it('12억 초과: 초과분 비율만 과세', () => {
       const r = calcSaleIncomeTax(2_000_000_000, 1_000_000_000, 10, 10, '1세대1주택', '주택');
       // 양도차익 10억 × (20억-12억)/20억 = 4억
@@ -17,8 +29,14 @@ describe('calcSaleIncomeTax — 양도소득세', () => {
   });
 
   describe('장기보유특별공제 (1세대1주택)', () => {
-    it('거주 2년 미만: 공제 없음', () => {
+    it('거주 2년 미만: 표2 불가 → 표1(보유 연2%, 10년 20%) 적용, 거주공제 없음 (소득세법 §95②)', () => {
       const r = calcSaleIncomeTax(2_000_000_000, 1_000_000_000, 10, 1, '1세대1주택', '주택');
+      expect(r.breakdown.holdDeductRate).toBe(20);
+      expect(r.breakdown.stayDeductRate).toBe(0);
+    });
+
+    it('거주 2년 미만 + 보유 3년 미만: 공제 없음', () => {
+      const r = calcSaleIncomeTax(2_000_000_000, 1_000_000_000, 2, 1, '1세대1주택', '주택');
       expect(r.breakdown.holdDeductRate).toBe(0);
       expect(r.breakdown.stayDeductRate).toBe(0);
     });

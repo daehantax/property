@@ -45,7 +45,8 @@ export function runScenario9(inputs) {
 
   // ── Case 1: 배우자에게만 전체 증여 ───────────────────
   const c1GiftResult = calcGiveTax(SPOUSE, SKIP_F, marketPrice, spouse.age);
-  const c1AcqResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy);
+  // 증여취득 12% 중과(지방세법 §13의2②)는 시가표준액(공시가격) 3억 이상으로 판정 — 과세표준(시가)이 아님
+  const c1AcqResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy, officialPrice);
 
   const case1 = {
     label: '배우자에게만 증여',
@@ -66,11 +67,12 @@ export function runScenario9(inputs) {
   let c2TotalGift = 0, c2TotalAcq = 0;
   const c2Recipients = allRecipients.map(({ label, rel, r }) => {
     const giftResult = calcGiveTax(rel, SKIP_F, r.price, r.age);
-    // 증여취득 12% 중과 판정은 지분액이 아닌 주택 전체 시가(marketPrice) 기준
-    const acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy, marketPrice);
+    // 증여취득 12% 중과 판정은 지분액이 아닌 주택 전체 시가표준액(officialPrice) 기준
+    const acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy, officialPrice);
     c2TotalGift += giftResult.tax;
     c2TotalAcq  += acqResult.total;
-    return { label, price: r.price, age: r.age, giftTax: giftResult.tax, acqTax: acqResult.total };
+    // rel을 함께 담아 보유세 분기(배우자=다주택)에 사용 — 누락 시 배우자가 별도세대 자녀로 분기되는 버그
+    return { label, rel, price: r.price, age: r.age, giftTax: giftResult.tax, acqTax: acqResult.total };
   });
 
   const case2 = {
@@ -119,12 +121,13 @@ export function runScenario9(inputs) {
 
     if (rec.rel === SPOUSE || rec.age < INDEPENDENT_HH_AGE) {
       // 배우자 또는 30세 미만 자녀: 다주택 종부세
-      const partPropTax = calcPropertyTax('다주택', partOfficialPrice);
+      // 재산세는 주택 전체(다주택) 누진세액을 지분비율로 안분 (지방세법 §113③)
+      const partPropTotal = sPropertyTax.total * rate;
       const partAggrTax = calcAggrTax(
         '다주택', heavyStr, partOfficialPrice, 0, rec.age,
         sPropertyTax.propertyTax * rate
       );
-      afterCase2RecipientTotal += partPropTax.total + partAggrTax.total;
+      afterCase2RecipientTotal += partPropTotal + partAggrTax.total;
     } else {
       // 30세 이상 자녀: 별도 세대 → 재산세 1세대1주택 비율 적용, 종부세 공동명의1주택
       const partPropTaxAmt = (r1PropTax.propertyTax + r1PropTax.pEduTax + r1PropTax.dosiTax) * rate;

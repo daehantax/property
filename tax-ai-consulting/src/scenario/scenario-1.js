@@ -41,7 +41,8 @@ export function runScenario1(inputs) {
 
   // ── Case 1: 자녀에게 일반증여 ──────────────────────────
   const giftTaxResult = calcGiveTax(CHILD, SKIP_F, marketPrice, childAge);
-  const acqTaxResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy);
+  // 증여취득 12% 중과(지방세법 §13의2②)는 시가표준액(공시가격) 3억 이상으로 판정 — 과세표준(시가)이 아님
+  const acqTaxResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy, officialPrice);
 
   const case1 = {
     label: '자녀에게 증여하는 경우',

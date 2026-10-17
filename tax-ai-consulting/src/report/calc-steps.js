@@ -68,6 +68,16 @@ function transferSteps(result) {
     `- 취득가액(필요경비): △${won(b.basePrice)}`,
     `- 양도차익: ${won(b.transferIncome)}`,
   ];
+  // 1세대1주택 고가주택(12억 초과) 안분 — 양도차익과 과세 양도차익이 다르면 그 단계를 보여 준다
+  if (b.taxableIncome != null && b.taxableIncome !== b.transferIncome) {
+    const base = b.exemptBase ?? b.marketPrice;
+    if (b.taxableIncome === 0) {
+      lines.push(`- 1세대1주택 비과세: 주택 가액 ${won(base)} ≤ 12억 → 과세 양도차익 0원`);
+    } else {
+      lines.push(`- 1세대1주택 12억 초과분 안분: ${won(b.transferIncome)} × (${won(base)} − 12억) ÷ ${won(base)} = 과세 양도차익 ${won(b.taxableIncome)}`
+        + (base !== b.marketPrice ? ' (고가주택 판정·안분은 주택 전체 가액 기준)' : ''));
+    }
+  }
   const heavyApplied = b.heavyApplied ?? (b.r2 > 0 && b.appliedR === b.r2);
   const reform = (b.reformYear ?? 0) > 0;
   const deductName = reform && b.reformYear >= 2028 ? '장기거주소득공제' : '장기보유특별공제';

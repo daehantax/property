@@ -56,8 +56,13 @@ function baseBracket(income) {
   else                              return { baseR: 0.45, baseDc: 65_940_000 };
 }
 
-/** 현행 장특공 — 1세대1주택 (보유 연4% max40% + 거주 연4% max40%, 거주 2년 미만 공제 없음) */
+/**
+ * 현행 장특공 — 1세대1주택 표2 (보유 연4% max40% + 거주 연4% max40%)
+ * 소득세법 §95② 표2는 「보유 3년 이상 + 거주 2년 이상」인 1세대1주택에 적용되고,
+ * 거주 2년 미만이면 표1(보유 연2%, 최대 30%)로 돌아간다 — 공제 0이 아님.
+ */
 function currentSingleDeduct(holdPeriod, stayPeriod) {
+  if (stayPeriod < 2) return currentOtherDeduct(holdPeriod);
   let holdDeductRate = 0, stayDeductRate = 0;
   if (stayPeriod >= 2) {
     if      (holdPeriod >= 10) holdDeductRate = 40;
@@ -172,23 +177,30 @@ function heavySurcharge(ownCount, reformYear) {
  * @param {string} [saleDate=""] 양도일 ISO 문자열 "YYYY-MM-DD" (마감일 체크용)
  * @param {number} [isNewAdj=0]  2025.10.16 신규 조정지역 여부 (0/1)
  * @param {number} [reformYear=0] 2026 세제개편안 반영 시 양도(예정)연도 (0=현행법, 2027~)
+ * @param {number} [exemptBasePrice=0] 1세대1주택 고가주택(12억) 판정·안분 기준 가액 [원].
+ *   지분 양도·부담부증여(채무 인수분 양도)처럼 양도가액(marketPrice)이 주택 일부에 해당하면
+ *   고가주택 여부와 12억 초과 비율은 주택 전체 가액으로 판정한다(소득세법 시행령 §156③·§160).
+ *   0이면 marketPrice와 동일(주택 전체 양도).
  * @returns {{ transferTax: number, localTax: number, total: number, breakdown: object, lawRef: string[] }}
  */
 export function calcSaleIncomeTax(
   marketPrice, basePrice, holdPeriod, stayPeriod,
   isWvr, type,
   ownCount = 0, isAdj = 0, isLandtradeApply = 0, saleDate = '', isNewAdj = 0,
-  reformYear = 0
+  reformYear = 0, exemptBasePrice = 0
 ) {
   // 양도차익
   const transferIncome = marketPrice - basePrice;
 
+  // 고가주택 판정 기준 가액 (지분·부담부증여는 주택 전체 가액)
+  const exemptBase = exemptBasePrice > 0 ? exemptBasePrice : marketPrice;
+
   // 과세 양도차익 (1세대1주택 비과세 제외 — 12억 기준은 개편안에서도 유지)
   let taxableIncome;
   if (isWvr === '1세대1주택') {
-    if (marketPrice >= SINGLE_HH_NONTAX_THRESHOLD) {
-      // 12억 초과분만 과세 (소득세법 §89②)
-      taxableIncome = transferIncome * (marketPrice - SINGLE_HH_NONTAX_THRESHOLD) / marketPrice;
+    if (exemptBase >= SINGLE_HH_NONTAX_THRESHOLD) {
+      // 12억 초과분만 과세 (소득세법 §89②, 시행령 §160①)
+      taxableIncome = transferIncome * (exemptBase - SINGLE_HH_NONTAX_THRESHOLD) / exemptBase;
     } else {
       taxableIncome = 0;
     }
@@ -285,6 +297,7 @@ export function calcSaleIncomeTax(
       r1, r2, appliedR: finalRate,
       heavyApplied, appliedIncome,
       nonTaxThreshold: SINGLE_HH_NONTAX_THRESHOLD,
+      exemptBase,
       isAdj, ownCount, isLandtradeApply,
       reformYear,
     },

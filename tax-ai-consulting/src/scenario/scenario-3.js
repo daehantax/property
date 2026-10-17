@@ -50,7 +50,8 @@ export function runScenario3(inputs) {
 
   // ── Case 1: 자녀에게만 증여 ───────────────────────────
   const childGiftResult = calcGiveTax(CHILD, SKIP_F, marketPrice, child.age);
-  const childAcqResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy);
+  // 증여취득 12% 중과(지방세법 §13의2②)는 시가표준액(공시가격) 3억 이상으로 판정 — 과세표준(시가)이 아님
+  const childAcqResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy, officialPrice);
 
   const case1 = {
     label: '자녀에게만 증여',
@@ -73,13 +74,13 @@ export function runScenario3(inputs) {
   const case2Recipients = recipients.map(({ label, rel, skip, r }) => {
     let giftResult, acqResult;
     // 자녀의 배우자(EXT_REL)는 calcGiveTakingEtcTax 사용
-    // 증여취득 12% 중과 판정은 지분액(r.price)이 아닌 주택 전체 시가(marketPrice) 기준
+    // 증여취득 12% 중과 판정은 지분액(r.price)이 아닌 주택 전체 시가표준액(officialPrice) 기준
     if (rel === EXT_REL) {
       giftResult = calcGiveTax(EXT_REL, SKIP_F, r.price, r.age);
-      acqResult  = calcGiveTakingEtcTax(r.price, space, heavy, marketPrice);
+      acqResult  = calcGiveTakingEtcTax(r.price, space, heavy, officialPrice);
     } else {
       giftResult = calcGiveTax(rel, skip, r.price, r.age);
-      acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy, marketPrice);
+      acqResult  = calcTakingTax('give', r.price, 0, 0, space, heavy, officialPrice);
     }
     case2TotalGift += giftResult.tax;
     case2TotalAcq  += acqResult.total;
@@ -125,17 +126,19 @@ export function runScenario3(inputs) {
   const afterCase1RecipientTotal = c1RecipientPropTax.total + c1RecipientAggrTax.total;
 
   // Case2 후 수증자들 보유세 (지분율 비례)
+  // 재산세는 물건별 과세 — 주택 전체 가액으로 누진세율을 적용한 뒤 지분비율로 안분한다
+  // (지방세법 §113③; 지분별 개별 누진 계산은 세부담 과소 산출). 종부세는 인별 과세.
   let afterCase2RecipientTotal = 0;
   case2Recipients.forEach(rec => {
     const rate = rec.price / marketPrice;
     const partOfficialPrice = Math.floor(officialPrice * rate);
-    const partPropertyTax = calcPropertyTax('다주택', partOfficialPrice);
+    const partPropertyTotal = sPropertyTax.total * rate;
     const partAggrTax = calcAggrTax(
       '다주택', heavyStr,
       partOfficialPrice, 0, 0,   // 수증자 개인 보유기간·나이 미적용 (다주택 간주)
-      partPropertyTax.propertyTax
+      sPropertyTax.propertyTax * rate
     );
-    afterCase2RecipientTotal += partPropertyTax.total + partAggrTax.total;
+    afterCase2RecipientTotal += partPropertyTotal + partAggrTax.total;
   });
 
   const holdingTax = {

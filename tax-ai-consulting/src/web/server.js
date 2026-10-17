@@ -70,7 +70,7 @@ function makeReport(body) {
   const run = scenarios[`runScenario${scenarioId}`];
   const calculation = run(inputs);
   const markdown = buildWebReport(calculation);
-  const html = renderReportHtml(markdown);
+  const html = renderReportHtml(markdown, { title: `상황별 증여세 비교 보고서 – 시나리오 ${scenarioId}` });
   return { scenarioId, calculation, markdown, html };
 }
 
@@ -222,7 +222,7 @@ export function createApp(options = {}) {
       const r = makeReport(req.body);
       if (r.error) return res.status(r.status ?? 400).json({ error: r.error });
       const buf = await htmlToDocxBuffer(r.html);
-      attachment(res, `세금보고서-시나리오${r.scenarioId}-${fileStamp()}.docx`,
+      attachment(res, `증여세비교보고서-시나리오${r.scenarioId}-${fileStamp()}.docx`,
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.send(buf);
     } catch (err) {
@@ -236,7 +236,7 @@ export function createApp(options = {}) {
       if (r.error) return res.status(r.status ?? 400).json({ error: r.error });
       const out = await htmlToPdfBuffer(r.html);
       if (out.unavailable) return res.status(501).json({ error: out.unavailable });
-      attachment(res, `세금보고서-시나리오${r.scenarioId}-${fileStamp()}.pdf`, 'application/pdf');
+      attachment(res, `증여세비교보고서-시나리오${r.scenarioId}-${fileStamp()}.pdf`, 'application/pdf');
       res.send(out.pdf);
     } catch (err) {
       res.status(500).json({ error: `PDF 변환 실패: ${err.message}` });

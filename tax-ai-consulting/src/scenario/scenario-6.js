@@ -74,10 +74,12 @@ export function runScenario6(inputs) {
   const c2AcqResult  = calcBurdenedGiveTakingTax(partMarketPrice, partLoanPrice, space, heavy, 'give1s1h');
 
   // 소유자 양도세: 1주택자 → IS_WVR = "1세대1주택", 12억 비과세 적용
+  // 고가주택(12억) 판정·안분은 채무 인수분(양도가액)이 아닌 주택 전체 시가 기준 (소득세법 시행령 §156③·§160)
   const loanBasePart = Math.floor(partBasePrice * partLoanPrice / partMarketPrice);
   const transferResult = calcSaleIncomeTax(
     partLoanPrice, loanBasePart, holdPeriod, stayPeriod,
-    '1세대1주택', '주택'
+    '1세대1주택', '주택',
+    0, 0, 0, '', 0, 0, marketPrice
   );
 
   const case2 = {
@@ -101,25 +103,27 @@ export function runScenario6(inputs) {
   const beforeTotal = beforeOwnerPropTax.total + beforeOwnerAggrTax.total;
 
   // 증여 후: 공동명의 1주택 (소유자 잔여지분, 배우자 지분)
-  const afterOwnerPropTax = calcPropertyTax('1세대1주택', ownerOfficialPrice);
+  // 재산세는 물건별 과세 — 주택 전체(1세대1주택) 누진세액은 그대로이고 지분비율로 안분만 된다
+  // (지방세법 §113③; 지분별 개별 누진 계산은 세부담 과소 산출). 종부세는 인별 9억 공제.
+  const afterOwnerPropTotal  = beforeOwnerPropTax.total * ownerRate;
+  const afterSpousePropTotal = beforeOwnerPropTax.total * partRate;
   const afterOwnerAggrTax = calcAggrTax(
     '공동명의1주택', heavyStr, ownerOfficialPrice, holdPeriod, ownerAge,
-    afterOwnerPropTax.propertyTax
+    beforeOwnerPropTax.propertyTax * ownerRate
   );
 
-  const spousePropTax = calcPropertyTax('1세대1주택', partOfficialPrice);
   const spouseAggrTax = calcAggrTax(
     '공동명의1주택', heavyStr, partOfficialPrice, 0, spouseAge,
-    spousePropTax.propertyTax
+    beforeOwnerPropTax.propertyTax * partRate
   );
 
-  const afterTotal = afterOwnerPropTax.total + afterOwnerAggrTax.total + spousePropTax.total + spouseAggrTax.total;
+  const afterTotal = afterOwnerPropTotal + afterOwnerAggrTax.total + afterSpousePropTotal + spouseAggrTax.total;
 
   const holdingTax = {
     before: { ownerTotal: beforeTotal, spouseTotal: 0, grandTotal: beforeTotal },
     after:  {
-      ownerTotal:  afterOwnerPropTax.total + afterOwnerAggrTax.total,
-      spouseTotal: spousePropTax.total + spouseAggrTax.total,
+      ownerTotal:  afterOwnerPropTotal + afterOwnerAggrTax.total,
+      spouseTotal: afterSpousePropTotal + spouseAggrTax.total,
       grandTotal:  afterTotal,
     },
     change: afterTotal - beforeTotal,
@@ -132,6 +136,12 @@ export function runScenario6(inputs) {
     case1,
     case2,
     holdingTax,
+    holdingComputations: [
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 단독 1세대1주택', kind: 'property', label: '재산세 (증여 후에도 주택 전체 세액은 동일 — 지분 안분)', result: beforeOwnerPropTax },
+      { caseNo: 'b', caseLabel: '증여 전 — 소유자 단독 1세대1주택', kind: 'aggr', label: '종합부동산세 (1세대1주택 12억 공제)', result: beforeOwnerAggrTax },
+      { caseNo: 'a', caseLabel: '증여 후 — 부부 공동명의 1주택', kind: 'aggr', label: `종합부동산세 — 소유자 지분(${Math.round(ownerRate * 100)}%)`, result: afterOwnerAggrTax },
+      { caseNo: 'a', caseLabel: '증여 후 — 부부 공동명의 1주택', kind: 'aggr', label: `종합부동산세 — 배우자 지분(${Math.round(partRate * 100)}%)`, result: spouseAggrTax },
+    ],
     computations: [
       { caseNo: 1, caseLabel: '케이스1 — 일부 지분 일반증여', kind: 'gift', label: '증여세', result: c1GiftResult },
       { caseNo: 1, caseLabel: '케이스1 — 일부 지분 일반증여', kind: 'acq', label: '취득세', result: c1AcqResult },

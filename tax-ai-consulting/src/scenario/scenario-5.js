@@ -45,7 +45,8 @@ export function runScenario5(inputs) {
 
   // ── Case 1: 일반증여 ──────────────────────────────────
   const c1GiftResult = calcGiveTax(SPOUSE, SKIP_F, marketPrice, spouseAge);
-  const c1AcqResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy);
+  // 증여취득 12% 중과(지방세법 §13의2②)는 시가표준액(공시가격) 3억 이상으로 판정 — 과세표준(시가)이 아님
+  const c1AcqResult  = calcTakingTax('give', marketPrice, 0, 0, space, heavy, officialPrice);
 
   const case1 = {
     label: '배우자에게 일반증여',
@@ -61,7 +62,7 @@ export function runScenario5(inputs) {
   // ── Case 2: 부담부증여 ────────────────────────────────
   const c2GiftResult = calcGiveTax(SPOUSE, SKIP_F, marketPrice - loanPrice, spouseAge);
   // 취득세: 유상분(승계채무, 매매세율) + 무상분(시가-채무, 증여세율) 구분 과세
-  const c2AcqResult  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy);
+  const c2AcqResult  = calcBurdenedGiveTakingTax(marketPrice, loanPrice, space, heavy, 'give', officialPrice);
 
   // 배우자 증여 후에도 같은 세대 → 여전히 2주택자 기준으로 양도세
   const loanBasePrice = Math.floor(basePrice * loanPrice / marketPrice);

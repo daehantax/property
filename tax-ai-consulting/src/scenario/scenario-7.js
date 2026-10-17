@@ -74,10 +74,12 @@ export function runScenario7(inputs) {
   // 취득세: 유상분(승계채무, 매매세율) + 무상분(증여 1세대1주택 세율) 구분 과세
   const c2AcqResult  = calcBurdenedGiveTakingTax(ownerMarketPrice, ownerLoanPrice, space, heavy, 'give1s1h');
 
+  // 고가주택(12억) 판정·안분은 채무 인수분(양도가액)이 아닌 주택 전체 시가 기준 (소득세법 시행령 §156③·§160)
   const loanBase = Math.floor(ownerBasePrice * ownerLoanPrice / ownerMarketPrice);
   const transferResult = calcSaleIncomeTax(
     ownerLoanPrice, loanBase, holdPeriod, stayPeriod,
-    '1세대1주택', '주택'
+    '1세대1주택', '주택',
+    0, 0, 0, '', 0, 0, marketPrice
   );
 
   const case2 = {

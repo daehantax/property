@@ -110,7 +110,7 @@ function generate() {
     if (errors.length) throw new Error(errors.join(' / '));
     const calculation = scenarios[`runScenario${scenarioId}`](inputs);
     const markdown = buildWebReport(calculation);
-    currentHtml = renderReportHtml(markdown);
+    currentHtml = renderReportHtml(markdown, { title: `상황별 증여세 비교 보고서 – 시나리오 ${scenarioId}` });
     currentScenarioId = scenarioId;
     $('placeholder').style.display = 'none';
     const frame = $('report');
@@ -130,7 +130,7 @@ function downloadDoc() {
   const blob = new Blob(['﻿', currentHtml], { type: 'application/msword' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `세금보고서-시나리오${currentScenarioId}-${stamp}.doc`;
+  a.download = `증여세비교보고서-시나리오${currentScenarioId}-${stamp}.doc`;
   a.click();
   URL.revokeObjectURL(a.href);
   setStatus(a.download + ' 저장 완료 (MS 워드에서 열어 편집하세요).');

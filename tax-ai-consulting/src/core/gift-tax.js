@@ -25,10 +25,13 @@ const LAW_REF = [
  * @returns {{ tax: number, breakdown: object, lawRef: string[] }}
  */
 export function calcGiveTax(giveRel, isSkip, giftPrice, recipientAge) {
+  // 미성년자 판정: 민법 §4 — 만 19세에 성년이 되므로 만 19세 미만만 미성년
+  const isMinor = recipientAge < ADULT_AGE;
+
   // 증여재산 공제
   let deduct = 0;
   if (giveRel === CHILD) {
-    deduct = recipientAge <= ADULT_AGE ? GIVE_DEDUCT.CHILD_MINOR : GIVE_DEDUCT.CHILD_ADULT;
+    deduct = isMinor ? GIVE_DEDUCT.CHILD_MINOR : GIVE_DEDUCT.CHILD_ADULT;
   } else if (giveRel === SPOUSE) {
     deduct = GIVE_DEDUCT.SPOUSE;
   } else if (giveRel === PARENTS) {
@@ -50,9 +53,10 @@ export function calcGiveTax(giveRel, isSkip, giftPrice, recipientAge) {
 
   const rawTax = Math.max(taxBase * taxRate - accDeduct, 0);
 
-  // 세대생략 할증 (30% / 20억 초과 시 40%)
+  // 세대생략 할증 (상증세법 §57①): 30%,
+  // 수증자가 미성년자이면서 증여재산가액 20억 초과 시 40% (성년 수증자는 가액 무관 30%)
   const skipRate = isSkip === SKIP_T
-    ? (giftPrice > 2_000_000_000 ? 0.4 : 0.3)
+    ? (isMinor && giftPrice > 2_000_000_000 ? 0.4 : 0.3)
     : 0;
 
   // 신고세액공제 3%
@@ -68,6 +72,7 @@ export function calcGiveTax(giveRel, isSkip, giftPrice, recipientAge) {
       accDeduct,
       rawTax,
       skipRate,
+      isMinor,
       faithfulReportDiscount: 0.03,
     },
     lawRef: LAW_REF,
