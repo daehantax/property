@@ -37,6 +37,7 @@ const PAGES = [
   { html: 'aggr-home.html' },
   { html: 'scenarios.html' },
   { html: 'rental-lessor.html' },
+  { html: 'regulated-areas.html', expectSelector: '#raEvents table' },
   { html: 'law-updates.html', expectSelector: '#timeline article' },
 ];
 

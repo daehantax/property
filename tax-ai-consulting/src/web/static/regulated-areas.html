@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>규제지역 연혁 — 조정대상지역·투기과열지구·투기지역·토지거래허가구역</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* ── 규제지역 연혁 전용 ─────────────────────── */
+  .ra-c-adj { --c: #b9770e; --cb: #fef5e7; --cl: #f5cba7; }
+  .ra-c-tug { --c: #c0392b; --cb: #fdecea; --cl: #f5b7b1; }
+  .ra-c-spec { --c: #6c3483; --cb: #f5eef8; --cl: #d7bde2; }
+  .ra-c-permit { --c: #1e8449; --cb: #eafaf1; --cl: #abebc6; }
+
+  .ra-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+  .ra-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--cl); background: var(--cb); color: var(--c);
+    border-radius: 999px; padding: 6px 12px; font-size: 14px; font-weight: 800; cursor: pointer; user-select: none; }
+  .ra-chip { white-space: nowrap; margin: 0; width: auto; }
+  .ra-chip input { accent-color: var(--c); margin: 0; width: auto; height: auto; padding: 0; }
+  .ra-chip.off { background: #fff; color: #8a9aa6; border-color: var(--line); }
+
+  .ra-years { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+  .ra-years button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 7px 12px; font-size: 14px;
+    font-weight: 700; color: #47606f; cursor: pointer; font-family: inherit; font-variant-numeric: tabular-nums; }
+  .ra-years button.has { color: #123a54; }
+  .ra-years button.has::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #c0392b; margin-left: 5px; vertical-align: middle; }
+  .ra-years button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .ra-years button.active::after { background: #fff; }
+
+  .ra-h2 { font-size: 16px; color: #123a54; margin: 18px 0 8px; }
+  .ra-snap { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+  .ra-card { border: 1px solid var(--cl); background: var(--cb); border-radius: 12px; padding: 12px 14px; }
+  .ra-card .lab { font-size: 13.5px; font-weight: 800; color: var(--c); }
+  .ra-card .txt { font-size: 14px; color: #1a2733; line-height: 1.65; margin-top: 4px; }
+  .ra-card .none { color: #7b8a96; }
+
+  .ra-table-wrap { overflow-x: auto; }
+  table.ra { width: 100%; border-collapse: collapse; background: #fff; }
+  table.ra th, table.ra td { border: 1px solid var(--line); padding: 8px 10px; font-size: 14px; line-height: 1.6; text-align: left; vertical-align: top; }
+  table.ra th { background: #eef3f7; color: #21618c; white-space: nowrap; }
+  table.ra td.d { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; color: #123a54; }
+  .ra-tag { display: inline-block; font-size: 12.5px; font-weight: 800; color: var(--c); background: var(--cb); border: 1px solid var(--cl);
+    border-radius: 999px; padding: 1px 9px; white-space: nowrap; }
+  .ra-type { font-weight: 800; white-space: nowrap; }
+  .ra-type.on { color: #c0392b; } .ra-type.off { color: #1e8449; } .ra-type.etc { color: #566573; }
+  .ra-note { color: #5f7180; font-size: 13px; }
+  .ra-empty { padding: 16px; text-align: center; color: #7b8a96; background: #fff; border: 1px dashed var(--line); border-radius: 10px; }
+
+  .ra-box { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin-top: 18px; }
+  .ra-box h2 { margin: 0 0 8px; font-size: 15.5px; color: #123a54; }
+  .ra-box ul { margin: 6px 0 0; padding-left: 18px; }
+  .ra-box li { font-size: 14px; line-height: 1.7; color: #2c3e50; margin: 2px 0; }
+  .ra-warn { background: #fef9e7; border: 1px solid #f7dc6f; border-radius: 10px; padding: 12px 16px; font-size: 13.5px; line-height: 1.7; color: #7d6608; margin-top: 18px; }
+  details.ra-old summary { cursor: pointer; font-weight: 800; color: #123a54; font-size: 14.5px; }
+
+  @media (max-width: 640px) {
+    table.ra th, table.ra td { font-size: 13px; padding: 6px 7px; }
+  }
+  @media print {
+    .topnav, .ra-filters, .ra-years { display: none !important; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav" data-page="regulated-areas"></nav>
+<script src="nav.js"></script>
+
+<div class="container">
+  <p class="page-intro">
+    <b>연도별 규제지역 연혁</b> — 조정대상지역·투기과열지구·투기지역·토지거래허가구역의 지정·해제를 <b>효력발생일</b> 기준으로 정리했습니다.
+    연도를 누르면 그해 <b>연말(2026년은 현재) 기준 현황</b>과 그해 지정·해제 내역을 보여 줍니다.
+    양도세는 취득일·양도일 당시 지정 여부로 판단하므로, 계약 당시가 아니라 <b>취득일(잔금일)·양도일</b>에 어떤 상태였는지 확인하세요.
+  </p>
+
+  <div class="ra-filters" id="raFilters"></div>
+  <div class="ra-years" id="raYears"></div>
+
+  <h2 class="ra-h2" id="raSnapTitle"></h2>
+  <div class="ra-snap" id="raSnap"></div>
+
+  <h2 class="ra-h2" id="raEvTitle"></h2>
+  <div class="ra-table-wrap" id="raEvents"></div>
+
+  <div class="ra-box">
+    <h2>세법상 의미 — 어느 지역이 무엇에 영향을 주나</h2>
+    <div class="ra-table-wrap">
+      <table class="ra">
+        <thead><tr><th>구분</th><th>근거</th><th>세무상 주요 영향</th><th>판단 시점</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ra-tag ra-c-adj">조정대상지역</span></td><td>주택법 §63의2</td>
+            <td>1세대1주택 <b>2년 거주요건</b>(2017.8.3 이후 취득분), 다주택 양도세 중과, 조정지역 일시적 2주택 처분기한, 분양권 세율, 취득세 중과(8%·12%), 증여 취득세 중과(12%)</td>
+            <td>거주요건·취득세: <b>취득일</b><br>양도세 중과: <b>양도일</b></td></tr>
+          <tr><td><span class="ra-tag ra-c-tug">투기과열지구</span></td><td>주택법 §63</td>
+            <td>세율 직접 영향은 없음. 대출(LTV·DSR), 청약, 재건축 조합원 지위 양도 제한, 분양권 전매 제한 — 실무상 거래 구조에 영향</td>
+            <td>거래(계약·취득) 시점</td></tr>
+          <tr><td><span class="ra-tag ra-c-spec">투기지역</span></td><td>소득세법 §104의2 (지정지역)</td>
+            <td>지정지역 내 비사업용 토지 등 <b>+10%p 가산세율</b>(소득세법 §104④), 주택담보대출 건수 제한 등</td>
+            <td>양도일</td></tr>
+          <tr><td><span class="ra-tag ra-c-permit">토지거래허가구역</span></td><td>부동산거래신고법 §10</td>
+            <td>매매 시 사전 허가 + <b>2년 실거주</b>(갭투자 불가). 저가양도·특수관계 거래는 허가 심사에서 가격 적정성 점검 → 부담부증여·증여 검토 필요. 증여·상속은 허가 대상 아님</td>
+            <td>계약 시점</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="ra-box">
+    <details class="ra-old">
+      <summary>2016년 이전 개요 (참고)</summary>
+      <ul>
+        <li><b>투기과열지구</b> — 2002년 9월 수도권 일부 최초 지정 후 확대 → 2011.12.22 서울 강남3구 해제로 <b>전면 해제</b></li>
+        <li><b>투기지역</b> — 2003년 도입·확대 → 2012.5.10 서울 강남3구 해제로 <b>전면 해제</b></li>
+        <li><b>조정대상지역</b> — 2016.11.3 대책에서 「청약 조정대상지역」으로 처음 도입 (2017.11.10 주택법 개정으로 법정 지정지역이 됨)</li>
+        <li>2016년 이전의 구체적인 지역·일자는 이 페이지에 담지 않았습니다. 해당 시기 취득·양도 건은 관보로 확인하세요.</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="ra-warn">
+    <b>확인 기준일 2026.11.5.</b> 국토교통부·기획재정부 발표와 언론 보도를 바탕으로 효력일 기준으로 정리했습니다.
+    「일부」라고 적은 곳은 읍·면·동 단위 제외 구역이 있으니, 실제 신고 건은 <b>국토교통부 공고·관보</b>와
+    토지이음(eum.go.kr)에서 필지 단위로 확인하세요. 2017.8.3~2017.11.9 기간의 조정대상지역은 소득세법 시행령 §154②에 따른 별도 표가 적용됩니다.
+    토지거래허가구역은 개발예정지(신도시 등) 지정이 수시로 있어, 여기에는 <b>주택시장 안정 목적의 주요 지정</b>만 담았습니다.
+  </div>
+</div>
+
+<script>
+(function () {
+  var CATS = {
+    adj:    { label: '조정대상지역',     cls: 'ra-c-adj' },
+    tug:    { label: '투기과열지구',     cls: 'ra-c-tug' },
+    spec:   { label: '투기지역',         cls: 'ra-c-spec' },
+    permit: { label: '토지거래허가구역', cls: 'ra-c-permit' },
+  };
+  var ORDER = ['adj', 'tug', 'spec', 'permit'];
+
+  // 지정·해제 내역 (효력발생일 기준). type: on=지정, off=해제, etc=기타
+  var EVENTS = [
+    { d: '2016-11-03', c: 'adj', t: 'on', a: '「청약 조정대상지역」 37곳 — 서울 25개구, 경기 과천·성남·하남·고양·남양주·화성(동탄2), 부산 해운대·연제·동래·남·수영, 세종', n: '11.3 대책 (청약 규제 목적)' },
+    { d: '2017-06-19', c: 'adj', t: 'on', a: '경기 광명, 부산 기장·부산진 추가 → 40곳', n: '6.19 대책' },
+    { d: '2017-08-03', c: 'tug', t: 'on', a: '서울 25개구, 경기 과천, 세종', n: '8.2 대책 — 6년 만에 재지정' },
+    { d: '2017-08-03', c: 'spec', t: 'on', a: '서울 강남·서초·송파·강동·용산·성동·노원·마포·양천·영등포·강서(11개구), 세종', n: '8.2 대책' },
+    { d: '2017-08-03', c: 'adj', t: 'etc', a: '세법상 기준일 — 이날 이후 조정지역 취득 주택은 1세대1주택 비과세에 2년 거주요건', n: '2017.8.3~11.9는 소득령 §154② 별도 표 적용' },
+    { d: '2017-09-06', c: 'tug', t: 'on', a: '경기 성남 분당구, 대구 수성구', n: '' },
+    { d: '2017-11-10', c: 'adj', t: 'etc', a: '주택법 개정 시행 — 기존 40곳을 법정 조정대상지역으로 지정한 것으로 봄', n: '' },
+    { d: '2018-08-28', c: 'adj', t: 'on', a: '경기 구리, 안양 동안구, 광교택지개발지구', n: '' },
+    { d: '2018-08-28', c: 'adj', t: 'off', a: '부산 기장군(일광면 제외)', n: '' },
+    { d: '2018-08-28', c: 'tug', t: 'on', a: '경기 광명, 하남', n: '' },
+    { d: '2018-08-28', c: 'spec', t: 'on', a: '서울 종로·중구·동대문·동작 → 서울 15개구 + 세종', n: '' },
+    { d: '2018-12-31', c: 'adj', t: 'on', a: '수원 팔달구, 용인 수지구·기흥구', n: '' },
+    { d: '2018-12-31', c: 'adj', t: 'off', a: '부산 부산진·남·연제구, 기장군(일광면)', n: '' },
+    { d: '2019-11-08', c: 'adj', t: 'off', a: '고양시(삼송·원흥·지축·향동 등 일부 제외), 남양주시(다산·별내 제외), 부산 해운대·수영·동래', n: '부산 전역 해제' },
+    { d: '2020-02-21', c: 'adj', t: 'on', a: '수원 영통·권선·장안구, 안양 만안구, 의왕', n: '2.20 대책 (수·용·성)' },
+    { d: '2020-06-19', c: 'adj', t: 'on', a: '경기 고양·남양주(일부)·화성·군포·안성(일부)·부천·안산·시흥·용인 처인(일부)·오산·평택·광주(일부)·양주·의정부, 인천 8개구, 대전 5개구, 청주(일부)', n: '6.17 대책 — 수도권 대부분' },
+    { d: '2020-06-19', c: 'tug', t: 'on', a: '경기 수원·성남 수정·안양·안산 단원·구리·군포·의왕·용인 수지·기흥·화성(동탄2), 인천 연수·남동·서구, 대전 동·중·서·유성구', n: '6.17 대책' },
+    { d: '2020-06-23', c: 'permit', t: 'on', a: '서울 강남구 삼성·청담·대치동, 송파구 잠실동 (「잠·삼·대·청」)', n: '국제교류복합지구 인근, 이후 매년 재지정' },
+    { d: '2020-11-20', c: 'adj', t: 'on', a: '경기 김포(일부), 부산 해운대·수영·동래·연제·남구, 대구 수성구', n: '' },
+    { d: '2020-12-18', c: 'adj', t: 'on', a: '부산 9개구, 대구 6개 구·군(일부), 광주 5개구, 울산 중·남구, 파주(일부), 천안·논산·공주(일부), 전주 완산·덕진, 여수·순천·광양(일부), 포항 남구(일부), 경산(일부), 창원 성산구 등 → 111곳', n: '' },
+    { d: '2020-12-18', c: 'tug', t: 'on', a: '창원 의창구(일부) → 49곳', n: '' },
+    { d: '2021-04-27', c: 'permit', t: 'on', a: '서울 압구정·여의도·목동·성수 재건축 아파트지구 (「압·여·목·성」)', n: '이후 재지정 반복' },
+    { d: '2021-08-30', c: 'adj', t: 'on', a: '경기 동두천(일부) → 112곳', n: '' },
+    { d: '2022-07-05', c: 'adj', t: 'off', a: '대구 7개 구·군(수성구 제외), 경북 경산, 전남 여수·순천·광양, 안산 단원 일부·화성 서신면 → 101곳', n: '6.30 주정심' },
+    { d: '2022-07-05', c: 'tug', t: 'off', a: '대구 수성구, 대전 동·중·서·유성구, 창원 의창구 → 43곳', n: '' },
+    { d: '2022-09-26', c: 'adj', t: 'off', a: '세종을 뺀 지방 전역(부산·대구 수성·광주·대전·울산·청주·천안·논산·공주·전주·포항 남·창원 성산 등)과 경기 안성·평택·동두천·양주·파주 → 60곳', n: '' },
+    { d: '2022-09-26', c: 'tug', t: 'off', a: '인천 연수·남동·서구, 세종 → 39곳', n: '' },
+    { d: '2022-09-26', c: 'spec', t: 'off', a: '세종 → 서울 15개구만 남음', n: '' },
+    { d: '2022-11-14', c: 'adj', t: 'off', a: '서울·과천·성남(분당·수정)·하남·광명을 뺀 전 지역 (세종·인천·경기 나머지)', n: '' },
+    { d: '2022-11-14', c: 'tug', t: 'off', a: '서울·과천·성남(분당·수정)·하남·광명을 뺀 전 지역', n: '' },
+    { d: '2023-01-05', c: 'adj', t: 'off', a: '서울 21개구, 과천, 성남 분당·수정, 하남, 광명 → 강남·서초·송파·용산만 남음', n: '1.3 대책' },
+    { d: '2023-01-05', c: 'tug', t: 'off', a: '서울 21개구, 과천, 성남 분당·수정, 하남, 광명 → 강남·서초·송파·용산만 남음', n: '1.3 대책' },
+    { d: '2023-01-05', c: 'spec', t: 'off', a: '서울 종로·중구·동대문·동작·강동·성동·노원·마포·양천·영등포·강서 → 강남·서초·송파·용산만 남음', n: '1.3 대책' },
+    { d: '2025-02-13', c: 'permit', t: 'off', a: '잠·삼·대·청 아파트 대부분 해제 (일부 재건축 단지 유지)', n: '' },
+    { d: '2025-03-24', c: 'permit', t: 'on', a: '서울 강남·서초·송파·용산 전체 아파트 (약 40만 가구)', n: '이후 2026.12.31까지 재지정' },
+    { d: '2025-10-16', c: 'adj', t: 'on', a: '서울 21개구(나머지 전역), 경기 과천·광명·하남·의왕, 성남 분당·수정·중원, 수원 영통·장안·팔달, 안양 동안, 용인 수지', n: '10.15 대책 — 조정·투과·토허 3중 규제' },
+    { d: '2025-10-16', c: 'tug', t: 'on', a: '서울 21개구(나머지 전역), 경기 12곳(조정대상지역과 동일)', n: '10.15 대책' },
+    { d: '2025-10-20', c: 'permit', t: 'on', a: '서울 전역 + 경기 12곳 — 아파트, 아파트 1개동 이상 포함 연립·다세대 (~2026.12.31)', n: '오피스텔·상가 등 비주택 제외' },
+    { d: '2026-07-01', c: 'adj', t: 'on', a: '경기 화성 동탄구, 용인 기흥구, 구리시', n: '6.30 발표' },
+    { d: '2026-07-01', c: 'tug', t: 'on', a: '경기 화성 동탄구, 용인 기흥구, 구리시', n: '' },
+    { d: '2026-07-05', c: 'permit', t: 'on', a: '경기 화성 동탄구, 용인 기흥구, 구리시 (~2027.12.31)', n: '경기도 지정' },
+  ];
+
+  // 연말 기준 현황 (2026년은 확인 기준일 현재)
+  var NONE = null;
+  var SNAP = {
+    2016: { adj: '「청약 조정대상지역」 37곳 — 서울 25개구, 경기 과천·성남·하남·고양·남양주·화성(동탄2), 부산 해운대·연제·동래·남·수영, 세종',
+            tug: NONE, spec: NONE, permit: NONE },
+    2017: { adj: '40곳 — 서울 25개구, 경기 과천·성남·하남·고양·남양주·화성(동탄2)·광명, 부산 해운대·연제·동래·남·수영·기장·부산진, 세종',
+            tug: '서울 25개구, 과천, 세종, 성남 분당, 대구 수성',
+            spec: '서울 11개구(강남·서초·송파·강동·용산·성동·노원·마포·양천·영등포·강서), 세종', permit: NONE },
+    2018: { adj: '서울 25개구, 경기 과천·성남·하남·고양·남양주·화성(동탄2)·광명·구리·안양 동안·광교·수원 팔달·용인 수지·기흥, 부산 해운대·동래·수영, 세종',
+            tug: '서울 25개구, 과천, 세종, 성남 분당, 대구 수성, 광명, 하남',
+            spec: '서울 15개구(+종로·중구·동대문·동작), 세종', permit: NONE },
+    2019: { adj: '서울 25개구, 경기 과천·성남·하남·고양(일부)·남양주(일부)·화성(동탄2)·광명·구리·안양 동안·광교·수원 팔달·용인 수지·기흥, 세종 (부산 전역 해제)',
+            tug: '서울 25개구, 과천, 세종, 성남 분당, 대구 수성, 광명, 하남',
+            spec: '서울 15개구, 세종', permit: NONE },
+    2020: { adj: '111곳 — 서울 전역, 경기 대부분, 인천 8개구, 부산·대구·광주·대전·울산 대부분, 세종, 청주·천안·전주·창원 등 지방 주요 도시',
+            tug: '49곳 — 서울 전역, 경기 과천·성남·광명·하남·수원·안양·안산 단원·구리·군포·의왕·용인 수지·기흥·동탄2, 인천 연수·남동·서, 대전 4개구, 대구 수성, 세종, 창원 의창',
+            spec: '서울 15개구, 세종', permit: '서울 잠·삼·대·청' },
+    2021: { adj: '112곳 — 2020년 말 + 동두천(일부)', tug: '49곳 (변동 없음)', spec: '서울 15개구, 세종', permit: '서울 잠·삼·대·청, 압·여·목·성' },
+    2022: { adj: '서울 25개구, 경기 과천·성남(분당·수정)·하남·광명', tug: '서울 25개구, 경기 과천·성남(분당·수정)·하남·광명',
+            spec: '서울 15개구', permit: '서울 잠·삼·대·청, 압·여·목·성' },
+    2023: { adj: '서울 강남·서초·송파·용산', tug: '서울 강남·서초·송파·용산', spec: '서울 강남·서초·송파·용산', permit: '서울 잠·삼·대·청, 압·여·목·성' },
+    2024: { adj: '서울 강남·서초·송파·용산', tug: '서울 강남·서초·송파·용산', spec: '서울 강남·서초·송파·용산', permit: '서울 잠·삼·대·청, 압·여·목·성' },
+    2025: { adj: '서울 25개구 전역 + 경기 12곳(과천·광명·하남·의왕, 성남 분당·수정·중원, 수원 영통·장안·팔달, 안양 동안, 용인 수지)',
+            tug: '서울 25개구 전역 + 경기 12곳 (조정대상지역과 동일)',
+            spec: '서울 강남·서초·송파·용산 (10.15 대책에서 추가 지정 없음)',
+            permit: '서울 전역 + 경기 12곳 아파트 등 (~2026.12.31)' },
+    2026: { adj: '서울 25개구 전역 + 경기 15곳(2025년 12곳 + 화성 동탄구·용인 기흥구·구리)',
+            tug: '서울 25개구 전역 + 경기 15곳 (조정대상지역과 동일)',
+            spec: '서울 강남·서초·송파·용산',
+            permit: '서울 전역 + 경기 12곳(~2026.12.31), 화성 동탄·용인 기흥·구리(~2027.12.31) — 아파트 등' },
+  };
+
+  var YEARS = Object.keys(SNAP).map(Number);
+  var state = { year: 2026, cats: { adj: true, tug: true, spec: true, permit: true } };
+  try {
+    var saved = JSON.parse(localStorage.getItem('ra-state') || 'null');
+    if (saved && saved.cats) state.cats = saved.cats;
+  } catch (e) { /* 저장소 사용 불가 시 기본값 */ }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
+  function fmt(d) { return d.replace(/-/g, '.'); }
+  function save() { try { localStorage.setItem('ra-state', JSON.stringify({ cats: state.cats })); } catch (e) { /* 무시 */ } }
+
+  function renderFilters() {
+    var box = document.getElementById('raFilters');
+    box.innerHTML = ORDER.map(function (k) {
+      return '<label class="ra-chip ' + CATS[k].cls + (state.cats[k] ? '' : ' off') + '">'
+        + '<input type="checkbox" data-cat="' + k + '"' + (state.cats[k] ? ' checked' : '') + '>' + CATS[k].label + '</label>';
+    }).join('');
+    box.querySelectorAll('input').forEach(function (el) {
+      el.addEventListener('change', function () { state.cats[el.dataset.cat] = el.checked; save(); render(); });
+    });
+  }
+
+  function renderYears() {
+    var box = document.getElementById('raYears');
+    var withEv = {};
+    EVENTS.forEach(function (e) { withEv[e.d.slice(0, 4)] = true; });
+    var btns = YEARS.map(function (y) {
+      return '<button data-y="' + y + '" class="' + (withEv[y] ? 'has ' : '') + (state.year === y ? 'active' : '') + '">' + y + '</button>';
+    });
+    btns.push('<button data-y="all" class="' + (state.year === 'all' ? 'active' : '') + '">전체 연혁</button>');
+    box.innerHTML = btns.join('');
+    box.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.year = b.dataset.y === 'all' ? 'all' : Number(b.dataset.y);
+        render();
+      });
+    });
+  }
+
+  function renderSnap() {
+    var y = state.year === 'all' ? 2026 : state.year;
+    document.getElementById('raSnapTitle').textContent = y === 2026
+      ? '현재 현황 (2026.11.5 기준)' : y + '년 말 기준 현황';
+    var s = SNAP[y];
+    var cards = ORDER.filter(function (k) { return state.cats[k]; }).map(function (k) {
+      var t = s[k];
+      return '<div class="ra-card ' + CATS[k].cls + '"><div class="lab">' + CATS[k].label + '</div>'
+        + '<div class="txt' + (t ? '' : ' none') + '">' + esc(t || '지정 없음') + '</div></div>';
+    });
+    document.getElementById('raSnap').innerHTML = cards.join('') || '<div class="ra-empty">위에서 구분을 하나 이상 선택하세요.</div>';
+  }
+
+  function renderEvents() {
+    var y = state.year;
+    var list = EVENTS.filter(function (e) {
+      return state.cats[e.c] && (y === 'all' || e.d.slice(0, 4) === String(y));
+    });
+    document.getElementById('raEvTitle').textContent = y === 'all'
+      ? '전체 지정·해제 내역 (' + list.length + '건)' : y + '년 지정·해제 내역 (' + list.length + '건)';
+    var box = document.getElementById('raEvents');
+    if (!list.length) {
+      box.innerHTML = '<div class="ra-empty">' + (y === 'all' ? '' : y + '년에는 ') + '선택한 구분의 지정·해제가 없습니다. 위 현황이 그대로 유지되었습니다.</div>';
+      return;
+    }
+    var TYPE = { on: '지정', off: '해제', etc: '참고' };
+    box.innerHTML = '<table class="ra"><thead><tr><th>효력일</th><th>구분</th><th>지정·해제</th><th>지역</th><th>비고</th></tr></thead><tbody>'
+      + list.map(function (e) {
+        return '<tr><td class="d">' + fmt(e.d) + '</td>'
+          + '<td><span class="ra-tag ' + CATS[e.c].cls + '">' + CATS[e.c].label + '</span></td>'
+          + '<td><span class="ra-type ' + e.t + '">' + TYPE[e.t] + '</span></td>'
+          + '<td>' + esc(e.a) + '</td>'
+          + '<td class="ra-note">' + esc(e.n) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function render() { renderFilters(); renderYears(); renderSnap(); renderEvents(); }
+  render();
+})();
+</script>
+</body>
+</html>

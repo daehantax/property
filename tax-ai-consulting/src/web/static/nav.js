@@ -21,6 +21,7 @@
       tools: [
         { href: 'index.html#transfer', label: '양도소득세 계산기', desc: '보유·거주기간, 장특공, 12억 비과세 반영' },
         { href: 'index.html#transfer-reform', label: '양도세 개정안 비교', desc: '현행 vs 2026 세제개편안(2027~2029년 양도분)' },
+        { href: 'regulated-areas.html', label: '연도별 규제지역 연혁', desc: '조정대상지역·투기과열지구·투기지역·토지거래허가구역' },
         { href: 'index.html#single-ltr', label: '1주택 장기거주공제 비교', desc: '장특공 → 장기거주소득공제 전환 단계별 비교' },
         { href: 'transfer-heavy.html', label: '양도세 중과 판정기', desc: '주택수 산정 → 2주택·3주택 중과 여부' },
         { href: 'single-exempt.html', label: '1세대1주택 비과세 판정기', desc: '보유·거주요건, 상생임대, 일시적 2주택' },
@@ -54,6 +55,7 @@
       desc: '취득세 중과 판정',
       tools: [
         { href: 'acq-heavy.html', label: '취득세 중과 판정기', desc: '취득 후 주택수 × 조정지역 → 8%·12% 중과' },
+        { href: 'regulated-areas.html', label: '연도별 규제지역 연혁', desc: '취득일 당시 조정대상지역 여부 확인' },
       ],
     },
     {
