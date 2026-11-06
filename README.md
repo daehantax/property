@@ -40,6 +40,10 @@
 
 네 장치는 `adviseCase()`로 한 번에 실행해 하나의 심화 리포트로 합칠 수 있습니다(`src/advisor/index.js`).
 
+## 참고자료 데이터
+
+- [`data/nts-housing-tax-2026/`](data/nts-housing-tax-2026/README.md) — 국세청 「2026 주택과 세금」 전체 텍스트(OCR)·목차 색인·[조정대상지역 정리본](data/nts-housing-tax-2026/조정대상지역.md). 페이지 이미지는 `data/ebook-nts-housing-tax-2026` 브랜치
+
 ## 현재 구현 상태
 
 | 단계 | 상태 | 위치 |
