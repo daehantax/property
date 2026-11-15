@@ -47,6 +47,10 @@
   .lawref li { margin: 2px 0; }
   .report-head { display: none; }
   .scroll { overflow-x: auto; }
+  .selrow { display: flex; gap: 18px; }
+  table.sheet tr.unsel td { color: #9aa8b3; background: #fafbfc; }
+  table.sheet tr.pick td { background: #e8f6ee; font-weight: 800; }
+  .tag.off { background: #95a5a6; }
 
   @media print {
     @page { size: A4; margin: 12mm 10mm; }
@@ -145,6 +149,16 @@
               <option value="prelim">예정신고기한 2019.07.31</option>
             </select>
           </div>
+        </div>
+      </div>
+
+      <div class="fs">
+        <h3>⑤ 이번에 신고할 차수</h3>
+        <div class="sub">한꺼번에 신고하거나 차수를 골라 신고할 수 있습니다. 선택한 차수만 「지금 납부할 세액」에 합산합니다.</div>
+        <div class="selrow">
+          <label class="chk"><input type="checkbox" id="sel_initial" checked> 최초분</label>
+          <label class="chk"><input type="checkbox" id="sel_third" checked> 3차</label>
+          <label class="chk"><input type="checkbox" id="sel_fourth" checked> 4차</label>
         </div>
       </div>
 

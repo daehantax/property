@@ -208,6 +208,39 @@ export function filingReduction(kind, dueDate, filingDate) {
   return { rate: 0, label: '감면 기간 경과' };
 }
 
+// ── 차수 선택 합계 ───────────────────────────────────────────────
+/** 차수 행들의 본세·가산세·지방소득세 합계 */
+export function sumRows(rows) {
+  const sum = (f) => rows.reduce((s, r) => s + f(r), 0);
+  const t = {
+    unpaidTax: sum((r) => r.unpaid),
+    unpaidLocal: sum((r) => r.unpaidLocal),
+    filingPenalty: sum((r) => r.penalty.filing),
+    latePenalty: sum((r) => r.penalty.late.total),
+    penalty: sum((r) => r.penalty.total),
+    filingPenaltyLocal: sum((r) => r.penaltyLocal.filing),
+    latePenaltyLocal: sum((r) => r.penaltyLocal.late.total),
+    penaltyLocal: sum((r) => r.penaltyLocal.total),
+  };
+  t.payNational = t.unpaidTax + t.penalty;
+  t.payLocal = t.unpaidLocal + t.penaltyLocal;
+  t.payAll = t.payNational + t.payLocal;
+  return t;
+}
+
+/**
+ * 차수 선택 조합 7가지(최초분·3차·4차 각각 / 둘씩 / 전체)의 납부세액
+ * 각 차수의 추가세액은 누적 재계산 차액이므로, 조합 합계는 차수별 금액의 합이다.
+ */
+export function selectionCombos(rows) {
+  const out = [];
+  for (let mask = 1; mask < 1 << rows.length; mask++) {
+    const pick = rows.filter((_, i) => mask & (1 << i));
+    out.push({ keys: pick.map((r) => r.key), label: pick.map((r) => r.label.split(' ')[0]).join(' + '), ...sumRows(pick) });
+  }
+  return out.sort((a, b) => a.keys.length - b.keys.length);
+}
+
 // ── 메인 ───────────────────────────────────────────────────────────
 /**
  * @param {object} input
@@ -220,6 +253,7 @@ export function filingReduction(kind, dueDate, filingDate) {
  * @param {object} [input.filed]          { initial, third, fourth } 기한 내 신고·납부 여부
  * @param {object} [input.prepaid]        { initialTax, initialLocal } 최초분 기납부세액 (filed.initial 일 때)
  *                                        initialLocal 미입력 시 initialTax × 10%
+ * @param {object} [input.selected]       { initial, third, fourth } 이번에 신고할 차수 (기본 전체)
  * @param {boolean} [input.excludeExpiredInitial]  최초분 부족세액을 제척기간(5년) 경과로 제외
  * @param {'final'|'prelim'} [input.initialDueBasis]  최초분 가산세 기산 기준
  * @param {boolean} [input.singleHouse]   1세대1주택 비과세 요건 충족
@@ -342,20 +376,14 @@ export function calcClearanceTransferTax(input) {
   if (common.rightsValue <= 0) warnings.push('권리가액을 입력해야 취득가액을 안분할 수 있습니다.');
   if (input.acquireDate > transferDate) warnings.push('취득일이 양도일(2019.05.26) 이후입니다.');
 
-  const sum = (f) => rows.reduce((s, r) => s + f(r), 0);
-  const totals = {
-    tax: rows[rows.length - 1].stage.tax,
-    localTax: rows[rows.length - 1].stage.localTax,
-    unpaidTax: sum((r) => r.unpaid),
-    unpaidLocal: sum((r) => r.unpaidLocal),
-    filingPenalty: sum((r) => r.penalty.filing),
-    latePenalty: sum((r) => r.penalty.late.total),
-    penalty: sum((r) => r.penalty.total),
-    penaltyLocal: sum((r) => r.penaltyLocal.total),
-  };
-  totals.payNational = totals.unpaidTax + totals.penalty;
-  totals.payLocal = totals.unpaidLocal + totals.penaltyLocal;
-  totals.payAll = totals.payNational + totals.payLocal;
+  // 이번에 신고할 차수 선택 (기본: 전체). 합계는 선택한 차수만 더한다.
+  const selected = { initial: true, third: true, fourth: true, ...(input.selected || {}) };
+  rows.forEach((r) => { r.selected = !!selected[r.key]; });
+  const totals = sumRows(rows.filter((r) => r.selected));
+  totals.tax = rows[rows.length - 1].stage.tax;
+  totals.localTax = rows[rows.length - 1].stage.localTax;
+  const notSelected = sumRows(rows.filter((r) => !r.selected));
+  const combos = selectionCombos(rows);
 
   // 부과제척기간: 최초분 확정신고기한(2020.6.1) 다음날부터 무신고 7년 / 신고 시 5년
   const statute = {
@@ -370,5 +398,5 @@ export function calcClearanceTransferTax(input) {
       + (input.excludeExpiredInitial ? ' — 「제척기간 경과분 제외」에 따라 부족세액·가산세를 0으로 처리했습니다.' : ' — 「제척기간 경과분 제외」를 체크하면 제외하고 계산합니다.'));
   }
 
-  return { transferDate, years, holdDays, ltdTable, singleHouse, payDate, rows, totals, prepaid, statute, warnings, lawRef: LAW_REF };
+  return { transferDate, years, holdDays, ltdTable, singleHouse, payDate, rows, totals, notSelected, combos, prepaid, statute, warnings, lawRef: LAW_REF };
 }

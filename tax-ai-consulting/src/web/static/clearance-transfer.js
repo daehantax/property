@@ -72,6 +72,7 @@ function readInput() {
       : undefined,
     excludeExpiredInitial: $('excludeExpired').checked,
     initialDueBasis: $('initialDueBasis').value,
+    selected: { initial: $('sel_initial').checked, third: $('sel_third').checked, fourth: $('sel_fourth').checked },
     payDate: $('payDate').value || today(),
   };
 }
@@ -116,8 +117,8 @@ function penaltySheet(r) {
     const filingTxt = x.overdue
       ? `${p.filingRate === 0.1 ? '과소' : '무신고'} ${fmt(x.unpaid)} × ${pct(p.filingRate)} = ${fmt(p.filingRaw)}${p.reduction.rate ? `<br>감면 ${pct(p.reduction.rate)} (${p.reduction.label}) → ${fmt(p.filing)}` : `<br><small>${p.reduction.label}</small>`}`
       : '—';
-    return `<tr>
-      <td class="lbl">${x.label}<br><small>${x.key === 'third' ? `수령 ${dot(x.paidDate)} / 확정 ${dot(x.eventDate)}` : x.key === 'fourth' ? `지급 ${dot(x.eventDate)}` : `양도일 ${dot(x.eventDate)}`}</small></td>
+    return `<tr class="${x.selected ? '' : 'unsel'}">
+      <td class="lbl">${x.selected ? '' : '<span class="tag off">미선택</span> '}${x.label}<br><small>${x.key === 'third' ? `수령 ${dot(x.paidDate)} / 확정 ${dot(x.eventDate)}` : x.key === 'fourth' ? `지급 ${dot(x.eventDate)}` : `양도일 ${dot(x.eventDate)}`}</small></td>
       <td class="num">${dot(x.due)}</td>
       <td>${status}</td>
       <td class="num">${x.usedTax ? `<small>추가 ${fmt(x.addTax)}<br>기납부 −${fmt(x.usedTax)}</small><br>` : ''}${fmt(x.unpaid)}</td>
@@ -131,21 +132,38 @@ function penaltySheet(r) {
   <div class="scroll"><table class="sheet">
     <tr><th>차수</th><th>신고기한</th><th>상태</th><th>미납 본세<br><small>(기납부 공제 후)</small></th><th>신고불성실가산세</th><th>납부지연가산세 (구간별)</th><th>가산세 계</th></tr>
     ${rows}
-    <tr class="total"><td class="lbl" colspan="3">합계</td><td class="num">${fmt(t.unpaidTax)}</td><td class="num">${fmt(t.filingPenalty)}</td><td class="num">${fmt(t.latePenalty)}</td><td class="num">${fmt(t.penalty)}</td></tr>
+    <tr class="total"><td class="lbl" colspan="3">합계 (선택 차수)</td><td class="num">${fmt(t.unpaidTax)}</td><td class="num">${fmt(t.filingPenalty)}</td><td class="num">${fmt(t.latePenalty)}</td><td class="num">${fmt(t.penalty)}</td></tr>
   </table></div>`;
+}
+
+const selLabel = (r) => {
+  const s = r.rows.filter((x) => x.selected).map((x) => x.label.split(' ')[0]);
+  return s.length === r.rows.length ? '전체 차수' : s.length ? s.join(' + ') : '선택 없음';
+};
+
+function comboSheet(r) {
+  const cur = r.rows.filter((x) => x.selected).map((x) => x.key).join();
+  return `
+  <table class="sheet">
+    <tr><th>신고하는 차수</th><th>양도세 본세</th><th>양도세 가산세</th><th>지방소득세<br><small>(가산세 포함)</small></th><th>합계</th></tr>
+    ${r.combos.map((c) => `<tr class="${c.keys.join() === cur ? 'pick' : ''}">
+      <td class="lbl">${c.keys.join() === cur ? '▶ ' : ''}${c.keys.length === r.rows.length ? '전체 (최초분 + 3차 + 4차)' : c.label}</td>
+      <td class="num">${fmt(c.unpaidTax)}</td><td class="num">${fmt(c.penalty)}</td>
+      <td class="num">${fmt(c.payLocal)}</td><td class="num">${fmt(c.payAll)}</td></tr>`).join('')}
+  </table>`;
 }
 
 function summarySheet(r) {
   const t = r.totals;
-  const lr = r.rows;
   return `
   <table class="sheet">
     <tr><th>구분</th><th>본세</th><th>신고불성실</th><th>납부지연</th><th>합계</th></tr>
     ${r.prepaid.tax ? `<tr><td class="lbl">결정세액(누적)</td><td class="num">${fmt(t.tax)}</td><td colspan="3" class="formula">양도세 결정세액 / 지방소득세 ${fmt(t.localTax)}</td></tr>
     <tr><td class="lbl">기납부세액(최초분)</td><td class="num">−${fmt(r.prepaid.tax)}</td><td colspan="3" class="formula">지방소득세 기납부 −${fmt(r.prepaid.local)}${r.prepaid.refundTax ? ` · <b>환급 대상 양도세 ${fmt(r.prepaid.refundTax)} / 지방 ${fmt(r.prepaid.refundLocal)}</b>` : ''}</td></tr>` : ''}
     <tr><td class="lbl">양도소득세</td><td class="num">${fmt(t.unpaidTax)}</td><td class="num">${fmt(t.filingPenalty)}</td><td class="num">${fmt(t.latePenalty)}</td><td class="num">${fmt(t.payNational)}</td></tr>
-    <tr><td class="lbl">지방소득세 (참고)</td><td class="num">${fmt(t.unpaidLocal)}</td><td class="num">${fmt(lr.reduce((s, x) => s + x.penaltyLocal.filing, 0))}</td><td class="num">${fmt(lr.reduce((s, x) => s + x.penaltyLocal.late.total, 0))}</td><td class="num">${fmt(t.payLocal)}</td></tr>
-    <tr class="total"><td class="lbl">총 납부할 세액</td><td class="num">${fmt(t.unpaidTax + t.unpaidLocal)}</td><td class="num" colspan="2">${fmt(t.penalty + t.penaltyLocal)}</td><td class="num">${fmt(t.payAll)}</td></tr>
+    <tr><td class="lbl">지방소득세 (참고)</td><td class="num">${fmt(t.unpaidLocal)}</td><td class="num">${fmt(t.filingPenaltyLocal)}</td><td class="num">${fmt(t.latePenaltyLocal)}</td><td class="num">${fmt(t.payLocal)}</td></tr>
+    <tr class="total"><td class="lbl">총 납부할 세액<br><small>${selLabel(r)}</small></td><td class="num">${fmt(t.unpaidTax + t.unpaidLocal)}</td><td class="num" colspan="2">${fmt(t.penalty + t.penaltyLocal)}</td><td class="num">${fmt(t.payAll)}</td></tr>
+    ${r.notSelected.payAll ? `<tr class="unsel"><td class="lbl">미선택 차수 (${dot(r.payDate)} 납부 가정)</td><td class="num">${fmt(r.notSelected.unpaidTax + r.notSelected.unpaidLocal)}</td><td class="num" colspan="2">${fmt(r.notSelected.penalty + r.notSelected.penaltyLocal)}</td><td class="num">${fmt(r.notSelected.payAll)}</td></tr>` : ''}
   </table>`;
 }
 
@@ -165,7 +183,7 @@ function render(r, inp) {
     </div>
     ${warn}
     <div class="headline">
-      <div>지금 납부할 세액 (양도세 + 지방소득세, 가산세 포함)</div>
+      <div>지금 납부할 세액 — ${selLabel(r)} (양도세 + 지방소득세, 가산세 포함)</div>
       <div class="big">${won(t.payAll)}</div>
       <div class="row">
         <span>양도세 본세 ${won(t.unpaidTax)}</span><span>가산세 ${won(t.penalty)}</span>
@@ -180,10 +198,14 @@ function render(r, inp) {
     <div class="sec-title">2. 가산세 명세서 (${dot(r.payDate)} 신고·납부 기준)</div>
     ${penaltySheet(r)}
 
-    <div class="sec-title">3. 총괄표</div>
+    <div class="sec-title">3. 총괄표 (${selLabel(r)})</div>
     ${summarySheet(r)}
 
+    <div class="sec-title">4. 차수 선택별 납부세액 비교 (${dot(r.payDate)} 신고·납부 기준)</div>
+    ${comboSheet(r)}
+
     <div class="notes"><ul>
+      <li>차수를 골라 신고해도 각 차수 세액은 <b>누적 청산금으로 다시 계산한 차액</b>이므로, 조합별 금액은 차수별 금액의 합입니다. 신고하지 않은 차수는 납부일까지 <b>납부지연가산세가 매일 늘어납니다</b>(4차는 2026.11.30을 넘기면 가산세 발생).</li>
       <li>차수별 추가세액은 누적 청산금으로 세액을 다시 계산한 뒤 직전 누적세액을 뺀 금액입니다(누진세율 반영).</li>
       ${r.prepaid.tax ? '<li>최초분 신고자: 결정세액에서 <b>기납부세액을 공제</b>하고, 부족분에만 과소신고가산세 10%와 납부지연가산세를 계산했습니다. 기납부가 더 많으면 초과분을 다음 차수 추가세액에 충당하고, 남으면 환급 대상으로 표시합니다. 당초 신고는 기한(2020.06.01) 내에 했다고 가정했습니다.</li>' : ''}
       <li>최초분을 신고하지 않았으면 이후 차수도 <b>기한후신고(무신고 20%)</b>, 최초분을 신고했으면 이후 차수는 <b>수정신고(과소신고 10%)</b>로 계산했습니다. 감면(국기법 §48②)은 신고불성실가산세에만 적용됩니다.</li>

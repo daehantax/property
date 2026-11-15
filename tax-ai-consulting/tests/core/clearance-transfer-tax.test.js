@@ -139,3 +139,18 @@ describe('최초분 신고자 — 기납부세액 공제', () => {
     expect(r.prepaid.refundTax).toBe(70_000_000 - 64_770_000);
   });
 });
+
+describe('차수 선택 신고', () => {
+  const all = calcClearanceTransferTax(BASE);
+  it('조합 7가지, 전체 조합 = 전체 합계', () => {
+    expect(all.combos).toHaveLength(7);
+    expect(all.combos.at(-1).payAll).toBe(all.totals.payAll);
+  });
+  it('3차만 선택 → 합계는 3차 행 금액, 나머지는 미선택분', () => {
+    const r = calcClearanceTransferTax({ ...BASE, selected: { initial: false, third: true, fourth: false } });
+    const third = r.rows[1];
+    expect(r.totals.payAll).toBe(third.due_total + third.due_totalLocal);
+    expect(r.totals.payAll + r.notSelected.payAll).toBe(all.totals.payAll);
+    expect(r.combos.find((c) => c.keys.join() === 'third').payAll).toBe(r.totals.payAll);
+  });
+});
