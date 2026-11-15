@@ -47,7 +47,15 @@
   .lawref li { margin: 2px 0; }
   .report-head { display: none; }
   .scroll { overflow-x: auto; }
-  .selrow { display: flex; gap: 18px; }
+  .selrow { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .calc-box { border: 1px solid #cfd8de; border-radius: 9px; padding: 10px 14px; margin: 8px 0; break-inside: avoid; }
+  .calc-box h4 { margin: 0 0 6px; font-size: 15px; color: #123a54; }
+  .calc-box table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .calc-box td { padding: 3px 6px; border-bottom: 1px dotted #dfe6eb; vertical-align: top; }
+  .calc-box td.k { width: 150px; font-weight: 700; color: #34495e; white-space: nowrap; }
+  .calc-box td.v { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .calc-box tr.sum td { border-top: 2px solid #123a54; border-bottom: none; background: #eaf2f8; }
+  .calc-box .none { color: #1e8449; font-weight: 700; }
   table.sheet tr.unsel td { color: #9aa8b3; background: #fafbfc; }
   table.sheet tr.pick td { background: #e8f6ee; font-weight: 800; }
   .tag.off { background: #95a5a6; }
@@ -80,15 +88,16 @@
 <div class="container">
   <p class="page-intro">
     <b>개포래미안 재건축</b> 조합원이 권리가액 중 일부를 <b>청산금(환급)</b>으로 받은 경우의 양도소득세를
-    <b>2019년 양도분 세법</b>으로 계산하고, 차수별 <b>신고불성실·납부지연 가산세</b> 명세를 만듭니다.
+    <b>2019년 양도분 세법</b>으로 계산하고, 최초·1차·2차·3차·4차 중 <b>이번에 신고할 차수</b>를 골라 <b>신고불성실·납부지연 가산세</b> 산정 내역까지 명세를 만듭니다.
     중과세율은 적용하지 않습니다(일반세율). 계산은 브라우저 안에서만 이뤄집니다.
   </p>
 
   <div class="ct-layout">
     <div class="panel" id="ctForm">
       <div class="fixed">
-        <b>양도일</b> 2019.05.26 (이전고시일 다음날) · <b>보유기간</b> 취득일 ~ 양도일<br>
-        <b>최초분 신고기한</b> 2020.06.01 (확정신고, 5.31 일요일 순연) · <b>3차</b> 2026.06.30 · <b>4차</b> 2026.11.30
+        <b>양도일</b> 2019.05.25 (이전고시일 2019.05.24 다음날) · <b>보유기간</b> 취득일 ~ 양도일<br>
+        <b>최초·1차</b> 2019.05.24 수령 의제 → 신고기한 2020.06.01 · <b>2차</b> 2019.08 말 수령 → 2019.10.31<br>
+        <b>3차·4차</b> 2026.09.10 수령 → 신고기한 2026.11.30
       </div>
 
       <div class="fs">
@@ -103,16 +112,13 @@
 
       <div class="fs">
         <h3>② 받은 청산금</h3>
-        <div class="sub">계약금·1차·2차는 양도일(2019.05.26)에 귀속되는 최초분입니다.</div>
+        <div class="sub">수령일은 아래 기준으로 고정합니다(최초·1차는 이전고시일 2019.05.24 수령으로 의제).</div>
         <div class="grid2">
-          <div><label>계약금 (관리처분인가 시 20%)</label><input id="amt_deposit" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
-          <div><label>계약금 지급일</label><input type="date" id="date_deposit" value="2016-04-01"></div>
-          <div><label>1차 중도금</label><input id="amt_mid1" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
-          <div><label>1차 지급일</label><input type="date" id="date_mid1" value="2016-10-07"></div>
-          <div><label>2차 중도금</label><input id="amt_mid2" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
-          <div><label>2차 지급일</label><input type="date" id="date_mid2" value="2017-03-08"></div>
-          <div><label>3차 (2026.04.30 확정·통지)</label><input id="amt_third" data-kind="money" inputmode="numeric" value="50,000,000"><div class="money-hint"></div></div>
-          <div><label>4차 (2026.09.10 지급)</label><input id="amt_fourth" data-kind="money" inputmode="numeric" value="50,000,000"><div class="money-hint"></div></div>
+          <div><label>최초 청산금 <small>(실입주일 → 2019.05.24 의제)</small></label><input id="amt_initial" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
+          <div><label>1차 청산금 <small>(2019.04 → 2019.05.24 의제)</small></label><input id="amt_first" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
+          <div><label>2차 청산금 <small>(2019.08 말, 기한 2019.10.31)</small></label><input id="amt_second" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
+          <div><label>3차 청산금 <small>(2026.09.10, 기한 2026.11.30)</small></label><input id="amt_third" data-kind="money" inputmode="numeric" value="50,000,000"><div class="money-hint"></div></div>
+          <div><label>4차 청산금 <small>(2026.09.10, 기한 2026.11.30)</small></label><input id="amt_fourth" data-kind="money" inputmode="numeric" value="50,000,000"><div class="money-hint"></div></div>
         </div>
       </div>
 
@@ -132,33 +138,47 @@
       </div>
 
       <div class="fs">
-        <h3>④ 신고 현황 · 납부일</h3>
-        <label class="chk"><input type="checkbox" id="filed_initial"> 최초분을 신고·납부함 (기납부세액 공제)</label>
-        <div id="prepaidWrap" class="grid2" style="display:none;margin:6px 0 4px 22px">
-          <div><label>기납부 양도소득세</label><input id="prepaidTax" data-kind="money" inputmode="numeric" value=""><div class="money-hint">당초 신고·납부한 세액</div></div>
-          <div><label>기납부 지방소득세</label><input id="prepaidLocal" data-kind="money" inputmode="numeric" value=""><div class="money-hint">비우면 양도세의 10%</div></div>
-          <div class="full"><label class="chk" style="margin-top:0"><input type="checkbox" id="excludeExpired"> 최초분 부족세액은 제척기간(5년, 2025.06.01) 경과로 제외</label></div>
+        <h3>④ 이번에 신고할 차수</h3>
+        <div class="sub">선택한 차수만 <b>청산금 양도신고 대상</b>(양도가액)에 넣고, 신고불성실·납부지연 가산세도 선택한 차수에만 계산합니다.</div>
+        <div class="selrow">
+          <label class="chk"><input type="checkbox" id="sel_initial" checked> 최초</label>
+          <label class="chk"><input type="checkbox" id="sel_first" checked> 1차</label>
+          <label class="chk"><input type="checkbox" id="sel_second" checked> 2차</label>
+          <label class="chk"><input type="checkbox" id="sel_third" checked> 3차</label>
+          <label class="chk"><input type="checkbox" id="sel_fourth" checked> 4차</label>
         </div>
-        <label class="chk"><input type="checkbox" id="filed_third"> 3차분을 기한(2026.06.30) 내 신고·납부함</label>
-        <label class="chk"><input type="checkbox" id="filed_fourth"> 4차분을 이미 신고·납부함</label>
+      </div>
+
+      <div class="fs">
+        <h3>⑤ 이미 신고·납부한 차수 · 납부일</h3>
+        <div class="sub">이미 신고한 차수는 과세표준에 누적 포함하고 그 세액은 기납부로 봅니다. <b>최초 청산금을 신고했으면</b> 이후 덜 낸 차수(1차·2차 등)는 과소신고 10% + 납부지연가산세, 신고하지 않았으면 무신고 20% + 납부지연가산세로 계산합니다.</div>
+        <div class="selrow">
+          <label class="chk"><input type="checkbox" id="filed_initial"> 최초</label>
+          <label class="chk"><input type="checkbox" id="filed_first"> 1차</label>
+          <label class="chk"><input type="checkbox" id="filed_second"> 2차</label>
+          <label class="chk"><input type="checkbox" id="filed_third"> 3차</label>
+          <label class="chk"><input type="checkbox" id="filed_fourth"> 4차</label>
+        </div>
+        <div id="prepaidWrap" class="grid2" style="display:none;margin:6px 0 4px">
+          <div><label>기납부 양도소득세 (합계)</label><input id="prepaidTax" data-kind="money" inputmode="numeric" value=""><div class="money-hint">비우면 신고 차수 세액을 정확히 납부한 것으로 봄</div></div>
+          <div><label>기납부 지방소득세 (합계)</label><input id="prepaidLocal" data-kind="money" inputmode="numeric" value=""><div class="money-hint">비우면 양도세의 10%</div></div>
+          <div class="full"><label class="chk" style="margin-top:0"><input type="checkbox" id="excludeExpired"> 최초 신고 시 2019년 귀속분(최초·1차·2차) 부족세액은 제척기간(5년, 2025.06.01) 경과로 제외</label></div>
+        </div>
         <div class="grid2" style="margin-top:8px">
           <div><label>신고·납부(예정)일</label><input type="date" id="payDate"></div>
-          <div><label>최초분 가산세 기산</label>
+          <div><label>신고불성실가산세 감면율</label>
+            <select id="reduction">
+              <option value="0.1">청산금 감면 10%</option>
+              <option value="auto">국기법 §48② 경과기간별</option>
+              <option value="0">감면 없음</option>
+            </select>
+          </div>
+          <div><label>최초·1차 신고기한</label>
             <select id="initialDueBasis">
               <option value="final">확정신고기한 2020.06.01</option>
               <option value="prelim">예정신고기한 2019.07.31</option>
             </select>
           </div>
-        </div>
-      </div>
-
-      <div class="fs">
-        <h3>⑤ 이번에 신고할 차수</h3>
-        <div class="sub">한꺼번에 신고하거나 차수를 골라 신고할 수 있습니다. 선택한 차수만 「지금 납부할 세액」에 합산합니다.</div>
-        <div class="selrow">
-          <label class="chk"><input type="checkbox" id="sel_initial" checked> 최초분</label>
-          <label class="chk"><input type="checkbox" id="sel_third" checked> 3차</label>
-          <label class="chk"><input type="checkbox" id="sel_fourth" checked> 4차</label>
         </div>
       </div>
 
