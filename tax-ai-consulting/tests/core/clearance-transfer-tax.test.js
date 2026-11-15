@@ -107,3 +107,35 @@ describe('1세대1주택 (2019년 고가주택 9억, 표2)', () => {
     expect(st.base).toBe(16_700_000);
   });
 });
+
+describe('최초분 신고자 — 기납부세액 공제', () => {
+  it('기납부 3천만 < 결정 43,490,000 → 부족 13,490,000에 과소 10% + 납부지연', () => {
+    const r = calcClearanceTransferTax({ ...BASE, filed: { initial: true }, prepaid: { initialTax: 30_000_000 } });
+    const ini = r.rows[0];
+    expect(r.prepaid).toMatchObject({ tax: 30_000_000, local: 3_000_000 });
+    expect(ini.unpaid).toBe(13_490_000);
+    expect(ini.unpaidLocal).toBe(1_349_000);
+    expect(ini.kind).toBe('amend');
+    expect(ini.penalty.filing).toBe(1_349_000);
+    expect(ini.penalty.late.total).toBe(Math.floor(13_490_000 * 623 * 0.00025) + Math.floor(13_490_000 * 1735 * 0.00022));
+    expect(r.warnings.some((w) => w.includes('제척기간'))).toBe(true);
+  });
+  it('제척기간 경과분 제외를 체크하면 최초분 부족세액·가산세 0', () => {
+    const r = calcClearanceTransferTax({ ...BASE, filed: { initial: true }, prepaid: { initialTax: 30_000_000 }, excludeExpiredInitial: true });
+    expect(r.rows[0].due_total).toBe(0);
+    expect(r.rows[1].unpaid).toBe(10_640_000);
+  });
+  it('기납부가 더 많으면(5천만) 초과분 6,510,000을 3차에 충당, 가산세도 충당 후 금액 기준', () => {
+    const r = calcClearanceTransferTax({ ...BASE, filed: { initial: true }, prepaid: { initialTax: 50_000_000, initialLocal: 5_000_000 } });
+    expect(r.rows[0].unpaid).toBe(0);
+    expect(r.rows[1].usedTax).toBe(6_510_000);
+    expect(r.rows[1].unpaid).toBe(10_640_000 - 6_510_000);
+    expect(r.rows[1].penalty.filingRaw).toBe(Math.floor(4_130_000 * 0.1));
+    expect(r.prepaid.refundTax).toBe(0);
+  });
+  it('기납부가 전체 결정세액보다 많으면 환급 대상', () => {
+    const r = calcClearanceTransferTax({ ...BASE, filed: { initial: true }, prepaid: { initialTax: 70_000_000 } });
+    expect(r.totals.unpaidTax).toBe(0);
+    expect(r.prepaid.refundTax).toBe(70_000_000 - 64_770_000);
+  });
+});

@@ -26,6 +26,8 @@
  *  - 무신고 20%(§47의2), 과소신고 10%(§47의3)
  *    · 최초분을 신고하지 않았으면 이후 차수도 기한후신고 → 무신고 20%
  *    · 최초분을 신고했으면 이후 차수는 수정신고 → 과소신고 10%
+ *    · 최초분 기납부세액은 결정세액에서 공제, 부족분에만 과소신고 10% + 납부지연
+ *      (기납부가 더 많으면 다음 차수 추가세액에 충당, 남으면 환급 대상)
  *  - 감면(§48②, 신고불성실가산세만): 법정신고기한 경과 후
  *    · 수정신고: 1개월 90%, 3개월 75%, 6개월 50%, 1년 30%, 1년6개월 20%, 2년 10%
  *    · 기한후신고: 1개월 50%, 3개월 30%, 6개월 20%
@@ -216,6 +218,9 @@ export function filingReduction(kind, dueDate, filingDate) {
  * @param {object} input.amounts          { deposit, mid1, mid2, third, fourth } 청산금
  * @param {object} [input.dates]          { deposit, mid1, mid2 } 지급일(표시용)
  * @param {object} [input.filed]          { initial, third, fourth } 기한 내 신고·납부 여부
+ * @param {object} [input.prepaid]        { initialTax, initialLocal } 최초분 기납부세액 (filed.initial 일 때)
+ *                                        initialLocal 미입력 시 initialTax × 10%
+ * @param {boolean} [input.excludeExpiredInitial]  최초분 부족세액을 제척기간(5년) 경과로 제외
  * @param {'final'|'prelim'} [input.initialDueBasis]  최초분 가산세 기산 기준
  * @param {boolean} [input.singleHouse]   1세대1주택 비과세 요건 충족
  * @param {number} [input.highPriceBase]  고가주택 판정가액 (기본 권리가액)
@@ -258,6 +263,13 @@ export function calcClearanceTransferTax(input) {
     basicDeductUsed: !!input.basicDeductUsed,
   };
 
+  // 기납부세액: 최초분을 신고·납부한 사람 — 결정세액에서 공제하고 부족분에만 가산세
+  //   prepaid.initialTax 미입력 + filed.initial=true 이면 '정확히 신고·납부'로 보아 최초분 세액 전액을 기납부로 간주
+  const prepaidIn = input.prepaid || {};
+  const hasPrepaid = filed.initial && prepaidIn.initialTax !== undefined && prepaidIn.initialTax !== null && prepaidIn.initialTax !== '';
+  let creditTax = 0, creditLocal = 0;   // 남은 기납부액(초과 납부분은 다음 차수에 충당)
+  const prepaid = { tax: 0, local: 0, given: hasPrepaid };
+
   let cum = 0;
   let prevTax = 0, prevLocal = 0;
   const rows = [];
@@ -268,37 +280,61 @@ export function calcClearanceTransferTax(input) {
     const addLocal = Math.max(0, st.localTax - prevLocal);
     prevTax = st.tax; prevLocal = st.localTax;
 
-    // 신고 유형: 최초분 미신고 → 기한후신고(무신고), 최초분 신고 → 이후 차수 수정신고(과소)
-    const kind = t.key === 'initial' || !filed.initial ? 'late' : 'amend';
-    const isFiled = filed[t.key];
-    const overdue = !isFiled && payDate > t.due && addTax > 0;
+    if (t.key === 'initial' && filed.initial) {
+      prepaid.tax = hasPrepaid ? Math.max(0, Math.floor(Number(prepaidIn.initialTax) || 0)) : addTax;
+      const lIn = prepaidIn.initialLocal;
+      prepaid.local = hasPrepaid
+        ? (lIn !== undefined && lIn !== null && lIn !== '' ? Math.max(0, Math.floor(Number(lIn) || 0)) : Math.floor(prepaid.tax * 0.1))
+        : addLocal;
+      creditTax = prepaid.tax; creditLocal = prepaid.local;
+    }
 
-    let pen = { filingRate: 0, filingBase: 0, reduction: { rate: 0, label: '' }, filing: 0,
+    // 이번 차수 미납액 = 추가세액 − 충당할 기납부액 (3·4차를 이미 신고·납부했으면 0)
+    const fullyFiled = t.key !== 'initial' && filed[t.key];
+    let usedTax = 0, usedLocal = 0, unpaid = 0, unpaidLocal = 0;
+    if (!fullyFiled) {
+      usedTax = Math.min(creditTax, addTax); creditTax -= usedTax;
+      usedLocal = Math.min(creditLocal, addLocal); creditLocal -= usedLocal;
+      unpaid = addTax - usedTax; unpaidLocal = addLocal - usedLocal;
+    }
+    if (t.key === 'initial' && filed.initial && unpaid > 0 && input.excludeExpiredInitial) {
+      unpaid = 0; unpaidLocal = 0;   // 제척기간(5년) 경과로 부과 불가 처리
+    }
+
+    // 신고 유형: 최초분 미신고 → 기한후신고(무신고 20%), 최초분 신고 → 최초분 부족분·이후 차수 모두 수정신고(과소 10%)
+    const kind = filed.initial ? 'amend' : 'late';
+    const isFiled = fullyFiled || (t.key === 'initial' && filed.initial && unpaid === 0);
+    const overdue = payDate > t.due && unpaid > 0;
+
+    let pen = { filingRate: 0, filingRaw: 0, reduction: { rate: 0, label: '' }, filing: 0,
       late: { total: 0, days: 0, segments: [] }, total: 0 };
     let penLocal = { filing: 0, late: { total: 0, days: 0, segments: [] }, total: 0 };
     if (overdue) {
       const filingRate = kind === 'late' ? 0.20 : 0.10;
       const reduction = filingReduction(kind, t.due, payDate);
-      const filingRaw = Math.floor(addTax * filingRate);
+      const filingRaw = Math.floor(unpaid * filingRate);
       const filing = filingRaw - Math.floor(filingRaw * reduction.rate);
-      const late = latePaymentPenalty(addTax, t.due, payDate);
+      const late = latePaymentPenalty(unpaid, t.due, payDate);
       pen = { filingRate, filingRaw, reduction, filing, late, total: filing + late.total };
 
-      const lFilingRaw = Math.floor(addLocal * filingRate);
+      const lFilingRaw = Math.floor(unpaidLocal * filingRate);
       const lFiling = lFilingRaw - Math.floor(lFilingRaw * reduction.rate);
-      const lLate = latePaymentPenalty(addLocal, t.due, payDate, LOCAL_RATES);
-      const cap = Math.floor(addLocal * 0.75);
+      const lLate = latePaymentPenalty(unpaidLocal, t.due, payDate, LOCAL_RATES);
+      const cap = Math.floor(unpaidLocal * 0.75);
       const lLateTotal = Math.min(lLate.total, cap);
       penLocal = { filing: lFiling, late: { ...lLate, total: lLateTotal, capped: lLate.total > cap }, total: lFiling + lLateTotal };
     }
 
     rows.push({
       ...t, kind, filed: isFiled, overdue, cumulative: cum, stage: st,
-      addTax, addLocal, penalty: pen, penaltyLocal: penLocal,
-      due_total: isFiled ? 0 : addTax + pen.total,
-      due_totalLocal: isFiled ? 0 : addLocal + penLocal.total,
+      addTax, addLocal, usedTax, usedLocal, unpaid, unpaidLocal,
+      penalty: pen, penaltyLocal: penLocal,
+      due_total: unpaid + pen.total,
+      due_totalLocal: unpaidLocal + penLocal.total,
     });
   }
+  prepaid.refundTax = creditTax;      // 기납부가 결정세액보다 많으면 환급 대상
+  prepaid.refundLocal = creditLocal;
 
   if (common.rightsValue > 0 && cum > common.rightsValue) {
     warnings.push('누적 청산금이 권리가액을 초과합니다. 취득가액 안분 비율이 100%를 넘으니 입력을 확인하세요.');
@@ -310,8 +346,8 @@ export function calcClearanceTransferTax(input) {
   const totals = {
     tax: rows[rows.length - 1].stage.tax,
     localTax: rows[rows.length - 1].stage.localTax,
-    unpaidTax: sum((r) => (r.filed ? 0 : r.addTax)),
-    unpaidLocal: sum((r) => (r.filed ? 0 : r.addLocal)),
+    unpaidTax: sum((r) => r.unpaid),
+    unpaidLocal: sum((r) => r.unpaidLocal),
     filingPenalty: sum((r) => r.penalty.filing),
     latePenalty: sum((r) => r.penalty.late.total),
     penalty: sum((r) => r.penalty.total),
@@ -328,5 +364,11 @@ export function calcClearanceTransferTax(input) {
     expires: addDays(addYears(addDays(S.initial.dueFinal, 1), filed.initial ? 5 : 7), -1),
   };
 
-  return { transferDate, years, holdDays, ltdTable, singleHouse, payDate, rows, totals, statute, warnings, lawRef: LAW_REF };
+  if (filed.initial && payDate > statute.expires && rows[0].addTax > prepaid.tax) {
+    warnings.push(`최초분은 신고했으므로 부과제척기간이 5년(${statute.expires.replaceAll('-', '.')} 만료)입니다. `
+      + `최초분 부족세액은 제척기간이 지나 과세관청이 부과할 수 없고 수정신고 대상도 아닐 수 있습니다`
+      + (input.excludeExpiredInitial ? ' — 「제척기간 경과분 제외」에 따라 부족세액·가산세를 0으로 처리했습니다.' : ' — 「제척기간 경과분 제외」를 체크하면 제외하고 계산합니다.'));
+  }
+
+  return { transferDate, years, holdDays, ltdTable, singleHouse, payDate, rows, totals, prepaid, statute, warnings, lawRef: LAW_REF };
 }

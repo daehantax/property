@@ -129,7 +129,12 @@
 
       <div class="fs">
         <h3>④ 신고 현황 · 납부일</h3>
-        <label class="chk"><input type="checkbox" id="filed_initial"> 최초분을 기한 내 신고·납부함</label>
+        <label class="chk"><input type="checkbox" id="filed_initial"> 최초분을 신고·납부함 (기납부세액 공제)</label>
+        <div id="prepaidWrap" class="grid2" style="display:none;margin:6px 0 4px 22px">
+          <div><label>기납부 양도소득세</label><input id="prepaidTax" data-kind="money" inputmode="numeric" value=""><div class="money-hint">당초 신고·납부한 세액</div></div>
+          <div><label>기납부 지방소득세</label><input id="prepaidLocal" data-kind="money" inputmode="numeric" value=""><div class="money-hint">비우면 양도세의 10%</div></div>
+          <div class="full"><label class="chk" style="margin-top:0"><input type="checkbox" id="excludeExpired"> 최초분 부족세액은 제척기간(5년, 2025.06.01) 경과로 제외</label></div>
+        </div>
         <label class="chk"><input type="checkbox" id="filed_third"> 3차분을 기한(2026.06.30) 내 신고·납부함</label>
         <label class="chk"><input type="checkbox" id="filed_fourth"> 4차분을 이미 신고·납부함</label>
         <div class="grid2" style="margin-top:8px">
