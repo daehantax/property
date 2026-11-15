@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개포래미안 청산금 양도세 계산기</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .ct-layout { display: flex; gap: 18px; align-items: flex-start; }
+  #ctForm { width: 470px; flex-shrink: 0; }
+  #ctResult { flex: 1; min-width: 0; min-height: 400px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .grid2 label { margin: 0 0 2px; }
+  .grid2 .full { grid-column: 1 / -1; }
+  .money-hint { font-size: 13px; color: #2874a6; min-height: 13px; }
+  .fs { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; margin-top: 12px; background: #fbfcfd; }
+  .fs h3 { margin: 0 0 8px; font-size: 15.5px; color: var(--navy); }
+  .fs .sub { font-size: 13px; color: #5f7180; margin: -4px 0 8px; line-height: 1.6; }
+  .chk { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; font-size: 14.5px; color: #34495e; font-weight: 700; }
+  .chk input { width: auto; margin-top: 3px; }
+  .fixed { background: #f4f8fb; border: 1px solid #d6e4ef; border-radius: 9px; padding: 10px 12px; font-size: 13.5px; line-height: 1.7; color: #34495e; }
+  .fixed b { color: var(--navy); }
+  .btn-primary { width: 100%; margin-top: 14px; padding: 13px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .btn-primary:hover { background: var(--navy-d); }
+  .result-empty { color: #6f8496; text-align: center; margin-top: 140px; }
+
+  .report-actions { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .btn-print { background: var(--navy); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 800; font-size: 15px; cursor: pointer; font-family: inherit; }
+  .headline { background: #eaf2f8; border: 1px solid #aed6f1; border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+  .headline .big { font-size: 26px; font-weight: 800; color: #123a54; letter-spacing: -0.5px; }
+  .headline .row { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 6px; font-size: 14.5px; color: #34495e; }
+  .sec-title { font-size: 17px; font-weight: 800; color: #123a54; margin: 18px 0 8px; border-left: 4px solid var(--navy); padding-left: 8px; }
+  table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.sheet th, table.sheet td { border: 1px solid #cfd8de; padding: 6px 8px; }
+  table.sheet th { background: #eef3f7; color: #123a54; font-weight: 700; }
+  table.sheet td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.sheet td.lbl { background: #f8fafb; font-weight: 700; color: #2c3e50; white-space: nowrap; }
+  table.sheet td.formula { font-size: 12.5px; color: #5f7180; }
+  table.sheet tr.em td { background: #fff7e6; font-weight: 800; }
+  table.sheet tr.total td { background: #eaf2f8; font-weight: 800; }
+  .tag { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: 999px; color: #fff; }
+  .tag.ok { background: #1e8449; } .tag.no { background: #c0392b; } .tag.wait { background: #2874a6; }
+  .notes { background: #fff9e6; border: 1px solid #f5d97e; border-radius: 10px; padding: 10px 14px; margin-top: 12px; }
+  .notes li { font-size: 13.5px; margin: 4px 0; line-height: 1.6; }
+  .warn { background: #fdecea; border: 1px solid #f5b7b1; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
+  .lawref { margin-top: 12px; font-size: 12.5px; color: #5f7180; border-top: 1px solid var(--line); padding-top: 8px; }
+  .lawref li { margin: 2px 0; }
+  .report-head { display: none; }
+  .scroll { overflow-x: auto; }
+
+  @media print {
+    @page { size: A4; margin: 12mm 10mm; }
+    body { background: #fff; font-size: 12px; }
+    nav.topnav, #ctForm, .page-intro, .report-actions { display: none !important; }
+    .container { max-width: none; padding: 0; }
+    .ct-layout { display: block; }
+    #ctResult { border: none; box-shadow: none; padding: 0; min-height: 0; }
+    .report-head { display: block; border-bottom: 2px solid #123a54; padding-bottom: 6px; margin-bottom: 10px; }
+    .report-head h1 { font-size: 19px; margin: 0 0 4px; color: #123a54; }
+    .report-head table { font-size: 11.5px; border-collapse: collapse; }
+    .report-head td { padding: 1px 12px 1px 0; }
+    table.sheet { font-size: 11px; }
+    table.sheet th, table.sheet td { padding: 3px 5px; }
+    .sec-title { font-size: 14px; break-after: avoid; }
+    table.sheet tr, .headline, .notes { break-inside: avoid; }
+    .scroll { overflow: visible; }
+  }
+  @media (max-width: 960px) { .ct-layout { flex-direction: column; } #ctForm { width: 100%; } }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<nav class="topnav" data-page="clearance-transfer"></nav>
+<script src="nav.js"></script>
+
+<div class="container">
+  <p class="page-intro">
+    <b>개포래미안 재건축</b> 조합원이 권리가액 중 일부를 <b>청산금(환급)</b>으로 받은 경우의 양도소득세를
+    <b>2019년 양도분 세법</b>으로 계산하고, 차수별 <b>신고불성실·납부지연 가산세</b> 명세를 만듭니다.
+    중과세율은 적용하지 않습니다(일반세율). 계산은 브라우저 안에서만 이뤄집니다.
+  </p>
+
+  <div class="ct-layout">
+    <div class="panel" id="ctForm">
+      <div class="fixed">
+        <b>양도일</b> 2019.05.26 (이전고시일 다음날) · <b>보유기간</b> 취득일 ~ 양도일<br>
+        <b>최초분 신고기한</b> 2020.06.01 (확정신고, 5.31 일요일 순연) · <b>3차</b> 2026.06.30 · <b>4차</b> 2026.11.30
+      </div>
+
+      <div class="fs">
+        <h3>① 종전부동산</h3>
+        <div class="grid2">
+          <div><label>취득일</label><input type="date" id="acquireDate" value="2003-05-01"></div>
+          <div><label>취득가액</label><input id="acquirePrice" data-kind="money" inputmode="numeric" value="300,000,000"><div class="money-hint"></div></div>
+          <div><label>필요경비 (자본적지출·양도비)</label><input id="expenses" data-kind="money" inputmode="numeric" value="0"><div class="money-hint"></div></div>
+          <div><label>권리가액 (종전자산 평가액)</label><input id="rightsValue" data-kind="money" inputmode="numeric" value="1,500,000,000"><div class="money-hint"></div></div>
+        </div>
+      </div>
+
+      <div class="fs">
+        <h3>② 받은 청산금</h3>
+        <div class="sub">계약금·1차·2차는 양도일(2019.05.26)에 귀속되는 최초분입니다.</div>
+        <div class="grid2">
+          <div><label>계약금 (관리처분인가 시 20%)</label><input id="amt_deposit" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
+          <div><label>계약금 지급일</label><input type="date" id="date_deposit" value="2016-04-01"></div>
+          <div><label>1차 중도금</label><input id="amt_mid1" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
+          <div><label>1차 지급일</label><input type="date" id="date_mid1" value="2016-10-07"></div>
+          <div><label>2차 중도금</label><input id="amt_mid2" data-kind="money" inputmode="numeric" value="100,000,000"><div class="money-hint"></div></div>
+          <div><label>2차 지급일</label><input type="date" id="date_mid2" value="2017-03-08"></div>
+          <div><label>3차 (2026.04.30 확정·통지)</label><input id="amt_third" data-kind="money" inputmode="numeric" value="50,000,000"><div class="money-hint"></div></div>
+          <div><label>4차 (2026.09.10 지급)</label><input id="amt_fourth" data-kind="money" inputmode="numeric" value="50,000,000"><div class="money-hint"></div></div>
+        </div>
+      </div>
+
+      <div class="fs">
+        <h3>③ 1세대1주택 · 장기보유특별공제</h3>
+        <label class="chk"><input type="checkbox" id="singleHouse"> 1세대1주택 비과세 요건 충족 (2019년 고가주택 9억 기준)</label>
+        <div class="grid2" style="margin-top:8px">
+          <div id="hpWrap" style="display:none"><label>고가주택 판정가액</label><input id="highPriceBase" data-kind="money" inputmode="numeric" value=""><div class="money-hint">비우면 권리가액</div></div>
+          <div><label>장특공 적용 표</label>
+            <select id="ltdTable">
+              <option value="table1">표1 일반 (연 2%, 최대 30%)</option>
+              <option value="table2">표2 1세대1주택 (연 8%, 최대 80%)</option>
+            </select>
+          </div>
+        </div>
+        <label class="chk"><input type="checkbox" id="basicDeductUsed"> 2019년 다른 양도로 기본공제(250만)를 이미 사용</label>
+      </div>
+
+      <div class="fs">
+        <h3>④ 신고 현황 · 납부일</h3>
+        <label class="chk"><input type="checkbox" id="filed_initial"> 최초분을 기한 내 신고·납부함</label>
+        <label class="chk"><input type="checkbox" id="filed_third"> 3차분을 기한(2026.06.30) 내 신고·납부함</label>
+        <label class="chk"><input type="checkbox" id="filed_fourth"> 4차분을 이미 신고·납부함</label>
+        <div class="grid2" style="margin-top:8px">
+          <div><label>신고·납부(예정)일</label><input type="date" id="payDate"></div>
+          <div><label>최초분 가산세 기산</label>
+            <select id="initialDueBasis">
+              <option value="final">확정신고기한 2020.06.01</option>
+              <option value="prelim">예정신고기한 2019.07.31</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="calcBtn">계산하기</button>
+    </div>
+
+    <div class="panel" id="ctResult">
+      <div class="result-empty" id="empty">정보를 입력하고 「계산하기」를 누르세요.</div>
+      <div id="result" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script src="clearance-transfer.js"></script>
+</body>
+</html>
