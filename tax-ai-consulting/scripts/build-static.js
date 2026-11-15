@@ -36,6 +36,7 @@ const PAGES = [
   { entry: 'property-calc.js', html: 'property-calc.html' },
   { entry: 'law-updates.js', html: 'law-updates.html' },
   { entry: 'inherit-tax.js', html: 'inherit-tax.html' },
+  { entry: 'clearance-transfer.js', html: 'clearance-transfer.html' },
 ];
 const ASSETS = ['styles.css', 'nav.js'];   // nav.js: 모든 페이지 공통 상단 메뉴(세목별 그룹)
 const HTML_ONLY = ['aggr-home.html', 'rental-lessor.html', 'regulated-areas.html'];   // JS 없이 HTML만 복사하는 페이지

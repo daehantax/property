@@ -34,6 +34,7 @@ const PAGES = [
   { html: 'aggr-couple.html', btn: '#calcBtn' },
   { html: 'property-calc.html', btn: '#calcBtn' },
   { html: 'inherit-tax.html', btn: '#calcBtn' },
+  { html: 'clearance-transfer.html', btn: '#calcBtn' },
   { html: 'aggr-home.html' },
   { html: 'scenarios.html' },
   { html: 'rental-lessor.html' },
