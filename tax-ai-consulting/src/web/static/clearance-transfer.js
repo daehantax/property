@@ -69,6 +69,7 @@ function readInput() {
     ltdTable: $('ltdTable').value,
     basicDeductUsed: $('basicDeductUsed').checked,
     initialDueBasis: $('initialDueBasis').value,
+    reduction: $('reduction').value === 'auto' ? 'auto' : Number($('reduction').value),
     payDate: $('payDate').value || today(),
   };
 }
@@ -174,10 +175,11 @@ function detailBox(x, r) {
       <tr class="sum"><td class="k">차수 합계</td><td>양도세 ${fmt(x.due_total)} + 지방소득세 ${fmt(x.due_totalLocal)}</td><td class="v">${fmt(x.due_total + x.due_totalLocal)}</td></tr>
     </table></div>`;
   }
-  const kindTxt = x.kind === 'late' ? '무신고(기한후신고) 20% — 국기법 §47의2' : '과소신고(수정신고) 10% — 국기법 §47의3';
+  const kindTxt = x.kind === 'late' ? '무신고(기한후신고) 20% — 국기법 §47의2'
+    : `과소신고(수정신고) 10% — 국기법 §47의3${x.filed ? '' : ' (최초 청산금 신고 후 덜 낸 차수)'}`;
   return `<div class="calc-box">${head}<table>${base}
     <tr><td class="k">① 신고불성실</td><td>${kindTxt}<br>${fmt(x.unpaid)} × ${pct(p.filingRate)}</td><td class="v">${fmt(p.filingRaw)}</td></tr>
-    <tr><td class="k"></td><td>감면(§48②): ${p.reduction.label}${p.reduction.rate ? ` → −${fmt(p.filingRaw - p.filing)}` : ''}</td><td class="v">${fmt(p.filing)}</td></tr>
+    <tr><td class="k"></td><td>감면: ${p.reduction.label}${p.reduction.rate ? ` → −${fmt(p.filingRaw - p.filing)}` : ''}</td><td class="v">${fmt(p.filing)}</td></tr>
     <tr><td class="k">② 납부지연</td><td>기산 ${dot(p.late.segments[0]?.from)} (신고기한 다음날) ~ 납부일 ${dot(r.payDate)} = ${fmt(p.late.days)}일<br>미납세액 ${fmt(x.unpaid)} × 일수 × 1일 이자율 (이율 개정일 구간별)</td><td class="v"></td></tr>
     ${segLines(p.late)}
     <tr><td class="k"></td><td>납부지연가산세 계 — 국기법 §47의4</td><td class="v">${fmt(p.late.total)}</td></tr>
@@ -218,7 +220,7 @@ function render(r, inp) {
     <div class="report-head">
       <h1>개포래미안 재건축 청산금 양도소득세 계산·가산세 명세서</h1>
       <table>
-        <tr><td>양도일(수령 의제일)</td><td>${dot(r.transferDate)} (이전고시일)</td><td>취득일</td><td>${dot(inp.acquireDate)} (보유 ${r.years}년)</td></tr>
+        <tr><td>양도일</td><td>${dot(r.transferDate)} (이전고시일 ${dot(r.noticeDate)} 다음날)</td><td>취득일</td><td>${dot(inp.acquireDate)} (보유 ${r.years}년)</td></tr>
         <tr><td>권리가액</td><td>${won(inp.rightsValue)}</td><td>신고·납부일</td><td>${dot(r.payDate)}</td></tr>
         <tr><td>신고 차수</td><td>${selLabel(r)}</td><td>작성일</td><td>${dot(today())}</td></tr>
         <tr><td>적용</td><td>${r.singleHouse ? '1세대1주택(9억 초과분 과세)' : '일반'} · 장특공 ${r.ltdTable === 'table2' ? '표2' : '표1'}</td><td></td><td></td></tr>
@@ -256,7 +258,9 @@ function render(r, inp) {
       <li>최초 청산금(실제 실입주일)과 1차 청산금(실제 2019.04)은 <b>이전고시일 2019.05.24 수령으로 의제</b>하고, 신고기한은 ${dot(r.initialDue)}${r.initialDue === '2019-07-31' ? '(예정신고기한)' : '(2019년 귀속 확정신고기한, 5.31 일요일 순연)'}을 적용했습니다.</li>
       <li>2차 청산금(2019.08 말 수령)은 수정신고기한 <b>2019.10.31</b>을 적용하여, 신고하지 않았으면 2019.11.01부터 납부일까지 <b>신고불성실 20% + 납부지연가산세</b>를 계산했습니다.</li>
       <li>3차·4차 청산금(2026.09.10 수령)은 신고기한 <b>2026.11.30</b> 이내 신고·납부하면 가산세가 없습니다. 납부일을 기한 뒤로 넣으면 그때부터 가산세가 생깁니다.</li>
-      <li>신고하지 않은 차수는 무신고 20%(기한후신고), 이미 신고했으나 기납부세액이 모자란 차수는 과소신고 10%(수정신고)로 계산했습니다. 감면(국기법 §48②)은 신고불성실가산세에만 적용됩니다.</li>
+      <li>양도일은 이전고시일(2019.05.24) <b>다음날인 2019.05.25</b>이며, 보유기간은 취득일부터 양도일까지입니다.</li>
+      <li>최초 청산금을 <b>신고하지 않았으면</b> 미신고 차수는 무신고 20%(기한후신고), 최초 청산금을 <b>신고했으면</b> 이후 덜 낸 차수(1차·2차 등)는 과소신고 10%(수정신고)로 계산하고, 둘 다 납부지연가산세를 함께 적용합니다.</li>
+      <li>신고불성실가산세 감면율: ${r.reductionMode === 'auto' ? '국기법 §48② 경과기간별 감면' : `<b>청산금 감면 ${pct(r.reductionRate)}</b>`}을 적용했습니다. 감면은 신고불성실가산세에만 적용되고 납부지연가산세에는 적용하지 않습니다.</li>
       <li>납부지연가산세 1일 이자율: ~2019.02.11 0.03% / 2019.02.12~2022.02.14 0.025% / 2022.02.15~ 0.022% (구간별 분할 계산).</li>
       <li>부과제척기간: ${r.statute.years === 7 ? '무신고' : '신고'} ${r.statute.years}년 → <b>${dot(r.statute.expires)}</b> 만료 (2019년 귀속 확정신고기한 2020.06.01 다음날부터 기산).</li>
       ${r.singleHouse ? '<li>1세대1주택 고가주택 판정은 청산금이 아닌 <b>종전주택 전체 가액(권리가액)</b>을 기준으로 했습니다. 판정가액 기준은 예규를 확인하세요.</li>' : ''}

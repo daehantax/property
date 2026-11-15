@@ -95,7 +95,7 @@
   <div class="ct-layout">
     <div class="panel" id="ctForm">
       <div class="fixed">
-        <b>양도일(수령 의제일)</b> 2019.05.24 (이전고시일) · <b>보유기간</b> 취득일 ~ 양도일<br>
+        <b>양도일</b> 2019.05.25 (이전고시일 2019.05.24 다음날) · <b>보유기간</b> 취득일 ~ 양도일<br>
         <b>최초·1차</b> 2019.05.24 수령 의제 → 신고기한 2020.06.01 · <b>2차</b> 2019.08 말 수령 → 2019.10.31<br>
         <b>3차·4차</b> 2026.09.10 수령 → 신고기한 2026.11.30
       </div>
@@ -151,7 +151,7 @@
 
       <div class="fs">
         <h3>⑤ 이미 신고·납부한 차수 · 납부일</h3>
-        <div class="sub">이미 신고한 차수는 과세표준에 누적 포함하고 그 세액은 기납부로 봅니다. 보통은 모두 비워 둡니다.</div>
+        <div class="sub">이미 신고한 차수는 과세표준에 누적 포함하고 그 세액은 기납부로 봅니다. <b>최초 청산금을 신고했으면</b> 이후 덜 낸 차수(1차·2차 등)는 과소신고 10% + 납부지연가산세, 신고하지 않았으면 무신고 20% + 납부지연가산세로 계산합니다.</div>
         <div class="selrow">
           <label class="chk"><input type="checkbox" id="filed_initial"> 최초</label>
           <label class="chk"><input type="checkbox" id="filed_first"> 1차</label>
@@ -162,10 +162,17 @@
         <div id="prepaidWrap" class="grid2" style="display:none;margin:6px 0 4px">
           <div><label>기납부 양도소득세 (합계)</label><input id="prepaidTax" data-kind="money" inputmode="numeric" value=""><div class="money-hint">비우면 신고 차수 세액을 정확히 납부한 것으로 봄</div></div>
           <div><label>기납부 지방소득세 (합계)</label><input id="prepaidLocal" data-kind="money" inputmode="numeric" value=""><div class="money-hint">비우면 양도세의 10%</div></div>
-          <div class="full"><label class="chk" style="margin-top:0"><input type="checkbox" id="excludeExpired"> 2019년 신고분 부족세액은 제척기간(5년, 2025.06.01) 경과로 제외</label></div>
+          <div class="full"><label class="chk" style="margin-top:0"><input type="checkbox" id="excludeExpired"> 최초 신고 시 2019년 귀속분(최초·1차·2차) 부족세액은 제척기간(5년, 2025.06.01) 경과로 제외</label></div>
         </div>
         <div class="grid2" style="margin-top:8px">
           <div><label>신고·납부(예정)일</label><input type="date" id="payDate"></div>
+          <div><label>신고불성실가산세 감면율</label>
+            <select id="reduction">
+              <option value="0.1">청산금 감면 10%</option>
+              <option value="auto">국기법 §48② 경과기간별</option>
+              <option value="0">감면 없음</option>
+            </select>
+          </div>
           <div><label>최초·1차 신고기한</label>
             <select id="initialDueBasis">
               <option value="final">확정신고기한 2020.06.01</option>

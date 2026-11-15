@@ -3,7 +3,7 @@
  * 대상: 개포래미안(재건축) 조합원이 권리가액 중 일부를 청산금으로 받은 경우
  *
  * [전제 — 2019년 양도분 세법]
- *  - 양도일(청산금 수령 의제일): 소유권 이전고시일 2019.05.24 (사용자 확정 기준)
+ *  - 양도일: 소유권 이전고시일(2019.05.24) 다음날 = 2019.05.25 (사용자 확정 기준)
  *  - 청산금 수령분 = 종전부동산의 일부 양도 (책 「2026 주택과 세금」 208~211쪽, 소득령 §166)
  *      양도가액 = 받은 청산금(누적)
  *      취득가액·필요경비 = 종전 취득가액·필요경비 × (청산금 ÷ 권리가액)
@@ -28,9 +28,10 @@
  *  - 가산세도 선택한 차수의 미납세액에만 계산한다.
  *
  * [가산세 — 국세기본법]
- *  - 신고하지 않은 차수: 신고불성실 20%(무신고, §47의2) — 사용자 확정 기준
- *    이미 신고했으나 기납부세액이 부족한 차수: 과소신고 10%(§47의3)
- *  - 감면(§48②, 신고불성실가산세만): 법정신고기한 경과 후
+ *  - 최초 청산금을 신고하지 않았으면: 미신고 차수 모두 무신고 20%(§47의2, 기한후신고)
+ *    최초 청산금을 신고했으면: 이후 덜 낸 차수(1차·2차 등)는 과소신고 10%(§47의3, 수정신고)
+ *    — 어느 쪽이든 납부지연가산세(구 납부불성실)는 함께 적용
+ *  - 신고불성실가산세 감면율: 기본 10%(사용자 확정 기준). 옵션 'auto'면 §48② 경과기간별 감면:
  *    · 수정신고: 1개월 90%, 3개월 75%, 6개월 50%, 1년 30%, 1년6개월 20%, 2년 10%
  *    · 기한후신고: 1개월 50%, 3개월 30%, 6개월 20%
  *  - 납부지연(§47의4, 구 납부불성실): 미납세액 × 경과일수 × 1일 이자율 (신고기한 다음날 ~ 납부일)
@@ -40,7 +41,9 @@
  *    · 납부지연 1일 0.025%(~2022.06.06) / 0.022%(2022.06.07~), 한도 미납세액의 75%
  */
 
-export const TRANSFER_DATE = '2019-05-24';   // 이전고시일 = 청산금 수령 의제일
+export const TRANSFER_DATE = '2019-05-25';   // 양도일 = 이전고시일(2019.05.24) 다음날
+export const NOTICE_DATE = '2019-05-24';     // 이전고시일 = 최초·1차 청산금 수령 의제일
+export const DEFAULT_REDUCTION = 0.10;       // 청산금 신고불성실가산세 감면율 (사용자 확정 기준)
 export const HIGH_PRICE_LINE = 900_000_000;   // 2019년 1세대1주택 고가주택 기준
 export const BASIC_DEDUCTION = 2_500_000;
 
@@ -243,6 +246,7 @@ const has = (v) => v !== undefined && v !== null && v !== '';
  *                                        비우면 '정확히 신고·납부'로 보아 해당 차수 세액 전액을 기납부로 간주
  * @param {boolean} [input.excludeExpired]  2019년 신고분 부족세액을 제척기간(5년) 경과로 제외
  * @param {'final'|'prelim'} [input.initialDueBasis]  최초·1차 신고기한 기준
+ * @param {number|'auto'} [input.reduction]  신고불성실가산세 감면율 (기본 0.10, 'auto'=§48② 경과기간별)
  * @param {boolean} [input.singleHouse]   1세대1주택 비과세 요건 충족
  * @param {number} [input.highPriceBase]  고가주택 판정가액 (기본 권리가액)
  * @param {'table1'|'table2'} [input.ltdTable]  장특공 표 (기본: 1세대1주택이면 표2)
@@ -262,6 +266,10 @@ export function calcClearanceTransferTax(input) {
   const holdDays = daysBetween(input.acquireDate, transferDate);
   const payDate = input.payDate;
   const initialDue = INITIAL_DUE[input.initialDueBasis === 'prelim' ? 'prelim' : 'final'];
+  // 신고불성실가산세 감면율: 숫자(0~1) 또는 'auto'(§48② 경과기간별). 기본 10%
+  const reductionMode = input.reduction === 'auto' ? 'auto' : 'fixed';
+  const reductionRate = reductionMode === 'auto' ? 0
+    : Math.min(1, Math.max(0, has(input.reduction) ? Number(input.reduction) || 0 : DEFAULT_REDUCTION));
   const warnings = [];
 
   const common = {
@@ -329,18 +337,19 @@ export function calcClearanceTransferTax(input) {
     }
 
     let expired = false;
-    if (filed[key] && unpaid > 0 && input.excludeExpired && due <= INITIAL_DUE.final) {
+    if ((filed[key] || filed.initial) && unpaid > 0 && input.excludeExpired && due <= INITIAL_DUE.final) {
       expired = true; unpaid = 0; unpaidLocal = 0;   // 제척기간(5년) 경과로 부과 불가 처리
     }
 
-    // 미신고 차수 → 무신고 20%(기한후신고), 신고했으나 부족 → 과소 10%(수정신고)
-    const kind = filed[key] ? 'amend' : 'late';
+    // 최초 청산금 미신고 → 무신고 20%(기한후신고), 최초 신고 후 덜 낸 차수 → 과소 10%(수정신고)
+    const kind = filed[key] || filed.initial ? 'amend' : 'late';
     const overdue = !!payDate && payDate > due && unpaid > 0;
 
     let pen = zeroPen, penLocal = zeroPenL;
     if (overdue) {
       const filingRate = kind === 'late' ? 0.20 : 0.10;
-      const reduction = filingReduction(kind, due, payDate);
+      const reduction = reductionMode === 'auto' ? filingReduction(kind, due, payDate)
+        : { rate: reductionRate, label: `청산금 감면율 ${Math.round(reductionRate * 100)}% 적용` };
       const filingRaw = Math.floor(unpaid * filingRate);
       const filing = filingRaw - Math.floor(filingRaw * reduction.rate);
       const late = latePaymentPenalty(unpaid, due, payDate);
@@ -394,13 +403,13 @@ export function calcClearanceTransferTax(input) {
   if (input.acquireDate > transferDate) warnings.push(`취득일이 양도일(${transferDate.replaceAll('-', '.')}) 이후입니다.`);
   if (!target.length) warnings.push('이번에 신고할 차수를 하나 이상 선택하세요.');
 
-  const shortfall2019 = rows.some((r) => r.filed && r.due <= INITIAL_DUE.final && (r.unpaid > 0 || r.expired));
+  const shortfall2019 = rows.some((r) => r.kind === 'amend' && r.due <= INITIAL_DUE.final && (r.unpaid > 0 || r.expired));
   if (filed2019 && payDate > statute.expires && shortfall2019) {
     warnings.push(`2019년 차수를 신고했으므로 부과제척기간이 5년(${statute.expires.replaceAll('-', '.')} 만료)입니다. `
-      + '신고한 차수의 부족세액은 제척기간이 지나 과세관청이 부과할 수 없고 수정신고 대상도 아닐 수 있습니다'
+      + '2019년 귀속 차수(최초·1차·2차)의 부족세액은 제척기간이 지나 과세관청이 부과할 수 없고 수정신고 대상도 아닐 수 있습니다'
       + (input.excludeExpired ? ' — 「제척기간 경과분 제외」에 따라 부족세액·가산세를 0으로 처리했습니다.' : ' — 「제척기간 경과분 제외」를 체크하면 제외하고 계산합니다.'));
   }
 
-  return { transferDate, years, holdDays, ltdTable, singleHouse, payDate, initialDue, rows, totals, notSelected,
+  return { transferDate, noticeDate: NOTICE_DATE, reductionMode, reductionRate, years, holdDays, ltdTable, singleHouse, payDate, initialDue, rows, totals, notSelected,
     allSelected, prepaid, statute, warnings, lawRef: LAW_REF };
 }

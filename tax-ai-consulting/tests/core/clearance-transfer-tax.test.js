@@ -48,8 +48,9 @@ describe('청산금 양도세 — 일반(표1), 전 차수 미신고·전체 신
   const r = calcClearanceTransferTax(BASE);
   const [ini, first, second, third, fourth] = r.rows;
 
-  it('양도일 = 이전고시일 2019.05.24, 보유 16년', () => {
-    expect(r.transferDate).toBe('2019-05-24');
+  it('양도일 = 이전고시일(2019.05.24) 다음날 2019.05.25, 보유 16년', () => {
+    expect(r.transferDate).toBe('2019-05-25');
+    expect(r.noticeDate).toBe('2019-05-24');
     expect(r.years).toBe(16);
   });
   it('최초+1차 누적 2억까지 세액 = 최초·1차 차수 세액 합', () => {
@@ -60,12 +61,13 @@ describe('청산금 양도세 — 일반(표1), 전 차수 미신고·전체 신
   it('최초~2차 누적 3억 세액 43,490,000 (기존 최초분과 동일)', () => {
     expect(second.stage).toMatchObject({ acq: 60_000_000, gain: 240_000_000, ltd: 72_000_000, base: 165_500_000, tax: 43_490_000 });
   });
-  it('2차: 기한 2019.10.31 → 2019.11.01부터 무신고 20% + 납부지연(837일×0.025% + 1,735일×0.022%)', () => {
+  it('2차: 기한 2019.10.31 → 2019.11.01부터 무신고 20%(감면 10%) + 납부지연(837일×0.025% + 1,735일×0.022%)', () => {
     expect(second.due).toBe('2019-10-31');
     expect(second.kind).toBe('late');
     expect(second.penalty.filingRate).toBe(0.2);
-    expect(second.penalty.reduction.rate).toBe(0);
-    expect(second.penalty.filing).toBe(Math.floor(second.unpaid * 0.2));
+    expect(second.penalty.reduction.rate).toBe(0.1);
+    const raw = Math.floor(second.unpaid * 0.2);
+    expect(second.penalty.filing).toBe(raw - Math.floor(raw * 0.1));
     expect(second.penalty.late.segments[0].from).toBe('2019-11-01');
     expect(second.penalty.late.segments.map((s) => s.days)).toEqual([837, 1735]);
   });
@@ -111,7 +113,8 @@ describe('차수 선택 — 선택한 차수만 양도신고 대상·가산세',
     const second = r.rows[2];
     expect(second.cumulative).toBe(100_000_000);
     expect(r.totals.unpaidTax).toBe(second.addTax);
-    expect(r.totals.filingPenalty).toBe(Math.floor(second.addTax * 0.2));
+    const raw = Math.floor(second.addTax * 0.2);
+    expect(r.totals.filingPenalty).toBe(raw - Math.floor(raw * 0.1));
     expect(r.totals.payNational).toBe(second.due_total);
   });
   it('선택 없음 → 경고', () => {
@@ -173,5 +176,46 @@ describe('이미 신고한 차수 — 기납부세액', () => {
     const r = calcClearanceTransferTax({ ...BASE, filed: { initial: true }, prepaid: { tax: 70_000_000 } });
     expect(r.totals.unpaidTax).toBe(0);
     expect(r.prepaid.refundTax).toBe(70_000_000 - 64_770_000);
+  });
+});
+
+describe('최초 청산금 신고 후 덜 낸 차수 (1차·2차)', () => {
+  const r = calcClearanceTransferTax({ ...BASE, filed: { initial: true }, selected: only('first', 'second') });
+  const [ini, first, second] = r.rows;
+  it('최초는 기신고, 1차·2차는 수정신고 과소 10% + 감면 10% + 납부지연', () => {
+    expect(ini.status).toBe('filed');
+    for (const x of [first, second]) {
+      expect(x.kind).toBe('amend');
+      expect(x.status).toBe('amend');
+      expect(x.penalty.filingRate).toBe(0.1);
+      const raw = Math.floor(x.unpaid * 0.1);
+      expect(x.penalty.filing).toBe(raw - Math.floor(raw * 0.1));
+      expect(x.penalty.late.total).toBeGreaterThan(0);
+    }
+    expect(first.penalty.late.segments[0].from).toBe('2020-06-02');
+    expect(second.penalty.late.segments[0].from).toBe('2019-11-01');
+  });
+  it('1차 세액 = 최초 포함 누적 차액', () => {
+    const all = calcClearanceTransferTax(BASE);
+    expect(first.addTax).toBe(all.rows[1].addTax);
+    expect(r.totals.unpaidTax).toBe(all.rows[1].addTax + all.rows[2].addTax);
+  });
+  it('제척기간 5년 경과 경고', () => {
+    expect(r.warnings.some((w) => w.includes('제척기간'))).toBe(true);
+  });
+});
+
+describe('신고불성실가산세 감면율 옵션', () => {
+  it('감면 없음(0) → 원래 가산세 그대로', () => {
+    const r = calcClearanceTransferTax({ ...BASE, reduction: 0 });
+    expect(r.rows[2].penalty.filing).toBe(Math.floor(r.rows[2].unpaid * 0.2));
+  });
+  it("'auto' → §48② 경과기간별 (수년 경과 → 0%)", () => {
+    const r = calcClearanceTransferTax({ ...BASE, reduction: 'auto' });
+    expect(r.rows[2].penalty.reduction.rate).toBe(0);
+  });
+  it('납부지연가산세는 감면 없음', () => {
+    const a = calcClearanceTransferTax(BASE), b = calcClearanceTransferTax({ ...BASE, reduction: 0 });
+    expect(a.rows[2].penalty.late.total).toBe(b.rows[2].penalty.late.total);
   });
 });
