@@ -83,7 +83,9 @@
   .guide th, .guide td { border: 1px solid var(--line); padding: 5px 9px; text-align: left; }
   .guide th { background: #f1f5f8; }
   .result-empty { color: #6f8496; text-align: center; margin-top: 140px; }
-  @media (max-width: 1000px) { .rt-layout { flex-direction: column; } #rtForm { width: 100%; } }
+  .rsec { overflow-x: auto; }
+  @media (max-width: 1000px) { .rt-layout { flex-direction: column; align-items: stretch; } #rtForm, #rtResult { width: 100%; } }
+  @media (max-width: 560px) { .verdict .amount { font-size: 25px; } table.exp td.amt { width: 120px; } }
   @media print {
     .topnav, #rtForm, .btn-print, .guide, .page-intro { display: none !important; }
     .panel { border: none; box-shadow: none; padding: 0; }

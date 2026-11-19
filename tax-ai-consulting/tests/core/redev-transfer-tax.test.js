@@ -188,6 +188,10 @@ describe('조합원입주권 양도 — 원조합원 (소득령 §166①)', () =
     expect(seg(r, 'pre').table).toBe('표2');
     expect(seg(r, 'pre').rate).toBeCloseTo(0.64);   // 보유 8년 32% + 거주 8년 32%
   });
+  it('관리처분인가일 전 양도는 오류(입주권이 아니라 주택 양도)', () => {
+    const r = calcRedevTransferTax({ ...base, completionDate: '', mode: 'inway', saleDate: '2017-06-01', salePrice: 10 * E });
+    expect(r.ok).toBe(false);
+  });
   it('준공일 이후 양도는 오류', () => {
     const r = calcRedevTransferTax({ ...base, mode: 'inway', saleDate: '2024-06-01', salePrice: 10 * E });
     expect(r.ok).toBe(false);

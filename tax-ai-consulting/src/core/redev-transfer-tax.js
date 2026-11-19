@@ -232,6 +232,11 @@ export function calcRedevTransferTax(input) {
     if (!(appraisal > 0)) errors.push('기존건물과 부수토지의 평가액(권리가액)을 입력하세요.');
     if (valid(approvalDate) && valid(acquireDate) && approvalDate < acquireDate) errors.push('원조합원은 기존주택 취득일이 관리처분계획인가일보다 앞서야 합니다. 인가일 이후 취득했다면 「승계조합원」을 선택하세요.');
   }
+  if (isOriginal && (mode === 'inway' || mode === 'cash') && valid(approvalDate) && valid(saleDate) && saleDate < approvalDate) {
+    errors.push(mode === 'inway'
+      ? '양도일이 관리처분계획인가일보다 빠릅니다. 인가 전 양도는 입주권이 아니라 일반 주택 양도이므로 「양도소득세 계산기」를 사용하세요.'
+      : '청산금의 양도일(소유권이전고시일의 다음 날)은 관리처분계획인가일 이후여야 합니다.');
+  }
   if (mode === 'newhouse' && !valid(completionDate)) errors.push('신축주택 사용승인일(준공일)을 입력하세요.');
   if (mode === 'newhouse' && valid(completionDate) && valid(saleDate) && saleDate < completionDate) errors.push('양도일이 준공일보다 빠릅니다. 준공 전 양도라면 「조합원입주권 양도」를 선택하세요.');
   if (mode === 'inway' && valid(completionDate) && valid(saleDate) && saleDate >= completionDate) errors.push('준공일 이후 양도는 「완공 신축주택 양도」로 계산해야 합니다.');
