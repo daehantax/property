@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재건축·재개발 양도소득세 계산기</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .rt-layout { display: flex; gap: 18px; align-items: flex-start; }
+  #rtForm { width: 540px; flex-shrink: 0; }
+  #rtResult { flex: 1; min-width: 0; min-height: 400px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .seg button { padding: 10px 6px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-weight: 700; font-size: 14.5px; cursor: pointer; color: #47606f; font-family: inherit; }
+  .seg button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .flow-note { font-size: 13.5px; color: #566573; line-height: 1.7; background: #f4f8fb; border: 1px solid #d6e4ef; border-radius: 9px; padding: 10px 12px; margin-bottom: 12px; }
+  .flow-note b { color: var(--navy); }
+  .sec { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; }
+  .sec > h3 { margin: 0 0 8px; font-size: 15.5px; color: var(--navy); }
+  .sec > h3 small { font-weight: 400; color: #6f8496; font-size: 12.5px; margin-left: 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .grid2 label { margin: 0 0 2px; }
+  .grid2 .full { grid-column: 1 / -1; }
+  .money-hint { font-size: 12.5px; color: #2874a6; min-height: 13px; }
+  .fhint { font-size: 12.5px; color: #6f8496; line-height: 1.5; margin-top: 2px; }
+  .chk { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; font-size: 14px; color: #34495e; font-weight: 700; }
+  .chk input { width: auto; margin-top: 4px; }
+
+  table.exp { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.exp th { text-align: left; background: #f1f5f8; color: #47606f; padding: 5px 8px; font-size: 12.5px; }
+  table.exp td { padding: 4px 4px 4px 8px; border-bottom: 1px solid #eef2f4; vertical-align: top; }
+  table.exp td.nm b { font-size: 13.5px; color: #2c3e50; }
+  table.exp td.nm span { display: block; font-size: 12px; color: #7b8d9a; line-height: 1.4; }
+  table.exp td.amt { width: 150px; }
+  table.exp input, table.exp select { padding: 6px 8px; font-size: 14px; text-align: right; }
+  table.exp select { text-align: left; }
+  table.exp tr.grp td { background: #fafbfc; font-weight: 800; color: var(--navy); font-size: 13px; padding: 6px 8px; }
+  .exp-total { display: flex; justify-content: space-between; font-weight: 800; font-size: 14.5px; padding: 8px; background: #eaf2f8; border-radius: 7px; margin-top: 6px; color: var(--navy); }
+  .btn-add { margin-top: 6px; padding: 6px 12px; border: 1px dashed #9fb3c2; background: #fff; border-radius: 7px; cursor: pointer; font-family: inherit; font-size: 13.5px; color: #47606f; font-weight: 700; }
+  .btn-del { border: none; background: none; color: #c0392b; cursor: pointer; font-size: 15px; padding: 4px; }
+
+  .verdict { border-radius: 12px; padding: 16px 20px; margin-bottom: 14px; }
+  .verdict.exempt { background: #eafaf1; border: 1px solid #abebc6; }
+  .verdict.partial { background: #fef5e7; border: 1px solid #f5cba7; }
+  .verdict.taxable { background: #fdecea; border: 1px solid #f5b7b1; }
+  .verdict .tag { display: inline-block; font-size: 13px; font-weight: 800; padding: 3px 12px; border-radius: 999px; color: #fff; }
+  .verdict.exempt .tag { background: #1e8449; }
+  .verdict.partial .tag { background: #b9770e; }
+  .verdict.taxable .tag { background: #c0392b; }
+  .verdict .head { font-size: 17px; font-weight: 800; margin-top: 6px; color: #1a2733; }
+  .verdict .amount { font-size: 31px; font-weight: 800; color: #1a2733; letter-spacing: -0.5px; margin-top: 2px; }
+  .verdict .sub { font-size: 13.5px; color: #566573; }
+
+  .rsec { margin-top: 18px; }
+  .rsec h3 { font-size: 15.5px; color: var(--navy); margin: 0 0 6px; border-left: 4px solid var(--navy); padding-left: 8px; }
+  .check { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid #eef2f4; }
+  .check .ic { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13.5px; color: #fff; }
+  .check.ok .ic { background: #1e8449; } .check.no .ic { background: #c0392b; } .check.warn .ic { background: #b9770e; }
+  .check .lbl { font-size: 14.5px; font-weight: 700; color: #2c3e50; }
+  .check .det { font-size: 13px; color: #5f7180; line-height: 1.5; }
+  table.calc { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.calc td, table.calc th { padding: 6px 8px; border-bottom: 1px solid #eef2f4; }
+  table.calc th { background: #f1f5f8; color: #47606f; font-size: 13px; text-align: left; }
+  table.calc td.n, table.calc th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.calc tr.head td { background: #fafbfc; font-weight: 800; color: var(--navy); }
+  table.calc tr.sub td { font-weight: 700; color: #1a2733; }
+  table.calc tr.tot td { font-weight: 800; background: #eaf2f8; color: var(--navy); border-top: 2px solid #aed6f1; }
+  table.calc td.neg { color: #a93226; }
+  table.calc small { color: #6f8496; display: block; font-size: 12.5px; line-height: 1.4; }
+  table.calc.ltd { font-size: 13px; }
+  table.calc.ltd td:first-child { min-width: 170px; }
+  table.calc.ltd td, table.calc.ltd th { padding: 6px 5px; }
+  .notes { background: #fff9e6; border: 1px solid #f5d97e; border-radius: 10px; padding: 10px 14px; margin-top: 14px; }
+  .notes li { font-size: 13.5px; margin: 4px 0; line-height: 1.6; }
+  .lawref { margin-top: 12px; font-size: 12.5px; color: #5f7180; border-top: 1px solid var(--line); padding-top: 8px; line-height: 1.7; }
+  .muted { font-size: 13px; color: #5f7180; margin-top: 8px; line-height: 1.6; }
+  .err { background: #fdecea; border: 1px solid #f5b7b1; border-radius: 10px; padding: 12px 16px; color: #922b21; font-size: 14.5px; }
+  .btn-print { margin-top: 14px; padding: 8px 16px; border: 1px solid var(--navy); background: #fff; color: var(--navy); border-radius: 8px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .guide { margin-top: 22px; }
+  .guide details { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; margin-bottom: 8px; }
+  .guide summary { font-weight: 800; color: var(--navy); cursor: pointer; font-size: 15px; }
+  .guide li, .guide p { font-size: 14px; line-height: 1.7; color: #34495e; }
+  .guide table { border-collapse: collapse; font-size: 13.5px; margin: 6px 0; }
+  .guide th, .guide td { border: 1px solid var(--line); padding: 5px 9px; text-align: left; }
+  .guide th { background: #f1f5f8; }
+  .result-empty { color: #6f8496; text-align: center; margin-top: 140px; }
+  @media (max-width: 1000px) { .rt-layout { flex-direction: column; } #rtForm { width: 100%; } }
+  @media print {
+    .topnav, #rtForm, .btn-print, .guide, .page-intro { display: none !important; }
+    .panel { border: none; box-shadow: none; padding: 0; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav" data-page="redev-transfer"></nav>
+<script src="nav.js"></script>
+
+<div class="container">
+  <p class="page-intro">
+    재건축·재개발(소규모재건축 등 포함) 조합원의 <b>양도소득세</b>를 상황별로 계산합니다 —
+    ① <b>조합원입주권 상태에서 양도</b>, ② <b>완공된 신축주택 양도</b>, ③ <b>지급받은 청산금</b>, ④ <b>대체주택 양도</b>.
+    관리처분계획인가 전·후 양도차익 구분, 청산금 납부·수령, 1세대1주택 비과세(12억), 장기보유특별공제 기산일, 다주택 중과, 필요경비 명세를 반영합니다.
+    산식은 국세청 「2026 주택과 세금」 208~213쪽(소득세법 시행령 §166) 기준이며, 계산은 브라우저 안에서만 이뤄집니다.
+  </p>
+
+  <div class="rt-layout">
+    <div class="panel" id="rtForm">
+      <div class="seg" id="modeSeg">
+        <button data-mode="inway">① 조합원입주권 양도</button>
+        <button data-mode="newhouse" class="active">② 완공 신축주택 양도</button>
+        <button data-mode="cash">③ 청산금 수령분</button>
+        <button data-mode="replace">④ 대체주택 양도</button>
+      </div>
+      <div id="flowNote"></div>
+      <div id="fields"></div>
+      <button class="btn-primary" id="calcBtn">양도소득세 계산하기</button>
+    </div>
+
+    <div class="panel" id="rtResult">
+      <div class="result-empty" id="empty">정보를 입력하고 「양도소득세 계산하기」를 누르세요.</div>
+      <div id="result" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="guide">
+    <details>
+      <summary>재건축·재개발 양도세 핵심 정리 (어떤 유형을 골라야 하나)</summary>
+      <table>
+        <tr><th>상황</th><th>양도 대상</th><th>양도차익</th><th>장기보유특별공제</th><th>세율 보유기간</th></tr>
+        <tr><td>원조합원 · 입주권 양도</td><td>권리(입주권)</td><td>인가 전 + 인가 후</td><td>인가 전 차익만<br>(취득일~관리처분인가일)</td><td>기존주택 취득일~양도일</td></tr>
+        <tr><td>승계조합원 · 입주권 양도</td><td>권리(입주권)</td><td>양도가 − 매입가 − 분담금</td><td>없음</td><td>입주권 취득일~양도일</td></tr>
+        <tr><td>원조합원 · 신축주택 (청산금 납부)</td><td>주택</td><td>기존건물분 + 청산금납부분</td><td>기존분: 취득일~양도일<br>청산금분: 인가일~양도일</td><td>기존주택 취득일~양도일</td></tr>
+        <tr><td>원조합원 · 신축주택 (청산금 수령)</td><td>주택</td><td>인가 전(안분) + 인가 후</td><td>취득일~양도일</td><td>기존주택 취득일~양도일</td></tr>
+        <tr><td>승계조합원 · 신축주택</td><td>주택</td><td>양도가 − 매입가 − 분담금</td><td>준공일~양도일</td><td>준공일~양도일</td></tr>
+        <tr><td>청산금 수령분</td><td>종전주택 일부</td><td>인가 전 차익 × 청산금/평가액</td><td>취득일~양도일</td><td>기존주택 취득일~양도일</td></tr>
+      </table>
+      <p>※ 「원조합원」 = 관리처분계획인가일 현재 기존주택을 갖고 있던 조합원. 「승계조합원」 = 인가일 이후 입주권을 사서 들어온 사람.</p>
+    </details>
+    <details>
+      <summary>1세대 1주택 비과세·대체주택 특례 요건</summary>
+      <ul>
+        <li><b>입주권 양도 비과세(§89①4, 책 254쪽)</b> — 관리처분계획인가일 현재 기존주택이 비과세 요건(2년 보유, 조정지역 취득분은 2년 거주)을 갖췄고, 양도일 현재 ㉮ 다른 주택·분양권이 없거나 ㉯ 1주택을 취득한 지 3년 이내에 입주권을 양도하는 경우. 12억 초과분은 과세.</li>
+        <li><b>신축주택 양도 비과세</b> — 원조합원은 기존주택 보유기간 + 공사기간 + 신축주택 보유기간을 통산합니다. 거주기간은 실제 거주한 기간만 더합니다. 승계조합원은 준공일부터 새로 2년을 채워야 합니다.</li>
+        <li><b>1주택 + 1입주권(§156의2③④, 책 255~256쪽)</b> — 종전주택 취득 1년 후 입주권을 취득하고 3년 이내 종전주택을 팔면 비과세. 3년이 지났어도 신축주택 완성 후 3년 이내 세대전원 이사·1년 이상 거주, 완성 전 또는 완성 후 3년 이내 종전주택 양도 요건을 갖추면 비과세. (종전주택 양도는 「양도소득세 계산기」로 계산)</li>
+        <li><b>대체주택 특례(§156의2⑤, 책 258~260쪽)</b> — 대체주택 취득일 현재 1주택 세대가 사업시행인가일 이후 대체주택을 취득해 1년 이상 거주하고, 신축주택 완성 후 3년 이내 세대전원이 이사해 1년 이상 거주하며, 완성 전 또는 완성 후 3년 이내 대체주택을 양도하면 보유·거주기간과 무관하게 비과세.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>필요경비로 인정되는 것 / 안 되는 것 (책 198~202쪽)</summary>
+      <ul>
+        <li><b>취득가액에 더하는 것</b>: 취득세(영수증 없어도 인정, 감면분 제외)·등록세·교육세·농특세, 법무사 수수료, 취득 중개수수료, 국민주택채권 매각차손, 소유권 확보를 위한 소송·화해비용, 분양 시 부가가치세.</li>
+        <li><b>자본적지출</b>: 내용연수를 늘리거나 가치를 높이는 공사(샷시·보일러 교체, 발코니 확장, 시스템에어컨 등), 용도변경·개량 비용, 재건축부담금·개발부담금. 세금계산서·카드전표·현금영수증 또는 계좌이체 내역 등 증빙이 있어야 합니다.</li>
+        <li><b>양도비</b>: 양도 중개수수료, 양도세 신고서·계약서 작성비용, 공증비용·인지대, 명도비용.</li>
+        <li><b>인정되지 않는 것</b>: 도배·장판·싱크대 교체·도색 같은 수익적 지출, 대출이자, 계약 해약 위약금, 이주비 이자, 관리비.</li>
+        <li><b>재건축 특유</b>: 인가 전 필요경비(기존주택 취득 관련)는 「인가 전 양도차익」에서, 인가 후 지출(신축주택 취득세, 옵션 공사비, 양도비)은 「인가 후 양도차익」에서 뺍니다. 청산금 수령분은 인가 전 필요경비 중 청산금 비율만큼만 공제됩니다.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>다주택 중과와 입주권 (책 294~295, 318쪽)</summary>
+      <ul>
+        <li>조합원입주권은 주택이 아니므로 <b>입주권을 팔 때는 중과세율이 붙지 않습니다</b>(보유 2년 이상이면 기본세율, 1년 미만 70%, 2년 미만 60%).</li>
+        <li>다만 <b>다른 주택을 팔 때 주택 수에는 포함</b>됩니다(주택 + 조합원입주권 + 2021.1.1 이후 취득 분양권).</li>
+        <li>완공된 신축주택은 주택이므로 조정대상지역 2주택 +20%p, 3주택 이상 +30%p 중과와 장기보유특별공제 배제 대상입니다(2026.5.10 이후 양도분). 중과 여부는 <a href="transfer-heavy.html">양도세 중과 판정기</a>에서 먼저 확인하세요.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<script src="redev-transfer.js"></script>
+</body>
+</html>

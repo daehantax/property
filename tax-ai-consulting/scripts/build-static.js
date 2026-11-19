@@ -29,6 +29,7 @@ const PAGES = [
   { entry: 'acq-heavy.js', html: 'acq-heavy.html' },
   { entry: 'single-exempt.js', html: 'single-exempt.html' },
   { entry: 'redev-exempt.js', html: 'redev-exempt.html' },
+  { entry: 'redev-transfer.js', html: 'redev-transfer.html' },
   { entry: 'marriage-exempt.js', html: 'marriage-exempt.html' },
   { entry: 'local-house.js', html: 'local-house.html' },
   { entry: 'aggr-single.js', html: 'aggr-single.html' },

@@ -26,6 +26,7 @@
         { href: 'transfer-heavy.html', label: '양도세 중과 판정기', desc: '주택수 산정 → 2주택·3주택 중과 여부' },
         { href: 'single-exempt.html', label: '1세대1주택 비과세 판정기', desc: '보유·거주요건, 상생임대, 일시적 2주택' },
         { href: 'redev-exempt.html', label: '재건축·재개발 비과세 판정기', desc: '조합원입주권 비과세·대체주택 특례' },
+        { href: 'redev-transfer.html', label: '재건축·재개발 양도세 계산기', desc: '입주권·신축주택·청산금·대체주택, 인가 전후 차익·장특공·필요경비' },
         { href: 'clearance-transfer.html', label: '개포래미안 청산금 양도세', desc: '2019년 양도분 청산금 양도세·차수별 가산세 명세서' },
         { href: 'marriage-exempt.html', label: '혼인 비과세 판정기', desc: '혼인 합가 특례(10년)·혼인 2주택' },
         { href: 'local-house.html', label: '지방주택 판정기', desc: '수도권 1채 + 지방 1채 세대의 1세대1주택' },
