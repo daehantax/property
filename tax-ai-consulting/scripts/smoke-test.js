@@ -3,8 +3,8 @@
  * 화면 스모크 테스트 — 배포되는 정적 사이트(dist/)의 전 페이지가 실제로 동작하는지 매일 점검한다.
  *
  * 점검 내용:
- *   1) 15개 페이지 전부: 로드 시 자바스크립트 에러 0건
- *   2) 계산기·판정기 10개 페이지 (+ 메인 화면 세목 하위 메뉴 전환): 기본 입력값으로 [계산하기/판정하기] 클릭 → #result 에 결과 표시
+ *   1) 18개 페이지 전부: 로드 시 자바스크립트 에러 0건
+ *   2) 계산기·판정기 12개 페이지 (+ 메인 화면 세목 하위 메뉴 전환): 기본 입력값으로 [계산하기/판정하기] 클릭 → #result 에 결과 표시
  *   3) 세법 동향 페이지: 타임라인 항목이 1건 이상 렌더링
  *
  * 사용법:  npm run build:static && node scripts/smoke-test.js
@@ -28,6 +28,7 @@ const PAGES = [
   { html: 'acq-heavy.html', btn: '#judgeBtn' },
   { html: 'single-exempt.html', btn: '#judgeBtn' },
   { html: 'redev-exempt.html', btn: '#judgeBtn' },
+  { html: 'redev-transfer.html', btn: '#calcBtn' },
   { html: 'marriage-exempt.html', btn: '#judgeBtn' },
   { html: 'local-house.html', btn: '#judgeBtn' },
   { html: 'aggr-single.html', btn: '#calcBtn' },

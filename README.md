@@ -57,7 +57,7 @@
 | 상속세 계산기 (간주·추정재산, 일괄·배우자·금융·동거주택 공제, 공제한도, 세대생략 할증, 증여세액공제, 상속인별 안분) | ✅ 구현 완료 | `tax-ai-consulting/src/core/inheritance-tax.js`, `src/web/static/inherit-tax.html` |
 | 세무 판정기 (양도세·취득세 중과, 1세대1주택·재건축·혼인 비과세, 지방주택 1세대1주택) | ✅ 구현 완료 | `tax-ai-consulting/src/core/heavy-tax-judge.js`, `single-house-exempt.js`, `redev-exempt.js`, `marriage-exempt.js`, `local-house-judge.js` |
 
-테스트 381개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 486개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -199,7 +199,7 @@ node scripts/law-watch.js --days 62   # 동향 감시 기간 변경 (기본 31�
 ## 매일 자동 점검 (daily-check)
 
 `daily-check` 워크플로가 **매일 06:00 KST**에 API 키 없이 3단계를 점검합니다:
-① 계산 엔진 회귀 테스트(vitest 381개) → ② 정적 사이트 빌드 → ③ 화면 스모크 테스트(`scripts/smoke-test.js` — 15개 페이지 로드·JS 에러 0건, 계산기/판정기 버튼 클릭 후 결과 표시 확인, 메인 화면 세목 클릭 시 하위 메뉴 화면 전환 확인). 실패 시 `daily-check` 라벨 이슈가 자동 생성됩니다. 로컬 실행: `npm run smoke`.
+① 계산 엔진 회귀 테스트(vitest 486개) → ② 정적 사이트 빌드 → ③ 화면 스모크 테스트(`scripts/smoke-test.js` — 18개 페이지 로드·JS 에러 0건, 계산기/판정기 버튼 클릭 후 결과 표시 확인, 메인 화면 세목 클릭 시 하위 메뉴 화면 전환 확인). 실패 시 `daily-check` 라벨 이슈가 자동 생성됩니다. 로컬 실행: `npm run smoke`.
 
 ## 프롬프트 튜닝 (사례 일괄 실행)
 
@@ -248,6 +248,7 @@ node scripts/run-cases.js --case 01   # 특정 사례만 실행
 | **취득세 중과 판정기** | `acq-heavy.html` + `acq-heavy.js` | 취득 후 주택수 × 조정지역 → 8%·12% 중과 판정 (세율 매트릭스 강조) |
 | **1세대1주택 비과세 판정기** | `single-exempt.html` + `single-exempt.js` | 보유·거주요건(2017.8.3 조정지역), 상생임대 면제, 고가주택 12억, 일시적 2주택 판정 (`single-house-exempt.js`, 재건축 제외) |
 | **재건축·재개발 비과세 판정기** | `redev-exempt.html` + `redev-exempt.js` | 조합원입주권 양도 비과세(§89①4 가/나목)·대체주택 특례(§156의2⑤) 판정, 고가주택 12억 반영 (`redev-exempt.js`) |
+| **재건축·재개발 양도세 계산기** | `redev-transfer.html` + `redev-transfer.js` | 조합원입주권 양도·완공 신축주택 양도·청산금 수령분·대체주택 양도. 관리처분인가 전/후 양도차익(소득령 §166), 청산금 납부·수령, 원조합원/승계조합원, 장특공 기산일, 12억 비과세, 다주택 중과, 필요경비 명세 (`redev-transfer-tax.js`) |
 | **혼인 비과세 판정기** | `marriage-exempt.html` + `marriage-exempt.js` | 혼인 시 주택·입주권·분양권 특례(§156의2⑨ 제1~4호, 10년 기한 2024.11.12~/종전 5년)·혼인 2주택(§155⑤) 판정, §154① 보유·거주요건·고가 12억 반영 (`marriage-exempt.js`) |
 | **세법 동향** | `law-updates.html` + `law-updates.js` + `law-updates-data.js` | 계산 로직에 영향 주는 개정·시행령·정부 발표·판결·예규를 일자별 타임라인으로 기록 — 영향 계산기 태그·엔진 반영 상태 표시, 국세청 예규·질의응답·기획재정부 유권해석·조세심판원 공식 출처 바로가기, 자동 점검(daily-check·law-watch) 상태 배지 |
 | **지방주택 1세대1주택 판정기** | `local-house.html` + `local-house.js` | 수도권 주택 1채 + 지방주택 1채 보유 세대의 소득세법·종부세법 1세대1주택 판정 (`local-house-judge.js`). 양도세: 일시적 2주택·상속·농어촌(§155①②⑦⑧), 조특법 농어촌·고향주택(§99의4, ~2028.12.31)·세컨드홈(§71의2, 인구감소지역 9억·관심지역 4억)·준공 후 미분양(§98의9) 7경로 + §154① + 중과 주택수 제외(3억) 표시. 종부세: §8④ 일시적 2주택·상속·지방 저가주택(4억·인구감소지역 9억) + 조특법 특례 → 12억 공제·1주택분 세액공제 적용 전후 세액 비교. 시·군·구 검색으로 인구감소지역 89곳·관심지역 18곳·접경지역 15곳·광역시 군 여부 자동 판별 (`regions-data.js`) |
