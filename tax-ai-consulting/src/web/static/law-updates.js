@@ -1,9 +1,9 @@
 /* 세법 동향 일지 — 타임라인 렌더러 (데이터: law-updates-data.js) */
-import { LAW_UPDATES, OFFICIAL_SOURCES } from './law-updates-data.js';
+import { LAW_UPDATES, OFFICIAL_SOURCES, ENGINE_AUDIT, ENGINE_AUDIT_DATE } from './law-updates-data.js';
 
 const CAT_COLORS = {
   '법률': '#1a5276', '시행령': '#21618c', '예규·해석': '#6c3483',
-  '판결·심판': '#943126', '정부발표': '#b9770e', '규제지역': '#148f77',
+  '판결·심판': '#943126', '정부발표': '#b9770e', '규제지역': '#148f77', '엔진점검': '#0e6655',
 };
 const STATUS = {
   '반영완료': { color: '#145a32', bg: '#e9f7ef', label: '엔진 반영완료' },
@@ -82,5 +82,33 @@ function render() {
   }).join('') || '<p class="empty">조건에 맞는 항목이 없습니다.</p>';
 }
 
+/* 계산 엔진 세법 검증표 (데이터: ENGINE_AUDIT) */
+const AUDIT_ST = {
+  '현행일치': { color: '#145a32', bg: '#e9f7ef', label: '현행법 일치' },
+  '정부안': { color: '#b9770e', bg: '#fef9e7', label: '정부안 (미확정)' },
+  '미반영': { color: '#566573', bg: '#f2f4f4', label: '미반영' },
+};
+function renderAudit() {
+  const box = $('audit');
+  if (!box) return;
+  const latest = LAW_UPDATES.map((u) => u.date).sort().pop();
+  $('auditMeta').textContent = `검증일 ${ENGINE_AUDIT_DATE.replace(/-/g, '.')} · 일지 최신 항목 ${latest.replace(/-/g, '.')}`;
+  box.innerHTML = `<table class="notice audit">
+    <thead><tr><th>규칙</th><th>근거</th><th>엔진에 들어 있는 값</th><th>상태</th><th>비고</th></tr></thead>
+    <tbody>${ENGINE_AUDIT.map((a) => {
+      const st = AUDIT_ST[a.status] || AUDIT_ST['미반영'];
+      return `<tr>
+        <td class="rowlabel">${esc(a.rule)}</td>
+        <td>${esc(a.law)}</td>
+        <td>${esc(a.engine)}<div class="where">${esc(a.where)}</div></td>
+        <td><span class="st" style="color:${st.color};background:${st.bg};border-color:${st.color}">${st.label}</span></td>
+        <td class="nt">${esc(a.note)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
 renderSources();
+renderAudit();
 render();
+
+if (location.hash === '#audit') document.getElementById('audit-sec')?.scrollIntoView();

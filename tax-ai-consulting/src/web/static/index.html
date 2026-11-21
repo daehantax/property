@@ -11,15 +11,19 @@
 <script src="nav.js"></script>
 
 <div class="container">
-  <p class="page-intro">
-    증여세·양도소득세·재산세·종합부동산세를 세목별로 계산합니다. 모든 계산은 이 브라우저 안에서만 이뤄지며
-    입력값이 서버로 전송되지 않습니다. 탭을 눌러 세목을 선택하세요. 상단 메뉴에서 <b>양도·상속·증여·취득·보유</b>
-    세목별로 판정기와 계산기를 찾을 수 있고, 아래 「세목별 도구 모음」에서도 한눈에 볼 수 있습니다.
-  </p>
-
   <div id="groupView" class="group-view" hidden></div>
 
-  <div id="calcArea">
+  <!-- 홈: 주소에 #이 없을 때 — 세목별 전체 도구 모음 -->
+  <div id="homeView" hidden>
+    <div class="home-hero">
+      <h1>부동산 세무 도구</h1>
+      <p>양도·상속·증여·취득·보유 세목별 계산기와 판정기입니다. 모든 계산은 이 브라우저 안에서만 이뤄지며 입력값이 서버로 전송되지 않습니다.</p>
+    </div>
+    <div class="tool-hub"></div>
+  </div>
+
+  <!-- 계산기: index.html#transfer 처럼 계산기 해시일 때 -->
+  <div id="calcArea" hidden>
   <div class="calc-tabs" id="calcTabs"></div>
 
   <div class="calc-layout">
@@ -33,9 +37,6 @@
     </div>
   </div>
   </div>
-
-  <h2 class="section-title">세목별 도구 모음 <small>양도 · 상속 · 증여 · 취득 · 보유 · 상담 시나리오 · 세법 동향</small></h2>
-  <div class="tool-hub"></div>
 </div>
 
 <script src="calculators.js"></script>

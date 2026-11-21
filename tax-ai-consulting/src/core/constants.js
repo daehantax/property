@@ -19,6 +19,11 @@ export const LANDTRADE_DEADLINE_OLD_ADJ = "2026-09-09";  // 기존 조정지역 
 export const LANDTRADE_DEADLINE_NEW_ADJ = "2026-11-09";  // 신규 조정지역 토허 양도 마감일
 export const HEAVY_RESUME_DATE = "2026-05-10";           // 다주택 중과 부활일
 
+// 비사업용 토지 가산세율 (소득세법 §104①8 — 기본세율 +10%p)
+export const NONBIZ_LAND_SURCHARGE = 0.10;
+// 미등기 양도자산 세율 (소득세법 §104①10 — 70%, 장특공·기본공제·비과세 배제)
+export const UNREGISTERED_RATE = 0.70;
+
 // 1세대1주택 비과세 고가주택 기준 (2022.1.1 이후 12억)
 export const SINGLE_HH_NONTAX_THRESHOLD = 1_200_000_000;
 
@@ -36,6 +41,10 @@ export const REFORM2026 = {
   //  다주택: 2년 이상 거주 시 거주기간 연2%(max30%), 보유공제 폐지
   DEDUCT_CAP: { 2028: 2_000_000_000 },     // 공제금액 한도: 2028년 20억
   DEDUCT_CAP_FINAL: 1_000_000_000,         // 2029년 이후 10억
+
+  // 비사업용 토지 (2028.1.1 이후 양도분): 가산세율 +10%p → +20%p, 장기보유특별공제 배제
+  NONBIZ_LAND_SURCHARGE: 0.20,
+  NONBIZ_LAND_FROM: 2028,
 
   // 1세대1주택 기본공제 확대 (10년 이상 거주 + 양도가액 30억 이하, 2029년 시행 가정)
   BASIC_DEDUCT_EXPANDED: 25_000_000,

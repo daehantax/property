@@ -23,7 +23,7 @@ const dist = path.join(root, 'dist');
 
 // { 페이지, 누를 버튼(없으면 로드만), 결과 확인 방법 }
 const PAGES = [
-  { html: 'index.html', tabs: ['증여세', '양도소득세', '재산세', '종합부동산세'], btn: '#calcBtn', hubCheck: true },
+  { html: 'index.html', tabs: ['gift', 'transfer', 'transfer-reform', 'single-ltr', 'property', 'aggr', 'aggr-reform'], btn: '#calcBtn', hubCheck: true },
   { html: 'transfer-heavy.html', btn: '#judgeBtn' },
   { html: 'acq-heavy.html', btn: '#judgeBtn' },
   { html: 'single-exempt.html', btn: '#judgeBtn' },
@@ -90,13 +90,27 @@ for (const spec of PAGES) {
 
     if (spec.tabs) {
       // 메인 계산기: 세목 탭마다 계산 실행
+      // 홈(해시 없음): 전체 도구 모음이 보이고 계산기는 숨겨져야 한다
+      if (!(await page.isVisible('#homeView .hub-item').catch(() => false))) note(spec.html, '홈 도구 모음이 표시되지 않음');
       for (const tab of spec.tabs) {
-        await page.click(`#calcTabs button:has-text("${tab}")`);
-        await page.waitForTimeout(150);
+        await page.goto(`${base}/${spec.html}#${tab}`, { waitUntil: 'load' });
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForTimeout(200);
         await page.click(spec.btn);
         await page.waitForTimeout(300);
         const txt = await page.textContent('#result').catch(() => '');
         if (!txt || !txt.includes('원')) note(spec.html, `[${tab}] 계산 결과가 표시되지 않음`);
+        if (tab === 'transfer') {
+          // 양도세: 자산 유형(토지·비사업용 토지·건물)마다 계산, 주택 전용 입력은 숨겨져야 한다
+          for (const asset of ['토지', '비사업토지', '건물']) {
+            await page.selectOption('#fields [data-name="assetType"]', asset);
+            await page.click(spec.btn);
+            await page.waitForTimeout(200);
+            const t2 = await page.textContent('#result').catch(() => '');
+            if (!t2 || !t2.includes('양도소득세')) note(spec.html, `[transfer/${asset}] 계산 결과가 표시되지 않음`);
+            if (await page.isVisible('#fields [data-name="isWvr"]')) note(spec.html, `[transfer/${asset}] 주택 전용 입력이 숨겨지지 않음`);
+          }
+        }
       }
       // 상단 세목 버튼 → 본문이 그 세목 하위 메뉴(도구 카드)로 바뀌어야 한다
       if (spec.hubCheck) {

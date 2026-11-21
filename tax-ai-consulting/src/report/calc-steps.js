@@ -63,11 +63,25 @@ function burdenAcqSteps(result) {
 /** 양도소득세 단계 */
 function transferSteps(result) {
   const b = result.breakdown;
-  const lines = [
-    `- 양도가액: ${won(b.marketPrice)}`,
-    `- 취득가액(필요경비): △${won(b.basePrice)}`,
-    `- 양도차익: ${won(b.transferIncome)}`,
-  ];
+  const lines = [];
+  // 상세 계산(calcSaleIncomeTaxDetailed): 자산 유형·보유기간·필요경비 항목을 먼저 보여 준다
+  if (b.assetLabel) {
+    lines.push(`- 자산 유형: ${b.assetLabel}${b.unregistered ? ' · **미등기 양도**' : ''}`);
+    lines.push(`- 보유기간: ${b.acquireDate} 취득 ~ ${b.saleDate} 양도 = **${b.holdText}** (취득일 산입)`);
+  }
+  lines.push(`- 양도가액: ${won(b.marketPrice)}`);
+  if (b.expenseItems) {
+    lines.push(`- 취득가액: △${won(b.acquirePrice)}`);
+    if (b.expenseItems.length) {
+      lines.push(`- 기타 필요경비: △${won(b.expenseTotal)}`);
+      for (const it of b.expenseItems) lines.push(`  - ${it.label}: ${won(it.amount)}`);
+    } else {
+      lines.push('- 기타 필요경비: 0원 (입력 없음)');
+    }
+  } else {
+    lines.push(`- 취득가액(필요경비): △${won(b.basePrice)}`);
+  }
+  lines.push(`- 양도차익: ${won(b.transferIncome)}`);
   // 1세대1주택 고가주택(12억 초과) 안분 — 양도차익과 과세 양도차익이 다르면 그 단계를 보여 준다
   if (b.taxableIncome != null && b.taxableIncome !== b.transferIncome) {
     const base = b.exemptBase ?? b.marketPrice;
@@ -80,23 +94,37 @@ function transferSteps(result) {
   }
   const heavyApplied = b.heavyApplied ?? (b.r2 > 0 && b.appliedR === b.r2);
   const reform = (b.reformYear ?? 0) > 0;
-  const deductName = reform && b.reformYear >= 2028 ? '장기거주소득공제' : '장기보유특별공제';
+  const isHouse = (b.type ?? '주택') === '주택';
+  const deductName = reform && b.reformYear >= 2028 && isHouse ? '장기거주소득공제' : '장기보유특별공제';
   const basicDeduct = b.basicDeduct ?? 2_500_000;
-  if (heavyApplied) {
+  const reformNote = reform ? ` (2026 개편안 ${b.reformYear}년 양도분)` : '';
+  if (b.unregistered) {
+    lines.push('- 장기보유특별공제·기본공제: **배제** (미등기 양도, 소득세법 §95②·§103)');
+    lines.push(`- 과세표준: ${won(b.incomeFinal)} (양도차익 전액)`);
+    lines.push(`- 적용세율: ${pct(b.appliedR)} (미등기 양도 단일세율, §104①10)`);
+  } else if (heavyApplied) {
     lines.push(`- ${deductName}: **배제** (조정대상지역 다주택 중과 대상, 소득세법 §95②)`);
     lines.push(`- 과세표준: ${won(b.heavyIncome)} (양도차익 − 기본공제 ${won(basicDeduct)})`);
-    lines.push(`- 적용세율: 기본세율 + 중과 가산 = ${pct(b.appliedR)}`
-      + (reform ? ` (2026 개편안 ${b.reformYear}년 양도분)` : ''));
+    lines.push(`- 적용세율: 기본세율 + 중과 가산 = ${pct(b.appliedR)}${reformNote}`);
   } else {
     if (b.totalDeductRate > 0) {
       const capped = (b.deductCap ?? 0) > 0 && b.deductAmt === b.deductCap;
       lines.push(`- ${deductName}: ${b.totalDeductRate}% 적용`
         + (b.deductAmt != null ? ` → △${won(b.deductAmt)}` : '')
         + (capped ? ` (공제한도 ${won(b.deductCap)} 적용)` : ''));
+    } else if (b.type === '비사업토지' && reform && b.reformYear >= 2028) {
+      lines.push('- 장기보유특별공제: **배제** (개편안 — 비사업용 토지 2028.1.1 이후 양도분)');
+    } else if (b.assetLabel) {
+      lines.push(`- ${deductName}: 없음 (${(b.holdYears ?? 0) < 3 ? '보유 3년 미만' : '공제 요건 미충족'})`);
     }
     lines.push(`- 과세표준: ${won(b.incomeFinal)} (양도차익 − ${deductName} − 기본공제 ${won(basicDeduct)})`);
-    lines.push(`- 적용세율: ${pct(b.appliedR)}`
-      + (reform ? ` (2026 개편안 ${b.reformYear}년 양도분)` : ''));
+    if (b.nonBizApplied) {
+      lines.push(`- 적용세율: 기본세율 ${pct(b.baseR)} + 비사업용 토지 가산 ${pct(b.appliedR - b.baseR)} = ${pct(b.appliedR)}, 누진공제 ${won(b.finalDc)}${reformNote}`);
+    } else if (b.shortTermApplied) {
+      lines.push(`- 적용세율: ${pct(b.appliedR)} (보유 ${b.r1 >= 0.5 && !isHouse || b.r1 >= 0.7 ? '1년' : '2년'} 미만 단기양도 단일세율 — 누진공제 없음)${reformNote}`);
+    } else {
+      lines.push(`- 적용세율: ${pct(b.appliedR)}${b.assetLabel && b.finalDc ? `, 누진공제 ${won(b.finalDc)}` : ''}${reformNote}`);
+    }
   }
   lines.push(`- **양도소득세: ${won(result.transferTax)}**, 지방소득세(10%): ${won(result.localTax)}`);
   lines.push(`- **합계: ${won(result.total)}**`);
