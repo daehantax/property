@@ -55,9 +55,11 @@
 | 심화 검토 장치 (대안·리스크·민감도·개정감시) | ✅ 구현 완료 | `tax-ai-consulting/src/advisor`, `src/analysis`, `src/monitor` |
 | 웹 입력폼 + 보고서 (Word·PDF 내보내기) | ✅ 구현 완료 | `tax-ai-consulting/src/web` |
 | 상속세 계산기 (간주·추정재산, 일괄·배우자·금융·동거주택 공제, 공제한도, 세대생략 할증, 증여세액공제, 상속인별 안분) | ✅ 구현 완료 | `tax-ai-consulting/src/core/inheritance-tax.js`, `src/web/static/inherit-tax.html` |
+| 양도소득세 계산기 (주택·토지·건물·비사업용 토지 +10%p·미등기 70%, 달력으로 취득일·양도일 → 보유기간 자동, 필요경비 항목별 입력) | ✅ 구현 완료 | `tax-ai-consulting/src/core/transfer-tax.js` (`calcSaleIncomeTaxDetailed`, `holdingPeriod`), `src/web/static/calculators.js` |
+| 세법 동향 일지 + 계산 엔진 세법 검증표 (엔진 값과 테스트로 대조) | ✅ 구현 완료 | `tax-ai-consulting/src/web/static/law-updates-data.js` (`LAW_UPDATES`, `ENGINE_AUDIT`), `tests/web/law-audit.test.js` |
 | 세무 판정기 (양도세·취득세 중과, 1세대1주택·재건축·혼인 비과세, 지방주택 1세대1주택) | ✅ 구현 완료 | `tax-ai-consulting/src/core/heavy-tax-judge.js`, `single-house-exempt.js`, `redev-exempt.js`, `marriage-exempt.js`, `local-house-judge.js` |
 
-테스트 486개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 509개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 

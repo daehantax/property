@@ -333,3 +333,100 @@ function baseRateOf(income) {
   else if (income <= 1_000_000_000) return 0.42;
   else                              return 0.45;
 }
+
+// ── 2026.11 확장: 토지·건물·비사업용 토지·미등기, 날짜 기반 보유기간, 필요경비 항목 ──
+import { calcSaleIncomeTaxDetailed, holdingPeriod } from '../../src/core/transfer-tax.js';
+
+describe('holdingPeriod — 취득일~양도일 (초일산입)', () => {
+  it('만 2년이 되는 날의 전날 양도 = 2년 (초일산입)', () => {
+    expect(holdingPeriod('2024-03-15', '2026-03-14')).toMatchObject({ years: 2, months: 0 });
+  });
+  it('그 하루 전 양도 = 1년 11개월', () => {
+    expect(holdingPeriod('2024-03-15', '2026-03-13')).toMatchObject({ years: 1, months: 11 });
+  });
+  it('윤년 2.29 취득', () => {
+    expect(holdingPeriod('2024-02-29', '2027-02-27').years).toBe(2);
+    expect(holdingPeriod('2024-02-29', '2027-02-28').years).toBe(3);
+  });
+  it('양도일이 취득일보다 빠르면 무효', () => {
+    expect(holdingPeriod('2026-01-01', '2025-01-01').valid).toBe(false);
+  });
+});
+
+describe('calcSaleIncomeTaxDetailed — 자산 유형·필요경비', () => {
+  const base = {
+    acquireDate: '2016-05-01', saleDate: '2026-11-20',
+    salePrice: 1_000_000_000, acquirePrice: 400_000_000,
+    expenses: { acqTax: 18_400_000, acqLegalFee: 1_600_000, acqBrokerFee: 3_600_000, capitalExpense: 20_000_000, saleBrokerFee: 9_000_000, otherExpense: 400_000 },
+  };
+  // 필요경비 합계 53,000,000 → 양도차익 547,000,000, 보유 10년 → 장특공 20%
+  it('토지(사업용): 필요경비 합산 + 장특공 표1 20% + 기본세율', () => {
+    const r = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지' });
+    const b = r.breakdown;
+    expect(b.expenseTotal).toBe(53_000_000);
+    expect(b.transferIncome).toBe(547_000_000);
+    expect(b.holdYears).toBe(10);
+    expect(b.totalDeductRate).toBe(20);
+    expect(b.incomeFinal).toBe(547_000_000 * 0.8 - 2_500_000);   // 435,100,000
+    expect(r.transferTax).toBe(Math.floor(435_100_000 * 0.40 - 25_940_000));
+    expect(r.localTax).toBe(Math.floor(r.transferTax * 0.1));
+  });
+  it('건물(상가): 토지와 같은 세율 체계', () => {
+    const land = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지' });
+    const bld = calcSaleIncomeTaxDetailed({ ...base, assetType: '건물' });
+    expect(bld.total).toBe(land.total);
+  });
+  it('비사업용 토지: 장특공 적용 후 기본세율 +10%p', () => {
+    const r = calcSaleIncomeTaxDetailed({ ...base, assetType: '비사업토지' });
+    expect(r.breakdown.totalDeductRate).toBe(20);
+    expect(r.breakdown.appliedR).toBeCloseTo(0.50, 10);
+    expect(r.transferTax).toBe(Math.floor(435_100_000 * 0.50 - 25_940_000));
+    expect(r.breakdown.nonBizApplied).toBe(true);
+  });
+  it('비사업용 토지 개편안(2028 양도분): +20%p, 장특공 배제 / 2027은 현행과 동일', () => {
+    const cur = calcSaleIncomeTaxDetailed({ ...base, assetType: '비사업토지' });
+    const y27 = calcSaleIncomeTaxDetailed({ ...base, assetType: '비사업토지', reformYear: 2027 });
+    const y28 = calcSaleIncomeTaxDetailed({ ...base, assetType: '비사업토지', reformYear: 2028 });
+    expect(y27.total).toBe(cur.total);
+    expect(y28.breakdown.totalDeductRate).toBe(0);
+    // 과세표준 544,500,000 → 42% 구간 + 20%p = 62%
+    expect(y28.transferTax).toBe(Math.floor(544_500_000 * 0.62 - 35_940_000));
+  });
+  it('사업용 토지·건물은 개편안(2028~)에서도 장특공 표1 유지', () => {
+    const cur = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지' });
+    const y29 = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지', reformYear: 2029 });
+    expect(y29.total).toBe(cur.total);
+  });
+  it('토지 단기양도: 1년 미만 50%, 2년 미만 40%', () => {
+    const y0 = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지', acquireDate: '2026-01-10' });
+    const y1 = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지', acquireDate: '2025-01-10' });
+    expect(y0.breakdown.appliedR).toBe(0.5);
+    expect(y1.breakdown.appliedR).toBe(0.4);
+    expect(y1.transferTax).toBe(Math.floor((547_000_000 - 2_500_000) * 0.4));
+  });
+  it('비사업용 토지 단기양도: 단기세율과 기본+10%p 중 큰 세액', () => {
+    const r = calcSaleIncomeTaxDetailed({ ...base, assetType: '비사업토지', acquireDate: '2025-01-10' });
+    const inc = 544_500_000;
+    expect(r.transferTax).toBe(Math.floor(Math.max(inc * 0.4, inc * 0.52 - 35_940_000)));
+  });
+  it('미등기 양도: 70%, 장특공·기본공제 배제', () => {
+    const r = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지', unregistered: true });
+    expect(r.breakdown.basicDeduct).toBe(0);
+    expect(r.breakdown.totalDeductRate).toBe(0);
+    expect(r.transferTax).toBe(Math.floor(547_000_000 * 0.7));
+  });
+  it('주택: 기존 calcSaleIncomeTax 와 같은 결과 (필요경비 0)', () => {
+    const d = calcSaleIncomeTaxDetailed({
+      assetType: '주택', acquireDate: '2016-11-20', saleDate: '2026-11-20',
+      salePrice: 1_500_000_000, acquirePrice: 800_000_000, isWvr: '다주택', ownCount: 2, isAdj: 1,
+    });
+    const o = calcSaleIncomeTax(1_500_000_000, 800_000_000, 10, 0, '다주택', '주택', 2, 1);
+    expect(d.total).toBe(o.total);
+    expect(d.breakdown.heavyApplied).toBe(true);
+  });
+  it('양도차손이면 세액 0', () => {
+    const r = calcSaleIncomeTaxDetailed({ ...base, assetType: '토지', salePrice: 300_000_000 });
+    expect(r.total).toBe(0);
+    expect(r.breakdown.deductAmt).toBe(0);
+  });
+});

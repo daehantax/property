@@ -7,7 +7,9 @@
  */
 
 import { calcGiveTax }       from '../../core/gift-tax.js';
-import { calcSaleIncomeTax, compareSaleIncomeTaxReform2026 } from '../../core/transfer-tax.js';
+import {
+  calcSaleIncomeTax, compareSaleIncomeTaxReform2026, calcSaleIncomeTaxDetailed, holdingPeriod, EXPENSE_ITEMS,
+} from '../../core/transfer-tax.js';
 import { judgeExemptRequirementByYears } from '../../core/single-house-exempt.js';
 import { calcPropertyTax }   from '../../core/property-tax.js';
 import { calcAggrTax, calcAggrTaxCouple, compareAggrTaxReform2026 } from '../../core/comprehensive-tax.js';
@@ -32,6 +34,17 @@ const KOREAN_UNIT = (n) => {
 const money = (name, label, def) => ({ name, label, type: 'money', default: def });
 const int = (name, label, def) => ({ name, label, type: 'int', default: def });
 const sel = (name, label, options, def) => ({ name, label, type: 'select', options, default: def });
+const date = (name, label, def) => ({ name, label, type: 'date', default: def });
+/** 입력 묶음 제목 (값 없음) */
+const section = (label, note = '') => ({ type: 'section', label, note });
+/** 조건부 표시: showIf(v) 가 false 면 그 입력을 숨긴다 */
+const when = (showIf, ...fields) => fields.map((f) => ({ ...f, showIf }));
+
+const pad2 = (n) => String(n).padStart(2, '0');
+const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const TODAY = isoOf(new Date());
+const yearsAgo = (n) => { const d = new Date(); d.setFullYear(d.getFullYear() - n); return isoOf(d); };
+const isHouse = (v) => v.assetType === '주택';
 
 /**
  * 계산기 정의. 각 항목:
@@ -41,7 +54,7 @@ const sel = (name, label, options, def) => ({ name, label, type: 'select', optio
  */
 const CALCULATORS = [
   {
-    id: 'gift', name: '증여세',
+    id: 'gift', name: '증여세', group: 'gift',
     intro: '수증자 관계별 증여재산공제와 누진세율, 세대생략 할증, 신고세액공제(3%)를 반영합니다.',
     fields: [
       sel('rel', '수증자 관계', [
@@ -68,64 +81,164 @@ const CALCULATORS = [
     },
   },
   {
-    id: 'transfer', name: '양도소득세',
-    intro: '1세대1주택 비과세(12억)·장기보유특별공제·조정지역 다주택 중과(2026.5.10 부활)를 반영합니다.',
+    id: 'transfer', name: '양도소득세', group: 'transfer',
+    intro: '<b>주택·토지·건물</b>의 양도소득세를 계산합니다. 취득일·양도일을 달력에서 고르면 보유기간이 자동 계산되고, '
+      + '취득세·중개수수료·자본적 지출 등 필요경비를 항목별로 넣을 수 있습니다. '
+      + '비사업용 토지 추가과세(+10%p), 단기양도·미등기 세율, 1세대1주택 비과세(12억), 조정지역 다주택 중과를 반영합니다.',
     fields: [
-      money('marketPrice', '양도가액(시가)', 1_500_000_000),
-      money('basePrice', '취득가액', 800_000_000),
-      int('holdPeriod', '보유기간(년)', 10),
-      int('stayPeriod', '거주기간(년)', 0),
-      sel('isWvr', '주택 구분(비과세 판정)', [
-        { value: '다주택', label: '다주택(비과세 아님)' },
-        { value: '1세대1주택', label: '1세대1주택(12억 비과세)' },
-        { value: '기타', label: '기타' },
-      ], '다주택'),
-      sel('acqAdj', '취득 당시 조정대상지역 (1세대1주택 거주요건)', [
-        { value: 'adj', label: '조정지역 취득 (2017.8.3 이후) → 2년 거주 필요' },
-        { value: 'non', label: '비조정지역 취득 또는 2017.8.2 이전 취득 → 거주요건 없음' },
-        { value: 'saengsang', label: '조정지역 취득이나 상생임대주택 특례 충족 → 거주요건 면제' },
-      ], 'adj'),
-      int('ownCount', '보유 주택수', 2),
-      sel('isAdj', '양도 당시 조정대상지역 (다주택 중과)', [{ value: 1, label: '조정지역' }, { value: 0, label: '비조정지역' }], 1),
+      section('① 양도 자산'),
+      sel('assetType', '자산 유형', [
+        { value: '주택', label: '주택' },
+        { value: '토지', label: '토지 (사업용 — 농지·대지 등)' },
+        { value: '비사업토지', label: '비사업용 토지 (추가과세 +10%p)' },
+        { value: '건물', label: '건물 (상가·사무실 등 주택 외)' },
+      ], '주택'),
+      sel('unregistered', '등기 여부', [
+        { value: 0, label: '등기된 자산 (일반)' },
+        { value: 1, label: '미등기 양도 (70% · 공제·비과세 배제)' },
+      ], 0),
+
+      section('② 양도·취득 내용', '날짜 칸을 누르면 달력이 열립니다.'),
+      date('saleDate', '양도일 (잔금일·등기접수일 중 빠른 날)', TODAY),
+      money('marketPrice', '양도가액 (실제 판 금액)', 1_500_000_000),
+      date('acqDate', '취득일 (잔금일·등기접수일 중 빠른 날)', yearsAgo(10)),
+      money('basePrice', '취득가액 (실제 산 금액)', 800_000_000),
+
+      section('③ 필요경비', '증빙이 있는 금액만 넣으세요. 없으면 0으로 둡니다.'),
+      money('acqTax', '취득세 (농특세·지방교육세 포함)', 0),
+      money('acqLegalFee', '법무사 수수료·등기비용', 0),
+      money('acqBrokerFee', '취득 시 중개수수료', 0),
+      money('capitalExpense', '자본적 지출 (확장·샤시·보일러 교체 등)', 0),
+      money('saleBrokerFee', '양도 시 중개수수료', 0),
+      money('otherExpense', '기타 (신고서 작성비용·명도비 등)', 0),
+
+      ...when(isHouse,
+        section('④ 주택 추가 정보', '비과세·중과 판정에 쓰입니다.'),
+        sel('isWvr', '주택 구분 (비과세 판정)', [
+          { value: '다주택', label: '다주택 (비과세 아님)' },
+          { value: '1세대1주택', label: '1세대1주택 (12억 비과세)' },
+          { value: '기타', label: '기타 (1주택이나 비과세 요건 미충족 등)' },
+        ], '다주택'),
+        int('stayPeriod', '거주기간 (년)', 0),
+      ),
+      ...when((v) => isHouse(v) && v.isWvr === '1세대1주택',
+        sel('acqAdj', '취득 당시 조정대상지역 (거주요건)', [
+          { value: 'adj', label: '조정지역 취득 (2017.8.3 이후) → 2년 거주 필요' },
+          { value: 'non', label: '비조정지역 취득 → 거주요건 없음' },
+          { value: 'saengsang', label: '조정지역 취득이나 상생임대주택 특례 충족 → 거주요건 면제' },
+        ], 'adj'),
+      ),
+      ...when((v) => isHouse(v) && v.isWvr === '다주택',
+        int('ownCount', '보유 주택수 (중과 판정 주택수)', 2),
+        sel('isAdj', '양도 당시 조정대상지역 (다주택 중과)', [{ value: 1, label: '조정지역' }, { value: 0, label: '비조정지역' }], 1),
+      ),
     ],
+    // 입력이 바뀔 때마다 보유기간·필요경비 합계를 바로 보여 준다
+    live: (v) => {
+      const hp = holdingPeriod(v.acqDate, v.saleDate);
+      const exp = EXPENSE_ITEMS.reduce((a, it) => a + (v[it.key] || 0), 0);
+      const holdMsg = !hp.valid
+        ? '<span class="bad">취득일·양도일을 확인하세요 (양도일이 취득일보다 빨라요)</span>'
+        : `보유기간 <b>${hp.text}</b>`
+          + (hp.years < 1 ? ' <span class="bad">· 1년 미만 단기세율</span>'
+            : hp.years < 2 ? ' <span class="bad">· 2년 미만 단기세율</span>'
+            : hp.years < 3 ? ' · 장기보유특별공제 없음(3년 미만)' : '');
+      return `📅 ${holdMsg}<br>🧾 필요경비 합계 <b>${won(exp)}</b> → 취득가액 포함 <b>${won((v.basePrice || 0) + exp)}</b>`;
+    },
     run: (v) => {
-      const calc = (isWvr) => calcSaleIncomeTax(
-        v.marketPrice, v.basePrice, v.holdPeriod, v.stayPeriod,
-        isWvr, '주택', v.ownCount, v.isAdj,
-      );
-      const plain = () => {
-        const r = calc(v.isWvr);
+      const house = isHouse(v);
+      const saleYear = Number(String(v.saleDate).slice(0, 4)) || 0;
+      const calc = (isWvr, reformYear = 0) => calcSaleIncomeTaxDetailed({
+        assetType: v.assetType, acquireDate: v.acqDate, saleDate: v.saleDate,
+        salePrice: v.marketPrice, acquirePrice: v.basePrice,
+        expenses: Object.fromEntries(EXPENSE_ITEMS.map((it) => [it.key, v[it.key]])),
+        stayYears: v.stayPeriod, isWvr,
+        // 주택수·조정지역은 「다주택」을 골랐을 때만 입력받는다 (그 외는 중과 대상 아님)
+        ownCount: v.isWvr === '다주택' ? v.ownCount : 1, isAdj: v.isWvr === '다주택' ? v.isAdj : 0,
+        unregistered: v.unregistered === 1, reformYear,
+      });
+      const tags = (b) => (b.heavyApplied ? ' · 다주택 중과 적용' : '')
+        + (b.nonBizApplied ? ' · 비사업용 토지 추가과세' : '')
+        + (b.shortTermApplied ? ' · 단기양도 세율' : '')
+        + (b.unregistered ? ' · 미등기 70%' : '');
+      const sub = (r) => `양도소득세 ${won(r.transferTax)} + 지방소득세 ${won(r.localTax)}${tags(r.breakdown)}`;
+
+      // 자산 유형별 유의사항
+      const notes = [];
+      if (v.assetType === '토지') {
+        notes.push('사업용 여부는 <b>기간 기준</b>으로 판정합니다 — ① 양도일 직전 3년 중 2년 이상, ② 직전 5년 중 3년 이상, ③ 보유기간의 60% 이상 중 하나라도 사업에 사용했으면 사업용 (시행령 §168의6). 해당하지 않으면 「비사업용 토지」로 바꿔 계산하세요.');
+        notes.push('8년 자경농지 감면(조특법 §69)·농지대토 감면·공익사업 수용 감면은 반영하지 않았습니다.');
+      }
+      if (v.assetType === '비사업토지') {
+        notes.push('비사업용 토지는 기본세율에 <b>10%p를 더한 세율</b>(16~55%)을 적용합니다. 장기보유특별공제(연 2%, 최대 30%)는 현행법상 그대로 적용됩니다.');
+        notes.push('2026 세제개편 정부안: <b>2028.1.1 이후 양도분</b>부터 가산세율 +20%p, 장기보유특별공제 배제 (국회 심의 중).');
+      }
+      if (v.assetType === '건물') {
+        notes.push('사업에 쓰면서 <b>감가상각비</b>를 필요경비로 처리했다면 그 금액은 취득가액에서 빼야 합니다 (소득세법 §97③) — 취득가액 칸에 차감 후 금액을 넣으세요.');
+        notes.push('상가 건물분 부가가치세(포괄양수도 제외)는 이 계산에 포함되지 않습니다.');
+      }
+      if (v.unregistered === 1) notes.push('미등기 양도는 세율 70%이고 1세대1주택 비과세·장기보유특별공제·기본공제(250만)를 모두 받을 수 없습니다.');
+      notes.push('필요경비는 <b>자본적 지출</b>(가치를 높이거나 수명을 늘리는 공사)만 인정됩니다. 도배·장판·싱크대 교체·보일러 수리 같은 수익적 지출과 대출이자는 넣을 수 없습니다.');
+      const noteHtml = `<div class="note-box"><h4>📌 유의사항</h4><ul>${notes.map((n) => `<li>${n}</li>`).join('')}</ul></div>`;
+
+      // 양도일이 2027년 이후면 2026 세제개편 정부안 적용 세액을 참고로 함께 계산
+      const withReform = (out, isWvr) => {
+        if (saleYear < 2027 || v.unregistered === 1) return out;
+        const rf = calc(isWvr, saleYear);
+        const cur = out.computations ? out.computations[0].result : out.computation.result;
+        if (rf.total === cur.total) return out;
+        const d = rf.total - cur.total;
         return {
-          headline: r.total, headlineLabel: '양도세 + 지방소득세 합계',
-          sub: `양도소득세 ${won(r.transferTax)} + 지방소득세 ${won(r.localTax)}`
-            + (r.breakdown.heavyApplied ? ' · 중과 적용' : ''),
-          computation: { kind: 'transfer', label: '양도소득세', result: r },
+          ...out,
+          extraHtml: (out.extraHtml ?? '')
+            + `<div class="req-box fail"><h4>⚠️ 양도일이 ${saleYear}년 — 2026 세제개편 정부안이 통과되면 세액이 달라집니다</h4>
+               <p>현행법 ${won(cur.total)} → 정부안 ${won(rf.total)} (<b>${won(Math.abs(d))} ${d > 0 ? '증가' : '감소'}</b>). 정부안은 국회 심의 중이라 위 금액은 현행법 기준이며, 아래 계산 내역에 정부안 적용분을 참고로 붙였습니다.</p></div>`,
+          computations: [
+            ...(out.computations ?? [{ ...out.computation, label: '현행법 기준' }]),
+            { kind: 'transfer', label: `참고 — 2026 세제개편 정부안 (${saleYear}년 양도분, 국회 심의 중)`, result: rf },
+          ],
+          computation: undefined,
+          lawRef: rf.lawRef,
         };
       };
-      if (v.isWvr !== '1세대1주택') return plain();
+
+      const plain = (isWvr) => {
+        const r = calc(isWvr);
+        return {
+          headline: r.total, headlineLabel: '양도소득세 + 지방소득세 합계',
+          sub: sub(r), extraHtml: noteHtml,
+          computation: { kind: 'transfer', label: `양도소득세 (${r.breakdown.assetLabel})`, result: r },
+        };
+      };
+      if (!house) return withReform(plain('기타'), '기타');
+      if (v.isWvr !== '1세대1주택' || v.unregistered === 1) return withReform(plain(v.isWvr), v.isWvr);
 
       // 1세대1주택: 보유 2년 + (취득 당시 조정지역이면) 거주 2년 요건을 먼저 확인한다
+      const hp = holdingPeriod(v.acqDate, v.saleDate);
+      const beforeRule = v.acqDate < '2017-08-03';   // 2017.8.2 이전 취득분은 거주요건 없음
       const req = judgeExemptRequirementByYears({
-        holdYears: v.holdPeriod, liveYears: v.stayPeriod,
-        acquiredInAdjust: v.acqAdj !== 'non', saengsangOk: v.acqAdj === 'saengsang',
+        holdYears: hp.years, liveYears: v.stayPeriod,
+        acquiredInAdjust: v.acqAdj !== 'non' && !beforeRule, saengsangOk: v.acqAdj === 'saengsang',
       });
       const reqHtml = `
         <div class="req-box ${req.ok ? 'ok' : 'fail'}">
           <h4>${req.ok ? '✅' : '⚠️'} 1세대1주택 비과세 요건 — ${req.headline}</h4>
           <ul>${req.checklist.map((c) => `<li class="${c.ok ? 'ok' : 'fail'}"><b>${c.ok ? '✓' : '✗'} ${c.label}</b> <span>${c.detail}</span></li>`).join('')}</ul>
+          ${beforeRule ? '<p>취득일이 2017.8.2 이전이라 거주요건은 적용되지 않습니다.</p>' : ''}
           ${req.ok ? '' : '<p>요건을 충족하지 못하면 12억 비과세를 적용할 수 없어 <b>양도차익 전액이 과세</b>됩니다. 아래 세액은 비과세를 배제하고 계산한 금액이며, 참고로 요건 충족 시 세액을 함께 표시합니다.</p>'}
           <p class="law">근거: 소득세법 시행령 §154① (보유 2년 · 취득 당시 조정대상지역이면 거주 2년, 2017.8.3 이후 취득분) · §155의3 (상생임대주택 거주요건 특례)</p>
         </div>`;
-      if (req.ok) return { ...plain(), extraHtml: reqHtml };
+      if (req.ok) {
+        const out = plain('1세대1주택');
+        return withReform({ ...out, extraHtml: reqHtml + out.extraHtml }, '1세대1주택');
+      }
 
       const taxed = calc('기타');            // 비과세 배제 (전액 과세)
       const ifMet = calc('1세대1주택');      // 참고: 요건 충족 시
       return {
-        headline: taxed.total, headlineLabel: '양도세 + 지방소득세 합계 (비과세 요건 미충족 → 전액 과세)',
-        sub: `양도소득세 ${won(taxed.transferTax)} + 지방소득세 ${won(taxed.localTax)}`
-          + (taxed.breakdown.heavyApplied ? ' · 중과 적용' : '')
-          + ` · 요건 충족 시 ${won(ifMet.total)}`,
-        extraHtml: reqHtml,
+        headline: taxed.total, headlineLabel: '양도소득세 + 지방소득세 합계 (비과세 요건 미충족 → 전액 과세)',
+        sub: `${sub(taxed)} · 요건 충족 시 ${won(ifMet.total)}`,
+        extraHtml: reqHtml + noteHtml,
         computations: [
           { kind: 'transfer', label: '비과세 요건 미충족 — 양도차익 전액 과세', result: taxed },
           { kind: 'transfer', label: '참고 — 보유·거주요건 충족 시 (12억 비과세 적용)', result: ifMet },
@@ -135,10 +248,10 @@ const CALCULATORS = [
     },
   },
   {
-    id: 'transfer-reform', name: '양도세 개정안 비교',
+    id: 'transfer-reform', name: '개정안 비교 (2027~2029년 양도)', group: 'transfer',
     intro: '2026 세제개편안(2026.8.3 정부안) 반영 전·후 양도소득세를 비교합니다. '
       + '다주택 중과 한시 완화(2027~28년 +5~15%p), 장기거주소득공제 전환·공제한도(2028년~), '
-      + '1세대1주택 기본공제 확대를 반영합니다. ※ 국회 통과 전 정부안 기준 '
+      + '1세대1주택 기본공제 확대, 비사업용 토지 과세 강화(2028년~ +20%p·장특공 배제)를 반영합니다. ※ 국회 통과 전 정부안 기준 '
       + '<br>📅 취득·양도 당시 조정대상지역 여부는 <a href="regulated-areas.html">연도별 규제지역 연혁</a>에서 확인하세요.',
     fields: [
       sel('reformYear', '양도(예정)연도', [
@@ -146,23 +259,30 @@ const CALCULATORS = [
         { value: 2028, label: '2028년 (중과 +10/+15%p · 공제 중간단계 · 한도 20억)' },
         { value: 2029, label: '2029년 이후 (중과 복귀 · 거주공제 연8% · 한도 10억)' },
       ], 2027),
+      sel('assetType', '자산 유형', [
+        { value: '주택', label: '주택' },
+        { value: '비사업토지', label: '비사업용 토지 (2028년~ +20%p·장특공 배제)' },
+      ], '주택'),
       money('marketPrice', '양도가액(시가)', 1_500_000_000),
-      money('basePrice', '취득가액', 800_000_000),
+      money('basePrice', '취득가액(필요경비 포함)', 800_000_000),
       int('holdPeriod', '보유기간(년)', 10),
-      int('stayPeriod', '거주기간(년)', 0),
-      sel('isWvr', '주택 구분(비과세 판정)', [
-        { value: '다주택', label: '다주택(비과세 아님)' },
-        { value: '1세대1주택', label: '1세대1주택(12억 비과세)' },
-        { value: '기타', label: '기타' },
-      ], '다주택'),
-      int('ownCount', '보유 주택수', 2),
-      sel('isAdj', '조정대상지역', [{ value: 1, label: '조정지역' }, { value: 0, label: '비조정지역' }], 1),
+      ...when(isHouse,
+        int('stayPeriod', '거주기간(년)', 0),
+        sel('isWvr', '주택 구분(비과세 판정)', [
+          { value: '다주택', label: '다주택(비과세 아님)' },
+          { value: '1세대1주택', label: '1세대1주택(12억 비과세)' },
+          { value: '기타', label: '기타' },
+        ], '다주택'),
+        int('ownCount', '보유 주택수', 2),
+        sel('isAdj', '조정대상지역', [{ value: 1, label: '조정지역' }, { value: 0, label: '비조정지역' }], 1),
+      ),
     ],
     run: (v) => {
+      const house = isHouse(v);
       const cmp = compareSaleIncomeTaxReform2026(
         v.reformYear,
-        v.marketPrice, v.basePrice, v.holdPeriod, v.stayPeriod,
-        v.isWvr, '주택', v.ownCount, v.isAdj,
+        v.marketPrice, v.basePrice, v.holdPeriod, house ? v.stayPeriod : 0,
+        house ? v.isWvr : '기타', v.assetType, house ? v.ownCount : 0, house ? v.isAdj : 0,
       );
       const d = cmp.diff.total;
       const change = d === 0 ? '변동 없음'
@@ -180,7 +300,7 @@ const CALCULATORS = [
     },
   },
   {
-    id: 'single-ltr', name: '1주택 장기거주공제 비교',
+    id: 'single-ltr', name: '1주택 장기거주공제 비교', group: 'transfer',
     intro: '1세대1주택 장기보유특별공제가 2026 세제개편안(2026.8.3 정부안)으로 '
       + '「장기거주소득공제」(거주 중심)로 바뀝니다. 동일 조건으로 양도시기별 3개 구간 — '
       + '① 2026~2027년 양도(현행 유지: 보유 연4%+거주 연4%, 최대 80%) → '
@@ -280,7 +400,7 @@ const CALCULATORS = [
     },
   },
   {
-    id: 'property', name: '재산세',
+    id: 'property', name: '재산세', group: 'hold',
     intro: '공시가격 × 공정시장가액비율(1세대1주택 43~45% / 그 외 60%)로 과세표준을 잡고 누진세율을 적용합니다.',
     fields: [
       sel('oneOOne', '주택 유형', [
@@ -299,7 +419,7 @@ const CALCULATORS = [
     },
   },
   {
-    id: 'aggr', name: '종합부동산세',
+    id: 'aggr', name: '종합부동산세', group: 'hold',
     intro: '공시가격 합계에서 공제(1세대1주택 12억 / 그 외 9억)를 빼고, 장기보유·연령 세액공제(1세대1주택)를 반영합니다. '
       + '공동명의 1주택은 인별 과세 원칙대로 부부 각자 지분에 각자 9억씩 공제해 계산한 뒤 합산합니다.',
     fields: [
@@ -347,7 +467,7 @@ const CALCULATORS = [
     },
   },
   {
-    id: 'aggr-reform', name: '종부세 개편안 비교',
+    id: 'aggr-reform', name: '종부세 개편안 비교', group: 'hold',
     intro: '2026 세제개편안(2026.8.3 정부안)에 따른 종합부동산세 변화를 현행(2026) → 2027년(과도기) → '
       + '2028년~(단일세율) 순으로 비교합니다. 기본공제(실거주 14억/비거주 12억 — 9.1 확정안에서 9억 축소 철회/다주택 가액비례), '
       + '공정시장가액비율(70~80%), 세율 일원화, 세액공제 한도(800만/600만)를 반영합니다. '
@@ -458,24 +578,43 @@ const CALCULATORS = [
 ];
 
 let activeId = CALCULATORS[0].id;
+const activeCalc = () => CALCULATORS.find((c) => c.id === activeId);
 
 function fieldHtml(f) {
+  if (f.type === 'section') {
+    return `<div class="fld form-sec" data-sec><h4>${f.label}</h4>${f.note ? `<p>${f.note}</p>` : ''}</div>`;
+  }
+  let input;
   if (f.type === 'select') {
     const opts = f.options.map((o) =>
       `<option value="${o.value}" ${o.value === f.default ? 'selected' : ''}>${o.label}</option>`).join('');
-    return `<label>${f.label}</label><select data-name="${f.name}" data-type="select">${opts}</select>`;
-  }
-  const isMoney = f.type === 'money';
-  return `<label>${f.label}</label>
-    <input data-name="${f.name}" data-type="${f.type}" ${isMoney ? 'data-kind="money"' : ''}
+    input = `<select data-name="${f.name}" data-type="select">${opts}</select>`;
+  } else if (f.type === 'date') {
+    input = `<input type="date" data-name="${f.name}" data-type="date" value="${f.default}" min="1950-01-01" max="2099-12-31">`;
+  } else {
+    const isMoney = f.type === 'money';
+    input = `<input data-name="${f.name}" data-type="${f.type}" ${isMoney ? 'data-kind="money"' : ''}
            value="${isMoney ? fmt(f.default) : f.default}" inputmode="numeric">
     ${isMoney ? '<div class="money-hint"></div>' : ''}`;
+  }
+  return `<div class="fld"><label>${f.label}</label>${input}</div>`;
+}
+
+/** 조건부 입력 표시(showIf)와 실시간 안내(live)를 현재 입력값으로 갱신 */
+function refreshForm() {
+  const calc = activeCalc();
+  const v = collect();
+  const els = document.querySelectorAll('#fields .fld');
+  calc.fields.forEach((f, i) => { if (els[i]) els[i].hidden = f.showIf ? !f.showIf(v) : false; });
+  const live = $('liveHint');
+  if (live) { live.innerHTML = calc.live ? calc.live(v) : ''; live.hidden = !calc.live; }
 }
 
 function renderForm() {
-  const calc = CALCULATORS.find((c) => c.id === activeId);
+  const calc = activeCalc();
   $('fields').innerHTML =
-    `<p class="page-intro" style="margin-top:0">${calc.intro}</p>` + calc.fields.map(fieldHtml).join('');
+    `<p class="page-intro" style="margin-top:0">${calc.intro}</p>` + calc.fields.map(fieldHtml).join('')
+    + '<div id="liveHint" class="live-hint" hidden></div>';
   document.querySelectorAll('#fields [data-kind="money"]').forEach((inp) => {
     const hint = inp.nextElementSibling?.classList?.contains('money-hint') ? inp.nextElementSibling : null;
     const update = () => {
@@ -486,10 +625,8 @@ function renderForm() {
     inp.addEventListener('input', update);
     update();
   });
-  // 탭 활성 표시
-  document.querySelectorAll('#calcTabs button').forEach((b) => {
-    b.classList.toggle('active', b.dataset.id === activeId);
-  });
+  renderTabs();
+  refreshForm();
   // 이전 결과 감추기
   $('result').style.display = 'none';
   $('empty').style.display = 'block';
@@ -499,7 +636,9 @@ function collect() {
   const v = {};
   document.querySelectorAll('#fields [data-name]').forEach((el) => {
     const t = el.dataset.type;
-    if (t === 'select') {
+    if (t === 'date') {
+      v[el.dataset.name] = el.value;
+    } else if (t === 'select') {
       const raw = el.value;
       v[el.dataset.name] = /^-?\d+(\.\d+)?$/.test(raw) ? Number(raw) : raw;
     } else {
@@ -510,8 +649,16 @@ function collect() {
 }
 
 function calculate() {
-  const calc = CALCULATORS.find((c) => c.id === activeId);
-  const out = calc.run(collect());
+  const calc = activeCalc();
+  let out;
+  try {
+    out = calc.run(collect());
+  } catch (e) {
+    $('result').innerHTML = `<div class="req-box fail"><h4>⚠️ 입력값을 확인하세요</h4><p>${e.message}</p></div>`;
+    $('empty').style.display = 'none';
+    $('result').style.display = 'block';
+    return;
+  }
   const comps = out.computations ?? [out.computation];
   const stepsMd = renderCalcSteps(
     comps.map((c, i) => ({ caseNo: i, ...c })),
@@ -528,15 +675,21 @@ function calculate() {
     ${out.extraHtml ?? ''}
     <div class="steps">${marked.parse(stepsMd, { async: false })}</div>
     ${lawRef.length ? `<div class="lawref"><b>근거 법령</b><br>${lawRef.join('<br>')}</div>` : ''}
-    <div class="disclaimer">※ 참고용 계산이며, 실제 신고 전 세무 전문가 확인이 필요합니다. (기준: 2026.5.10 시행분)</div>
+    <div class="disclaimer">※ 참고용 계산이며, 실제 신고 전 세무 전문가 확인이 필요합니다. (기준: 2026.5.10 시행분 ·
+      <a href="law-updates.html#audit">엔진 세법 검증표 보기</a>)</div>
   `;
   $('empty').style.display = 'none';
   $('result').style.display = 'block';
 }
 
-// 탭 구성
-$('calcTabs').innerHTML = CALCULATORS
-  .map((c) => `<button data-id="${c.id}">${c.name}</button>`).join('');
+// 탭 구성 — 같은 세목(group)의 계산기만 보여 준다. 하나뿐이면 탭 줄을 숨긴다.
+function renderTabs() {
+  const group = activeCalc().group;
+  const list = CALCULATORS.filter((c) => c.group === group);
+  $('calcTabs').hidden = list.length < 2;
+  $('calcTabs').innerHTML = list
+    .map((c) => `<button data-id="${c.id}" class="${c.id === activeId ? 'active' : ''}">${c.name}</button>`).join('');
+}
 $('calcTabs').addEventListener('click', (e) => {
   const btn = e.target.closest('button');
   if (!btn) return;
@@ -549,6 +702,8 @@ $('calcTabs').addEventListener('click', (e) => {
   renderForm();
 });
 $('calcBtn').addEventListener('click', calculate);
+$('fields').addEventListener('input', refreshForm);
+$('fields').addEventListener('change', refreshForm);
 
 // index.html#transfer 처럼 해시로 들어오면 해당 세목 탭을 연다 (상단 메뉴·도구 모음 링크)
 function applyHash() {
