@@ -86,6 +86,19 @@ body {
 .hub-item span { font-size: 13px; color: #5f7180; line-height: 1.5; }
 .hub-item.soon { opacity: .55; }
 .hub-item.soon b::after { content: ' (준비중)'; font-size: 12px; font-weight: 400; }
+/* ── 외부 조회 사이트 링크 모음 (index.html 홈 하단) ───────── */
+.link-box {
+  background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px;
+  margin-top: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.link-box h3 { margin: 0 0 10px; font-size: 17px; color: #1a2733; }
+.link-box h3 small { font-size: 13px; font-weight: 400; color: #6f8496; margin-left: 6px; }
+.link-list { margin: 0; padding-left: 20px; columns: 2 300px; column-gap: 28px; color: #9aa7b2; }
+.link-list li { padding: 4px 0; break-inside: avoid; }
+.link-list a { color: #47606f; text-decoration: none; font-size: 14.5px; }
+.link-list a:hover { color: var(--navy); text-decoration: underline; }
+.link-list a::after { content: ' ↗'; font-size: 12px; color: #9aa7b2; }
+.link-list span { display: block; font-size: 12.5px; color: #8496a5; }
 .section-title { font-size: 18px; font-weight: 800; color: #1a2733; margin: 32px 0 4px; }
 .section-title small { font-size: 13.5px; font-weight: 400; color: #6f8496; margin-left: 8px; }
 
