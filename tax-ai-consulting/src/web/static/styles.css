@@ -86,7 +86,7 @@ body {
 .hub-item span { font-size: 13px; color: #5f7180; line-height: 1.5; }
 .hub-item.soon { opacity: .55; }
 .hub-item.soon b::after { content: ' (준비중)'; font-size: 12px; font-weight: 400; }
-/* ── 외부 조회 사이트 링크 모음 (index.html 홈 하단) ───────── */
+/* ── 외부 조회 사이트 링크 모음 (nav.js 가 모든 페이지 하단에 그림) ───────── */
 .link-box {
   background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px;
   margin-top: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05);

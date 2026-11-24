@@ -240,10 +240,43 @@
     if (calc) calc.hidden = true;
   }
 
+  // 외부 조회 사이트 링크 모음 — 모든 페이지 본문(.container) 맨 아래에 그린다.
+  // 모두 새 창(target="_blank")에서 열린다. 주소를 바꾸려면 href 만 고치면 된다.
+  const LINKS = [
+    { href: "https://www.realtyprice.kr/notice/gsindividual/search.htm", label: "개별공시지가" },
+    { href: "https://www.realtyprice.kr/notice/gsstandard/search.htm", label: "표준공시지가" },
+    { href: "https://www.eum.go.kr/web/ar/lu/luLandDet.jsp", label: "토지이용계획확인서" },
+    { href: "https://www.realtyprice.kr/notice/hpindividual/search.htm", label: "개별단독주택가격" },
+    { href: "https://www.realtyprice.kr/notice/hpstandard/search.htm", label: "표준단독주택가격" },
+    { href: "https://www.realtyprice.kr/notice/town/nfSiteLink.htm", label: "공동주택가격(국교부,2006이후)" },
+    { href: "https://mob.tbht.hometax.go.kr/jsonAction.do?actionId=UTBSFAAM12F001", label: "공동주택가격(국세청,2006이전)", hint: "홈택스(모바일 화면) · 2005년 이전 고시분" },
+    { href: "https://rt.molit.go.kr/", label: "국토교통부실거래가(매매사례가액)" },
+    { href: "https://mob.tbht.hometax.go.kr/jsonAction.do?actionId=UTBSFAAM15F001", label: "건물기준시가(양도)", hint: "홈택스(모바일 화면) · 자동계산" },
+    { href: "https://mob.tbht.hometax.go.kr/jsonAction.do?actionId=UTBSFAAM16F001", label: "건물기준시가 (상속,증여)", hint: "홈택스(모바일 화면) · 자동계산" },
+    { href: "https://mob.tbht.hometax.go.kr/jsonAction.do?actionId=UTBSFAAM13F001", label: "상업용건물, 오피스텔 기준시가", hint: "홈택스(모바일 화면)" },
+    { href: "https://www.wetax.go.kr/tcp/loi/J030401M01.do", label: "골프회원권 기준시가", hint: "위택스 시가표준액 조회 → 「회원권」 선택 (국세청 고시는 2009년 이후 중단)" },
+    { href: "https://www.wetax.go.kr/tcp/loi/J030401M01.do", label: "회원권 시가표준액", hint: "위택스 시가표준액 조회 → 「회원권」 선택" },
+    { href: "https://www.wetax.go.kr/tcp/loi/J030401M01.do", label: "건축물 시가표준액", hint: "위택스 시가표준액 조회 (서울 소재는 서울시 이택스)" },
+  ];
+  function renderLinks() {
+    const box = document.querySelector('.container');
+    if (!box || box.querySelector('.link-box')) return;
+    const sec = document.createElement('section');
+    sec.className = 'link-box';
+    sec.innerHTML = `
+      <h3>Link <small>공시가격·기준시가·시가표준액 조회 (새 창에서 열림)</small></h3>
+      <ul class="link-list">
+        ${LINKS.map((l) => `<li><a href="${l.href}" target="_blank" rel="noopener noreferrer">${esc(l.label)}</a>${
+          l.hint ? `<span>${esc(l.hint)}</span>` : ''}</li>`).join('')}
+      </ul>`;
+    box.appendChild(sec);
+  }
+
   function init() {
     document.querySelectorAll('nav.topnav').forEach(render);
     document.querySelectorAll('.tool-hub').forEach(renderHub);
     renderGroupView();
+    renderLinks();
     window.addEventListener('hashchange', renderGroupView);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
