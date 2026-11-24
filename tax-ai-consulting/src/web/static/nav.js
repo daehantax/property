@@ -60,9 +60,9 @@
     },
     {
       key: 'acquire', label: '취득', icon: '🏠', color: '#b9770e',
-      desc: '취득세 중과 판정',
+      desc: '취득세 계산과 중과 판정',
       tools: [
-        { href: 'acq-heavy.html', label: '취득세 중과 판정기', desc: '취득 후 주택수 × 조정지역 → 8%·12% 중과 (상속주택 5년 제외 포함)' },
+        { href: 'acq-heavy.html', label: '취득세 계산기', desc: '매매·증여·상속·신축 세액 계산 · 다주택 8%·12% 중과 · 법인 · 일시적 2주택 · 고급주택' },
         { href: 'regulated-areas.html', label: '규제지역 연혁', desc: '취득일 당시 조정대상지역 여부 확인' },
       ],
     },

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>취득세 중과 판정기 — 주택수 × 조정지역</title>
+<title>취득세 계산기 — 중과(8%·12%) 판정 포함</title>
 <link rel="stylesheet" href="styles.css">
 <style>
   .hj-layout { display: flex; gap: 18px; align-items: flex-start; }
@@ -48,6 +48,19 @@
   .reasons li { font-size: 14.5px; margin: 4px 0; line-height: 1.6; }
   .muted { font-size: 13.5px; color: #5f7180; margin-top: 10px; line-height: 1.6; }
   .lawref { margin-top: 12px; font-size: 13px; color: #5f7180; border-top: 1px solid var(--line); padding-top: 8px; }
+  table.taxtbl { border-collapse: collapse; width: 100%; margin: 4px 0 12px; font-size: 14.5px; }
+  table.taxtbl th, table.taxtbl td { border-bottom: 1px solid #dfe6ec; padding: 8px 10px; text-align: right; }
+  table.taxtbl th:first-child, table.taxtbl td:first-child { text-align: left; }
+  table.taxtbl thead th { background: #eaf2f8; color: #1a5276; font-size: 13.5px; }
+  table.taxtbl tr.sum td { font-weight: 800; font-size: 16px; color: #1a2733; border-top: 2px solid #1a5276; border-bottom: none; }
+  .notice { border-radius: 10px; padding: 12px 14px; margin: 12px 0; font-size: 14.5px; line-height: 1.6; }
+  .notice.red { background: #fdecea; border: 1px solid #f5b7b1; color: #7b241c; }
+  .notice.blue { background: #eaf2f8; border: 1px solid #aed6f1; color: #1a5276; }
+  .warns { margin: 10px 0 0; padding-left: 18px; }
+  .warns li { font-size: 13.5px; color: #7d6608; margin: 4px 0; line-height: 1.6; }
+  .fld-hint { font-size: 12.5px; color: #6f8496; margin-top: 2px; line-height: 1.45; }
+  .fld-hint a { color: #2874a6; }
+  .grid2 .wide { grid-column: 1 / -1; }
   .result-empty { color: #6f8496; text-align: center; margin-top: 140px; }
   @media (max-width: 900px) { .hj-layout { flex-direction: column; } #hjForm { width: 100%; } }
 </style>
@@ -58,9 +71,10 @@
 
 <div class="container">
   <p class="page-intro">
-    주택을 유상취득할 때 <b>취득 후 세대 주택수</b>와 <b>취득 주택 소재지(조정/비조정)</b>로 취득세 중과(8%·12%)를 판정합니다.
-    시가표준액 1억 이하·상속(5년) 주택은 주택수에서 제외되고, 일시적 2주택은 일반세율, 법인은 주택수와 무관하게 12%입니다.
-    계산은 브라우저 안에서만 이뤄집니다.
+    주택 <b>매매·증여·상속·신축</b> 취득세를 계산합니다. <b>취득 후 세대 주택수</b>와 <b>조정대상지역 여부</b>로
+    다주택 중과(8%·12%)를 판정하고, 취득세·지방교육세·농어촌특별세를 합산해 보여 줍니다.
+    법인 12%, 조정지역 증여 12%, 일시적 2주택, 저가주택 중과제외, 고급주택 가산도 반영합니다.
+    기준: 국세청 「2026 주택과 세금」. 계산은 브라우저 안에서만 이뤄집니다.
   </p>
 
   <div class="hj-layout">
@@ -70,17 +84,17 @@
         <div id="targetFields"></div>
       </div>
 
-      <div class="card">
+      <div class="card" id="othersCard">
         <h4>세대가 보유한 다른 주택 <span style="font-weight:400;color:#5f7180">(배우자·동일세대 합산)</span></h4>
         <div id="others"></div>
         <button class="add-btn" id="addBtn">＋ 주택 추가</button>
       </div>
 
-      <button class="btn-primary" id="judgeBtn">취득세 중과 판정하기</button>
+      <button class="btn-primary" id="judgeBtn">취득세 계산하기</button>
     </div>
 
     <div class="panel" id="hjResult">
-      <div class="result-empty" id="empty">주택을 입력하고 「취득세 중과 판정하기」를 누르세요.</div>
+      <div class="result-empty" id="empty">주택을 입력하고 「취득세 계산하기」를 누르세요.</div>
       <div id="result" style="display:none"></div>
     </div>
   </div>

@@ -20,6 +20,7 @@
  */
 
 export const LOWCOST_ACQ_EXCLUDE = 100_000_000;   // 취득세 주택수 제외: 시가표준액 1억 이하
+export const LOWCOST_ACQ_EXCLUDE_NONCAPITAL = 200_000_000; // 수도권 외 지역 · 2025.1.2 이후 취득분은 2억 이하
 export const RURAL_TRANSFER_EXCLUDE = 300_000_000; // 양도세 주택수 제외: 비수도권 기준시가 3억 이하
 export const INHERIT_EXCLUDE_YEARS = 5;
 
@@ -51,8 +52,14 @@ export function acqCountable(p) {
   if (p.status === 'inherit') {
     return { counted: false, reason: `${name}: 상속개시 5년 이내 상속주택 → 주택수 제외 (지방세법 시행령 §28의4④)` };
   }
-  if ((p.kind === 'house' || p.kind === 'officetel') && p.price <= LOWCOST_ACQ_EXCLUDE) {
-    return { counted: false, reason: `${name}: 시가표준액 1억원 이하 → 주택수 제외 (정비·사업시행구역 제외, 시행령 §28의4)` };
+  // 저가주택 기준: 1억원. 수도권 외 지역 주택을 2025.1.2 이후 취득했으면 2억원 (p.lowLimit 로 전달).
+  // 오피스텔은 1억원 기준만 적용. 정비구역·사업시행구역 주택(p.inRedevZone)은 저가라도 주택수에 포함.
+  const lowLimit = p.kind === 'house' ? (p.lowLimit ?? LOWCOST_ACQ_EXCLUDE) : LOWCOST_ACQ_EXCLUDE;
+  if ((p.kind === 'house' || p.kind === 'officetel') && p.price <= lowLimit) {
+    if (p.inRedevZone) {
+      return { counted: true, reason: `${name}: 시가표준액 ${won(lowLimit)} 이하이나 정비구역·사업시행구역 소재 → 주택수 포함` };
+    }
+    return { counted: false, reason: `${name}: 시가표준액 ${lowLimit === LOWCOST_ACQ_EXCLUDE ? '1억원' : '2억원(수도권 외·2025.1.2 이후 취득)'} 이하 → 주택수 제외 (정비·사업시행구역 제외, 시행령 §28의4)` };
   }
   const dateNote = (p.kind === 'presale' || p.kind === 'officetel')
     ? ' (2020.8.12 이후 취득분만 산정)'
