@@ -31,6 +31,7 @@ const PAGES = [
   { html: 'redev-transfer.html', btn: '#calcBtn' },
   { html: 'marriage-exempt.html', btn: '#judgeBtn' },
   { html: 'local-house.html', btn: '#judgeBtn' },
+  { html: 'jongbu.html', btn: '#calcBtn' },
   { html: 'aggr-single.html', btn: '#calcBtn' },
   { html: 'aggr-couple.html', btn: '#calcBtn' },
   { html: 'property-calc.html', btn: '#calcBtn' },

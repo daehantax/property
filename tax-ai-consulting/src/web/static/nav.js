@@ -70,8 +70,9 @@
       key: 'hold', label: '보유', icon: '🏢', color: '#154360',
       desc: '재산세·종합부동산세 계산, 임대사업자 점검',
       tools: [
-        { href: 'aggr-single.html', label: '종합부동산세 계산기', desc: '단독명의 · 부부 공동명의 · 개편안 비교',
+        { href: 'jongbu.html', label: '종합부동산세 계산기', desc: '단독 · 부부 공동명의 특례 비교 · 다주택(합산배제·상속·지방 저가주택) · 개편안 비교',
           tabs: [
+            { href: 'jongbu.html', label: '통합 계산 (주택 목록)' },
             { href: 'aggr-single.html', label: '단독명의' },
             { href: 'aggr-couple.html', label: '부부 공동명의' },
             { href: 'index.html#aggr', label: '간편계산' },

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>종합부동산세 계산기 — 단독·부부 공동명의·다주택 (2026)</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .jb-layout { display: flex; gap: 18px; align-items: flex-start; }
+  #jbForm { width: 450px; flex-shrink: 0; }
+  #jbResult { flex: 1; min-width: 0; min-height: 400px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .card > h4 { margin: 0 0 8px; font-size: 14.5px; color: var(--navy); }
+  .card > h4 i { font-style: normal; display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center;
+    border-radius: 50%; background: var(--navy); color: #fff; font-size: 12.5px; margin-right: 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .grid2 .wide { grid-column: 1 / -1; }
+  .grid2 label { margin: 0 0 2px; }
+  .fld-hint { font-size: 12.5px; color: #6f8496; margin-top: 2px; line-height: 1.45; }
+  .fld-hint a { color: #2874a6; }
+  .radio-list label { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px;
+    padding: 9px 11px; margin: 0 0 6px; cursor: pointer; font-weight: 700; color: #2c3e50; font-size: 14.5px; }
+  .radio-list label small { display: block; font-weight: 400; color: #6f8496; font-size: 12.5px; }
+  .radio-list input { width: auto; margin-top: 3px; }
+  .radio-list label:has(input:checked) { border-color: var(--navy); background: #eaf2f8; }
+  .row-mini { border: 1px solid var(--line); border-radius: 9px; padding: 10px; margin-bottom: 8px; position: relative; background: #fbfcfd; }
+  .row-mini .no { font-weight: 800; color: #47606f; font-size: 13.5px; margin-bottom: 6px; }
+  .row-mini .del { position: absolute; top: 8px; right: 8px; border: none; background: #f5b7b1; color: #7b241c; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-weight: 800; }
+  .add-btn { width: 100%; padding: 9px; border: 1px dashed #6f8496; background: #fff; border-radius: 8px; color: #47606f; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .sub-opts { margin-top: 8px; padding: 8px 10px; background: #f4f7fa; border-radius: 8px; font-size: 13.5px; }
+  .sub-opts label { display: flex; gap: 6px; align-items: flex-start; font-weight: 400; margin: 3px 0; }
+  .sub-opts input[type=checkbox], .sub-opts input[type=radio] { width: auto; margin-top: 3px; }
+  .sub-opts small { color: #6f8496; }
+  .verdict-line { margin: 8px 0 0; font-size: 13.5px; line-height: 1.5; border-radius: 8px; padding: 7px 10px; }
+  .verdict-line.ok { background: #eafaf1; color: #1e6b3e; border: 1px solid #abebc6; }
+  .verdict-line.no { background: #fff9e6; color: #7d6608; border: 1px solid #f5d97e; }
+  details.help { margin-top: 8px; font-size: 13.5px; color: #47606f; }
+  details.help summary { cursor: pointer; color: #2874a6; font-weight: 700; }
+  details.help .in { padding: 8px 2px 0; line-height: 1.6; }
+  .btn-sm { border: 1px solid var(--navy); background: #fff; color: var(--navy); border-radius: 7px; padding: 6px 12px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13.5px; }
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+  .cmp > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: #fff; }
+  .cmp > div.win { border: 2px solid #1e8449; background: #eafaf1; }
+  .cmp h5 { margin: 0; font-size: 14px; color: #47606f; }
+  .cmp h5 .tag { margin-left: 6px; background: #1e8449; color: #fff; border-radius: 999px; padding: 1px 9px; font-size: 12px; }
+  .cmp p { margin: 4px 0 2px; font-size: 22px; font-weight: 800; color: #1a2733; }
+  .cmp small { color: #6f8496; font-size: 12.5px; }
+  .advice { background: #fff9e6; border: 1px solid #f5d97e; border-radius: 10px; padding: 10px 14px; font-size: 14.5px; line-height: 1.6; margin: 0 0 12px; }
+  .tbl-title { font-weight: 800; color: #1a5276; margin: 14px 0 2px; font-size: 14.5px; }
+  .miss { margin-top: 14px; }
+  .miss details { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .miss summary { cursor: pointer; font-weight: 700; color: #2c3e50; font-size: 14.5px; }
+  .miss p { margin: 6px 0 0; font-size: 14px; line-height: 1.65; color: #47606f; }
+  .miss em { font-style: normal; font-weight: 700; color: #1a5276; }
+  @media (max-width: 900px) { .jb-layout { flex-direction: column; } #jbForm { width: 100%; } .cmp { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<nav class="topnav" data-page="jongbu"></nav>
+<script src="nav.js"></script>
+
+<div class="container">
+  <p class="page-intro">
+    개인의 2026년 주택분 종합부동산세를 계산합니다 — <b>단독명의 · 부부 공동명의(각자 계산 vs 1주택 특례 비교) · 다른 집이 더 있는 경우</b>
+    (합산배제·상속주택·일시적 2주택·지방 저가주택 자동 판정). 공제할 재산세액은 국세청 산식 그대로, 세부담상한은 전년도 보유세를 넣으면 적용합니다.
+    계산 상세의 <b>밑줄 친 항목을 누르면 산식</b>을 볼 수 있습니다. 계산은 브라우저 안에서만 이뤄집니다.
+  </p>
+
+  <div class="jb-layout">
+    <div class="panel" id="jbForm">
+
+      <div class="card">
+        <h4><i>1</i>이 집의 공시가격</h4>
+        <div class="grid2">
+          <div class="wide"><label>단지 (선택)</label><select id="inPreset"></select>
+            <div class="fld-hint" id="presetNote"></div></div>
+          <div class="wide" id="unitBox" hidden><label>평형 (등록된 가액)</label><select id="inUnit"></select></div>
+          <div class="wide"><label>공시가격 <span style="font-weight:400;color:#5f7180">(집 한 채 전체 금액)</span></label>
+            <input id="inPrice" data-kind="money" inputmode="numeric" value="2,250,000,000"><div class="money-hint"></div></div>
+          <div class="wide"><label>가격 출처</label>
+            <select id="inSource">
+              <option value="public">공시가격 (부동산공시가격알리미)</option>
+              <option value="local">지자체 산정가액 (공시가격 미공시 단지)</option>
+              <option value="est">재산세 과세표준으로 역산한 추정값</option>
+            </select></div>
+        </div>
+        <details class="help">
+          <summary>공시가격을 모르겠어요 · 아직 공시되지 않은 단지예요</summary>
+          <div class="in">
+            <p style="margin:0 0 6px"><b>① 직접 조회</b> — <a href="https://www.realtyprice.kr/notice/town/nfSiteLink.htm" target="_blank" rel="noopener noreferrer">부동산공시가격알리미 ↗</a>에서 주소(동·호)로 조회합니다.</p>
+            <p style="margin:0 0 6px"><b>② 재산세 고지서로 역산</b> — 이전고시 전 재건축 단지처럼 공시가격이 없으면 구청이 산정한 가액으로 과세됩니다.
+              9월 재산세 고지서의 <b>과세표준</b>을 넣으면 그 가액을 거꾸로 계산합니다.</p>
+            <input id="inPropBase" data-kind="money" inputmode="numeric" placeholder="재산세 과세표준 예) 1,350,000,000"><div class="money-hint"></div>
+            <p style="margin:6px 0 0"><button type="button" class="btn-sm" id="propBtn">공시가격으로 바꿔 넣기</button></p>
+            <p style="margin:6px 0 0;color:#6f8496">과세표준 ÷ 공정시장가액비율(1세대 1주택 45%, 그 외 60%)로 계산한 추정값입니다. 과세표준상한이 적용된 집은 실제 가액이 더 높을 수 있습니다.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <h4><i>2</i>집을 어떻게 갖고 있나요? <span style="font-weight:400;color:#5f7180">(6월 1일 기준)</span></h4>
+        <div class="radio-list">
+          <label><input type="radio" name="mode" value="single" checked><span>이 집 한 채 · 단독명의<small>1세대 1주택 — 12억 공제 + 세액공제</small></span></label>
+          <label><input type="radio" name="mode" value="couple"><span>이 집 한 채 · 부부 공동명의<small>각자 9억 공제 vs 1주택 특례를 비교</small></span></label>
+          <label><input type="radio" name="mode" value="multi"><span>다른 집이 더 있음<small>2채 이상 · 상속주택 · 임대주택 포함 (본인 명의 기준)</small></span></label>
+        </div>
+        <div id="shareBox" hidden>
+          <label>이 집의 내 지분 (%)</label><input id="inShare" inputmode="decimal" value="50">
+        </div>
+        <div id="multiBox" hidden style="margin-top:10px">
+          <label id="housesLabel">내 명의로 된 다른 집</label>
+          <div class="fld-hint" id="housesHint" style="margin-bottom:6px"></div>
+          <div id="houses"></div>
+          <button type="button" class="add-btn" id="addHouse">＋ 집 추가</button>
+        </div>
+      </div>
+
+      <div class="card" id="creditCard">
+        <h4><i>3</i>나이와 보유기간 <span style="font-weight:400;color:#5f7180">(1세대 1주택자 세액공제)</span></h4>
+        <div class="grid2">
+          <div><label>소유자 나이 (만)</label><input id="inAge" inputmode="numeric" value="60"></div>
+          <div><label>보유기간 (년)</label><input id="inHold" inputmode="numeric" value="10"></div>
+        </div>
+        <div class="fld-hint" id="creditHint"></div>
+      </div>
+
+      <div class="card" id="optCard">
+        <h4><i>4</i>고지서 금액 (선택)</h4>
+        <label>올해 재산세 본세 (7월 + 9월 합계)</label>
+        <input id="inPropTax" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
+        <div class="fld-hint">도시지역분·지방교육세·지역자원시설세는 빼고 「재산세」 금액만. 비워 두면 공시가격으로 계산합니다.</div>
+        <label style="margin-top:8px">전년도 보유세 상당액 (재산세 + 종부세)</label>
+        <input id="inPrev" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
+        <div class="fld-hint">넣으면 세부담상한(전년도의 150%)을 적용합니다.</div>
+      </div>
+
+      <button class="btn-primary" id="calcBtn">종부세 계산하기</button>
+    </div>
+
+    <div class="panel" id="jbResult">
+      <div class="result-empty" id="empty">입력값을 넣고 「종부세 계산하기」를 누르세요.</div>
+      <div id="result" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script src="jongbu.js"></script>
+</body>
+</html>
