@@ -7,7 +7,7 @@
  */
 
 import {
-  calcJongbu, classifyJongbuHouse, priceFromPropertyTaxBase, JONGBU_RULES,
+  calcJongbu, classifyJongbuHouse, priceFromPropertyTaxBase, priceFromPropertyTax, propertyTaxBaseFromTax, JONGBU_RULES,
 } from '../../core/jongbu-calc.js';
 import { SIGUNGU, SIDO_LABEL } from '../../core/regions-data.js';
 import {
@@ -19,6 +19,7 @@ const $ = (id) => document.getElementById(id);
 const pct = (x) => `${Math.round(x * 1000) / 10}%`;
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const mode = () => document.querySelector('input[name="mode"]:checked').value;
+const priceMode = () => document.querySelector('input[name="priceMode"]:checked').value;
 const showFx = initFxDialog();
 let fxMap = {};
 
@@ -51,16 +52,54 @@ function syncPreset() {
   $('inUnit').innerHTML = '<option value="">평형 선택</option>'
     + units.map((u, i) => `<option value="${i}">${esc(u.label)} — ${won(u.price)}</option>`).join('');
   if (!p) { $('presetNote').textContent = ''; return; }
-  if (p.unpublished) $('inSource').value = 'local';
+  // 미공시 단지인데 등록된 가액도 없으면 「재산세 고지서로 환산」으로 바로 넘긴다
+  if (!units.length) setPriceMode(p.unpublished ? 'convert' : 'public');
   $('presetNote').textContent = units.length
     ? `등록 가액 기준: ${p.year}년 · ${p.source || '출처 미기재'}`
     : (p.unpublished
-      ? '공시가격이 아직 공시되지 않은 단지입니다. 등록된 가액이 없어, 재산세 고지서 과세표준으로 역산하거나 구청 산정가액을 직접 넣어 주세요.'
-      : '등록된 가액이 없습니다. 공시가격알리미에서 조회한 금액을 넣어 주세요.');
+      ? '공시가격이 아직 공시되지 않은 단지입니다 → 아래에서 재산세 고지서 금액으로 환산합니다.'
+      : '공시가격이 공시된 단지입니다 → 공시가격알리미에서 조회한 금액을 넣어 주세요.');
 }
 function setPrice(n) {
   $('inPrice').value = n ? fmt(n) : '';
   $('inPrice').dispatchEvent(new Event('input'));
+}
+function setPriceMode(v) {
+  document.querySelector(`input[name="priceMode"][value="${v}"]`).checked = true;
+  syncPriceMode();
+}
+function syncPriceMode() {
+  const conv = priceMode() === 'convert';
+  $('publicBox').hidden = conv;
+  $('convertBox').hidden = !conv;
+  if (conv) convert();
+}
+
+/** 재산세 고지서 금액 → 이 집 가격 환산. 환산 결과를 돌려주고 화면에도 바로 보여 준다 */
+function convert() {
+  const kind = $('inConvKind').value;
+  const amt = moneyVal($('inConvAmt'));
+  const ratio = Number($('inConvRatio').value);
+  $('convLabel').textContent = kind === 'base' ? '재산세 과세표준' : '재산세 본세 (7월분 + 9월분 합계)';
+  $('inConvAmt').placeholder = kind === 'base' ? '예) 1,012,500,000' : '예) 3,420,000';
+  $('convHint').textContent = kind === 'base'
+    ? '고지서 「과세표준」 칸의 금액. 가장 정확합니다.'
+    : '도시지역분·지방교육세·지역자원시설세는 빼고 「재산세」만. 7월분과 9월분을 더한 금액입니다.';
+  const out = $('convOut');
+  if (!amt) { out.hidden = true; return 0; }
+  const base = kind === 'base' ? amt : propertyTaxBaseFromTax(amt);
+  const price = kind === 'base' ? priceFromPropertyTaxBase(amt, ratio) : priceFromPropertyTax(amt, ratio);
+  out.hidden = false;
+  out.innerHTML = `환산한 이 집 가격 <b>${won(price)}</b><br>`
+    + (kind === 'tax' ? `재산세 ${won(amt)} → 과세표준 ${won(base)} (표준세율 역산) ` : `과세표준 ${won(amt)} `)
+    + `÷ ${Math.round(ratio * 100)}%`;
+  return price;
+}
+/** 지금 계산에 쓸 이 집 가격과 출처 */
+function currentPrice() {
+  if (priceMode() === 'convert') return { price: convert(), src: 'est' };
+  const p = PRICE_PRESETS.find((x) => x.id === $('inPreset').value);
+  return { price: moneyVal($('inPrice')), src: p && p.unpublished ? 'local' : 'public' };
 }
 
 /* ── 2. 다른 집 목록 ───────── */
@@ -160,6 +199,10 @@ function syncMode() {
   $('shareBox').hidden = m === 'single';
   $('multiBox').hidden = m === 'single';
   $('optCard').style.display = m === 'couple' ? 'none' : '';
+  // 재산세 공정시장가액비율 기본값: 이 집 한 채뿐(단독·부부)이면 45%, 다른 집이 더 있으면 60%
+  // 이미 고지서 금액을 넣었다면 건드리지 않는다 — 비율이 바뀌면 환산 가격이 크게 달라지기 때문
+  if (!moneyVal($('inConvAmt'))) $('inConvRatio').value = m === 'multi' ? '0.6' : '0.45';
+  if (priceMode() === 'convert') convert();
   $('housesLabel').textContent = m === 'couple' ? '부부에게 다른 집이 있으면 넣어 주세요 (없으면 비워 두세요)' : '내 명의로 된 다른 집을 모두 넣어 주세요';
   $('housesHint').innerHTML = m === 'couple'
     ? '상속주택·이사용 새집·지방 주택은 <b>그 집을 가진 분을 납세의무자로 정하면</b> 1주택 특례가 유지됩니다. 일반 주택이 있으면 특례를 받을 수 없습니다.'
@@ -342,18 +385,21 @@ function render(r, src) {
 
 function calculate() {
   const m = mode();
-  const price = moneyVal($('inPrice'));
-  if (!price) { $('inPrice').focus(); return; }
+  const { price, src } = currentPrice();
+  if (!price) { (priceMode() === 'convert' ? $('inConvAmt') : $('inPrice')).focus(); return; }
   const share = Math.min(100, Math.max(0, Number($('inShare').value) || 0)) / 100;
+  // 1번에서 재산세 본세로 환산했고 집이 이 집 한 채뿐(단독명의)이면, 그 금액이 곧 실제 재산세다
+  let assessed = m === 'couple' ? 0 : moneyVal($('inPropTax'));
+  if (!assessed && m === 'single' && priceMode() === 'convert' && $('inConvKind').value === 'tax') assessed = moneyVal($('inConvAmt'));
   render(calcJongbu({
     mode: m, price,
     share: m === 'single' ? 1 : share,
     houses: m === 'single' ? [] : readHouses(),
     age: Number($('inAge').value) || 0,
     holdYears: Number($('inHold').value) || 0,
-    assessedPropertyTax: m === 'couple' ? 0 : moneyVal($('inPropTax')),
+    assessedPropertyTax: assessed,
     prevYearTotal: m === 'couple' ? 0 : moneyVal($('inPrev')),
-  }), $('inSource').value);
+  }), src);
 }
 
 /* ── 이벤트 연결 ───────── */
@@ -366,14 +412,13 @@ $('inUnit').addEventListener('change', () => {
   const u = p && p.units[Number($('inUnit').value)];
   if (u && $('inUnit').value !== '') setPrice(u.price);
 });
-$('propBtn').addEventListener('click', () => {
-  const b = moneyVal($('inPropBase'));
-  if (!b) { $('inPropBase').focus(); return; }
-  // 1세대 1주택(단독·부부 공동명의)은 재산세 공정시장가액비율 45%, 그 외 60%
-  setPrice(priceFromPropertyTaxBase(b, mode() !== 'multi'));
-  $('inSource').value = 'est';
-});
+document.querySelectorAll('input[name="priceMode"]').forEach((r) => r.addEventListener('change', syncPriceMode));
+for (const id of ['inConvKind', 'inConvAmt', 'inConvRatio']) {
+  $(id).addEventListener('input', convert);
+  $(id).addEventListener('change', convert);
+}
 document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener('change', syncMode));
 $('addHouse').addEventListener('click', addHouse);
 $('calcBtn').addEventListener('click', calculate);
 syncMode();
+syncPriceMode();

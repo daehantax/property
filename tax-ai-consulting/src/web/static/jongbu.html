@@ -70,42 +70,55 @@
     <div class="panel" id="jbForm">
 
       <div class="card">
-        <h4><i>1</i>이 집의 공시가격</h4>
-        <div class="grid2">
-          <div class="wide"><label>단지 (선택)</label><select id="inPreset"></select>
-            <div class="fld-hint" id="presetNote"></div></div>
-          <div class="wide" id="unitBox" hidden><label>평형 (등록된 가액)</label><select id="inUnit"></select></div>
-          <div class="wide"><label>공시가격 <span style="font-weight:400;color:#5f7180">(집 한 채 전체 금액)</span></label>
-            <input id="inPrice" data-kind="money" inputmode="numeric" value="2,250,000,000"><div class="money-hint"></div></div>
-          <div class="wide"><label>가격 출처</label>
-            <select id="inSource">
-              <option value="public">공시가격 (부동산공시가격알리미)</option>
-              <option value="local">지자체 산정가액 (공시가격 미공시 단지)</option>
-              <option value="est">재산세 과세표준으로 역산한 추정값</option>
-            </select></div>
+        <h4><i>1</i>계산할 집 <span style="font-weight:400;color:#5f7180">(아래에서 「이 집」은 여기 넣은 집입니다)</span></h4>
+        <label>단지 (선택)</label><select id="inPreset"></select>
+        <div class="fld-hint" id="presetNote"></div>
+        <div id="unitBox" hidden style="margin-top:8px"><label>평형 (등록된 가액)</label><select id="inUnit"></select></div>
+
+        <label style="margin-top:10px">이 집의 가격을 어떻게 넣을까요?</label>
+        <div class="radio-list">
+          <label><input type="radio" name="priceMode" value="public" checked><span>공시가격을 압니다<small>공시가격알리미에 가격이 나오는 집 (예: 래미안 블레스티지)</small></span></label>
+          <label><input type="radio" name="priceMode" value="convert"><span>공시가격이 없습니다 → 재산세 고지서로 환산<small>아직 공시되지 않은 단지 (예: 디에이치 퍼스티어 아이파크)</small></span></label>
         </div>
-        <details class="help">
-          <summary>공시가격을 모르겠어요 · 아직 공시되지 않은 단지예요</summary>
-          <div class="in">
-            <p style="margin:0 0 6px"><b>① 직접 조회</b> — <a href="https://www.realtyprice.kr/notice/town/nfSiteLink.htm" target="_blank" rel="noopener noreferrer">부동산공시가격알리미 ↗</a>에서 주소(동·호)로 조회합니다.</p>
-            <p style="margin:0 0 6px"><b>② 재산세 고지서로 역산</b> — 이전고시 전 재건축 단지처럼 공시가격이 없으면 구청이 산정한 가액으로 과세됩니다.
-              9월 재산세 고지서의 <b>과세표준</b>을 넣으면 그 가액을 거꾸로 계산합니다.</p>
-            <input id="inPropBase" data-kind="money" inputmode="numeric" placeholder="재산세 과세표준 예) 1,350,000,000"><div class="money-hint"></div>
-            <p style="margin:6px 0 0"><button type="button" class="btn-sm" id="propBtn">공시가격으로 바꿔 넣기</button></p>
-            <p style="margin:6px 0 0;color:#6f8496">과세표준 ÷ 공정시장가액비율(1세대 1주택 45%, 그 외 60%)로 계산한 추정값입니다. 과세표준상한이 적용된 집은 실제 가액이 더 높을 수 있습니다.</p>
+
+        <div id="publicBox">
+          <label>공시가격 <span style="font-weight:400;color:#5f7180">(집 한 채 전체 금액)</span></label>
+          <input id="inPrice" data-kind="money" inputmode="numeric" value="2,250,000,000"><div class="money-hint"></div>
+          <div class="fld-hint"><a href="https://www.realtyprice.kr/notice/town/nfSiteLink.htm" target="_blank" rel="noopener noreferrer">부동산공시가격알리미에서 조회 ↗</a></div>
+        </div>
+
+        <div id="convertBox" hidden>
+          <div class="grid2">
+            <div class="wide"><label>재산세 고지서에서 넣을 금액</label>
+              <select id="inConvKind">
+                <option value="base">과세표준 (고지서의 「과세표준」 금액)</option>
+                <option value="tax">재산세 본세 — 7월분 + 9월분 합계</option>
+              </select></div>
+            <div class="wide"><label id="convLabel">재산세 과세표준</label>
+              <input id="inConvAmt" data-kind="money" inputmode="numeric" placeholder="예) 1,012,500,000"><div class="money-hint"></div>
+              <div class="fld-hint" id="convHint"></div></div>
+            <div class="wide"><label>고지서에 적용된 공정시장가액비율</label>
+              <select id="inConvRatio">
+                <option value="0.45">45% — 1세대 1주택 (공시가격 6억 초과)</option>
+                <option value="0.6">60% — 그 외 (다주택 등)</option>
+              </select>
+              <div class="fld-hint"><b>이 집의 재산세 고지서에 적용된 비율</b>을 고르세요. 재산세에서 1세대 1주택 특례를 받았으면 45%, 아니면 60%입니다. 비율에 따라 환산 가격이 크게 달라집니다.</div></div>
           </div>
-        </details>
+          <p class="verdict-line ok" id="convOut" hidden></p>
+          <div class="fld-hint">공시가격이 없는 집은 구청이 산정한 가액으로 재산세·종부세가 부과됩니다. 고지서 금액을 거꾸로 계산한 추정값이며,
+            과세표준상한이나 세부담상한이 적용된 집은 실제 가액이 더 높을 수 있습니다.</div>
+        </div>
       </div>
 
       <div class="card">
-        <h4><i>2</i>집을 어떻게 갖고 있나요? <span style="font-weight:400;color:#5f7180">(6월 1일 기준)</span></h4>
+        <h4><i>2</i>이 집 말고 다른 집이 있나요? 명의는요? <span style="font-weight:400;color:#5f7180">(6월 1일 기준)</span></h4>
         <div class="radio-list">
-          <label><input type="radio" name="mode" value="single" checked><span>이 집 한 채 · 단독명의<small>1세대 1주택 — 12억 공제 + 세액공제</small></span></label>
-          <label><input type="radio" name="mode" value="couple"><span>이 집 한 채 · 부부 공동명의<small>각자 9억 공제 vs 1주택 특례를 비교</small></span></label>
-          <label><input type="radio" name="mode" value="multi"><span>다른 집이 더 있음<small>2채 이상 · 상속주택 · 임대주택 포함 (본인 명의 기준)</small></span></label>
+          <label><input type="radio" name="mode" value="single" checked><span>집은 이 집 한 채뿐 · 내 단독명의<small>1세대 1주택 — 12억 공제 + 세액공제</small></span></label>
+          <label><input type="radio" name="mode" value="couple"><span>집은 이 집 한 채뿐 · 부부 공동명의<small>각자 9억 공제 vs 1주택 특례를 비교해 드립니다</small></span></label>
+          <label><input type="radio" name="mode" value="multi"><span>이 집 외에 내 명의 집이 더 있음 (2채 이상)<small>아래에 나머지 집을 한 채씩 추가합니다 — 상속주택·임대주택·지방 주택 포함</small></span></label>
         </div>
         <div id="shareBox" hidden>
-          <label>이 집의 내 지분 (%)</label><input id="inShare" inputmode="decimal" value="50">
+          <label>「이 집」(1번)의 내 지분 (%)</label><input id="inShare" inputmode="decimal" value="50">
         </div>
         <div id="multiBox" hidden style="margin-top:10px">
           <label id="housesLabel">내 명의로 된 다른 집</label>
@@ -125,10 +138,11 @@
       </div>
 
       <div class="card" id="optCard">
-        <h4><i>4</i>고지서 금액 (선택)</h4>
-        <label>올해 재산세 본세 (7월 + 9월 합계)</label>
+        <h4><i>4</i>더 정확하게 (선택) <span style="font-weight:400;color:#5f7180">— 비워 두어도 계산됩니다</span></h4>
+        <label>올해 실제 부과된 재산세 본세 합계 <span style="font-weight:400;color:#5f7180">(내 명의 집 전체 · 7월 + 9월)</span></label>
         <input id="inPropTax" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
-        <div class="fld-hint">도시지역분·지방교육세·지역자원시설세는 빼고 「재산세」 금액만. 비워 두면 공시가격으로 계산합니다.</div>
+        <div class="fld-hint" id="propTaxHint">가격 환산용이 아닙니다. 종부세에서 빼 주는 「공제할 재산세액」을 실제 고지액으로 계산할 때만 씁니다.
+          도시지역분·지방교육세·지역자원시설세는 빼고 「재산세」 금액만 넣으세요. 비워 두면 1번 가격으로 재산세를 계산해 씁니다.</div>
         <label style="margin-top:8px">전년도 보유세 상당액 (재산세 + 종부세)</label>
         <input id="inPrev" data-kind="money" inputmode="numeric" value=""><div class="money-hint"></div>
         <div class="fld-hint">넣으면 세부담상한(전년도의 150%)을 적용합니다.</div>

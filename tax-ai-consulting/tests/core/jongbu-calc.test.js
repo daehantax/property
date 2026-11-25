@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calcJongbu, personTax, classifyJongbuHouse, standardPropertyTax, priceFromPropertyTaxBase,
+  priceFromPropertyTax, propertyTaxBaseFromTax,
 } from '../../src/core/jongbu-calc.js';
 import { calcAggrTax } from '../../src/core/comprehensive-tax.js';
 import { calcPropertyTax } from '../../src/core/property-tax.js';
@@ -150,5 +151,16 @@ describe('보조 함수', () => {
   it('재산세 과세표준 → 공시가격 추정 (÷60%, 1주택 ÷45%)', () => {
     expect(priceFromPropertyTaxBase(1_350_000_000)).toBe(2_250_000_000);
     expect(priceFromPropertyTaxBase(1_012_500_000, true)).toBe(2_250_000_000);
+    expect(priceFromPropertyTaxBase(1_012_500_000, 0.45)).toBe(2_250_000_000);
+  });
+  it('재산세 본세 → 과세표준 → 공시가격 환산 (표준세율 역산)', () => {
+    for (const base of [50_000_000, 100_000_000, 200_000_000, 1_012_500_000]) {
+      expect(propertyTaxBaseFromTax(standardPropertyTax(base))).toBeCloseTo(base, 3);
+    }
+    // 22.5억 1세대 1주택: 과표 10.125억 → 본세 3,420,000원 → 다시 22.5억
+    expect(priceFromPropertyTax(3_420_000, 0.45)).toBe(2_250_000_000);
+  });
+  it('지방 저가주택은 취득일과 무관 — 전북 고창군 공시 1억', () => {
+    expect(classifyJongbuHouse({ pick: 'local', sido: '전북', name: '고창군', price: 100_000_000 }).kind).toBe('rural');
   });
 });

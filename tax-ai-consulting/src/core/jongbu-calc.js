@@ -330,8 +330,26 @@ export function classifyJongbuHouse(h) {
   return { kind: 'normal', ok: true, msg: '' };
 }
 
-/** 재산세 과세표준 → 공시가격 추정 (과세표준 ÷ 재산세 공정시장가액비율, 만원 단위 반올림) */
-export function priceFromPropertyTaxBase(taxBase, oneHouse = false) {
-  const ratio = oneHouse ? 0.45 : 0.6;
-  return Math.round(taxBase / ratio / 10000) * 10000;
+/**
+ * 재산세 과세표준 → 공시가격(지자체 산정가액) 환산
+ * 과세표준 ÷ 재산세 공정시장가액비율, 만원 단위 반올림.
+ * @param {number} taxBase 재산세 고지서의 과세표준
+ * @param {number|boolean} [ratio=0.6] 공정시장가액비율 (1세대 1주택 0.45, 그 외 0.6). true 를 주면 0.45
+ */
+export function priceFromPropertyTaxBase(taxBase, ratio = 0.6) {
+  const r = ratio === true ? 0.45 : (ratio === false ? 0.6 : ratio);
+  return Math.round(taxBase / r / 10000) * 10000;
+}
+
+/** 재산세 본세(연간, 표준세율) → 과세표준 역산 — standardPropertyTax 의 역함수 */
+export function propertyTaxBaseFromTax(tax) {
+  if (tax <= 60_000) return tax / 0.001;
+  if (tax <= 195_000) return 60_000_000 + (tax - 60_000) / 0.0015;
+  if (tax <= 570_000) return 150_000_000 + (tax - 195_000) / 0.0025;
+  return 300_000_000 + (tax - 570_000) / 0.004;
+}
+
+/** 재산세 본세(연간) → 공시가격(지자체 산정가액) 환산 */
+export function priceFromPropertyTax(tax, ratio = 0.6) {
+  return priceFromPropertyTaxBase(propertyTaxBaseFromTax(tax), ratio);
 }
