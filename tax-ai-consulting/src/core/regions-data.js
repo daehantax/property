@@ -4,14 +4,16 @@
  * 출처
  *  - 인구감소지역 92곳: 행정안전부 2026.10.7 재지정 고시 (2021.10.19 최초 89곳 → 2024.2.27 군위군 대구 편입 반영
  *    → 2026.10.7 재지정: 부산 금정구·경기 동두천시·경남 통영시가 관심지역에서 편입돼 92곳).
- *    그중 전남 영광군·부산 동구·대구 서구는 여건이 나아진 「인구활력+지역」 — 5년간 인구감소지역에 준해 지원
- *  - 인구감소관심지역 18곳: 2026.10.7 재지정 (부산 북구·경북 예천군·칠곡군 신규, 9곳은 「인구활력+지역」)
+ *    고시 표의 「인구활력+지역」 칸(전남 영광군·부산 동구·대구 서구)도 92곳 안에 들어 있어 인구감소지역으로 본다
+ *  - 인구감소관심지역 18곳: 2026.10.7 재지정 (부산 북구·경북 예천군·칠곡군 신규)
  *  - 접경지역 17개 시·군: 접경지역 지원 특별법 §2 · 시행령 §2 (2025.3.11 가평군·속초시 추가)
  *  - 수도권: 수도권정비계획법 §2 (서울·인천·경기)
  *
  * 세법상 의미
- *  - 조특법 §71의2 세컨드홈: 인구감소지역(관심지역은 2026.1.1 이후 취득분) 중
- *    수도권(접경지역 제외)·광역시(군 제외) 제외
+ *  - 조특법 §71의2 인구감소지역 주택: 인구감소지역 + 「비수도권」 인구감소관심지역(2026.1.1 이후 취득분, 4억)
+ *    — 수도권(접경지역 제외)·광역시(군 제외) 제외. 수도권의 관심지역(포천시·인천 동구)은 대상이 아니다
+ *    (국세청 「2026 주택과 세금」 112·119쪽, 이미지 확인)
+ *  - 관심지역은 종부세 지방 저가주택(§8④ 4호) 판정과는 무관하다
  *  - 종부세 지방 저가주택(종부세법 §8④4호, 시행령 §4의2③): 공시가격 4억 이하 +
  *    가목 수도권 밖 광역시·특별자치시 아닌 지역 / 나목 수도권 밖 광역시 소속 군 / 다목 세종 읍·면 /
  *    라목 서울 외 수도권 중 인구감소지역이면서 접경지역으로 시행규칙이 정한 곳(가평·연천·강화·옹진)
@@ -69,16 +71,6 @@ export const INTEREST_AREAS = [
 ];
 
 /**
- * 인구활력+지역 (2026.10.7) — 여건이 나아져 지정 기준에서는 벗어났지만 5년간 종전 지원을 이어받는 곳.
- * 위 명단(92곳·18곳)에 그대로 들어 있고, 화면에 「활력+」 표시만 덧붙인다.
- */
-export const VITAL_PLUS_AREAS = [
-  ['전남', '영광군'], ['부산', '동구'], ['대구', '서구'],                       // 인구감소지역 쪽 3곳
-  ['광주', '동구'], ['인천', '동구'], ['대전', '동구'], ['대전', '중구'], ['대전', '대덕구'],
-  ['강원', '강릉시'], ['강원', '속초시'], ['강원', '인제군'], ['경북', '경주시'],   // 관심지역 쪽 9곳
-];
-
-/**
  * 종부세 지방 저가주택 라목 — 서울 외 수도권 중 인구감소지역이면서 접경지역으로 시행규칙이 정한 곳
  * (종부세법 시행령 §4의2③2호 라목, 시행규칙: 경기 가평군·연천군 2025.3.21 개정 / 인천 강화군·옹진군 2023.3.20 신설)
  */
@@ -115,7 +107,6 @@ const key = (sido, name) => `${sido}|${name}`;
 const DEPOP_SET = new Set(DEPOP_AREAS.map(([s, n]) => key(s, n)));
 const INTEREST_SET = new Set(INTEREST_AREAS.map(([s, n]) => key(s, n)));
 const BORDER_SET = new Set(BORDER_AREAS.map(([s, n]) => key(s, n)));
-const VITAL_SET = new Set(VITAL_PLUS_AREAS.map(([s, n]) => key(s, n)));
 const NEW_DEPOP_SET = new Set(DEPOP_NEW_2026.map(([s, n]) => key(s, n)));
 const LOWPRICE_CAPITAL_SET = new Set(LOWPRICE_CAPITAL_AREAS.map(([s, n]) => key(s, n)));
 
@@ -157,7 +148,7 @@ export function jongbuLowPriceRegion(area, sejongRural = false) {
 
 /**
  * 시·군·구 하나를 세법상 지역 유형으로 분류
- * @returns {{ sido, name, label, depop:'depop'|'interest'|'none', depopSince:string|null, vitalPlus:boolean,
+ * @returns {{ sido, name, label, depop:'depop'|'interest'|'none', depopSince:string|null,
  *   lowPriceCapital:boolean, border:boolean, capital:boolean,
  *   metroCity:boolean, gun:boolean, regionKey:string, regionLabel:string,
  *   secondHomeOk:boolean, jongbuLowPriceOk:boolean, notes:string[] }}
@@ -184,18 +175,19 @@ export function classifyArea(sido, name) {
   };
 
   // 조특법 §71의2 세컨드홈 지역 요건: 인구감소(관심)지역 + 수도권(접경 제외)·광역시(군 제외) 아님
-  const secondHomeOk = depop !== 'none' && (!capital || border) && !(metroCity && !gun);
+  //   관심지역은 비수도권만 (책 112쪽 「인구감소지역, 비수도권 인구감소관심지역」)
+  const secondHomeOk = !(metroCity && !gun)
+    && ((depop === 'depop' && (!capital || border)) || (depop === 'interest' && !capital));
   // 종부세 지방 저가주택 지역 요건(시행령 §4의2③2호): 가·나목 + 라목(수도권 4개 군). 세종은 읍·면(다목)만 → 여기서는 false
   const lowPriceCapital = LOWPRICE_CAPITAL_SET.has(k);
   const jongbuLowPriceOk = lowPriceCapital || (!capital && !(metroCity && !gun) && !sejong);
-  const vitalPlus = VITAL_SET.has(k);
   const depopSince = NEW_DEPOP_SET.has(k) ? DEPOP_REDESIGNATED : null;
 
   const notes = [];
   if (depop === 'depop') notes.push(depopSince ? '인구감소지역 (2026.10.7 재지정으로 편입 — 그 전에는 관심지역)' : '인구감소지역 (행안부 2026.10.7 재지정 고시 92곳)');
-  if (vitalPlus) notes.push('인구활력+지역 — 지정 기준에서는 벗어났지만 5년간 종전 지원 유지 (세제 특례 적용 여부는 개별 조문 확인)');
   if (depop === 'interest') notes.push('인구감소관심지역 (2026.10.7 재지정 18곳) — 세컨드홈은 2026.1.1 이후 취득분·4억 이하');
-  if (border) notes.push(capital ? '수도권 접경지역 (접경지역 지원 특별법) — 수도권이지만 세컨드홈 특례 가능' : '접경지역 (수도권 아님)');
+  if (border) notes.push(capital ? (depop === 'depop' ? '수도권 접경지역 (접경지역 지원 특별법) — 수도권이지만 인구감소지역 주택 특례 가능' : '수도권 접경지역 (접경지역 지원 특별법)') : '접경지역 (수도권 아님)');
+  if (depop === 'interest' && capital) notes.push('수도권의 관심지역 → 인구감소지역 주택 특례 대상 아님 (관심지역은 비수도권만)');
   if (lowPriceCapital) notes.push('종부세 지방 저가주택 가능 — 수도권이지만 인구감소지역·접경지역으로 시행규칙이 정한 곳 (공시가격 4억 이하)');
   if (capital && border && !lowPriceCapital) notes.push('종부세 지방 저가주택은 불가 — 시행규칙이 정한 곳(가평·연천·강화·옹진)이 아님');
   if (capital && !border) notes.push('수도권 → 세컨드홈·농어촌·종부세 지방 저가주택 특례 모두 불가');
@@ -205,7 +197,7 @@ export function classifyArea(sido, name) {
   if (depop === 'none' && !capital) notes.push('인구감소(관심)지역 아님 → 세컨드홈 불가, 종부세 지방 저가주택은 4억 기준');
 
   return {
-    sido, name, label: `${SIDO_LABEL[sido] ?? sido} ${name}`, depop, depopSince, vitalPlus, lowPriceCapital, border, capital, metroCity, gun,
+    sido, name, label: `${SIDO_LABEL[sido] ?? sido} ${name}`, depop, depopSince, lowPriceCapital, border, capital, metroCity, gun,
     regionKey, regionLabel: REGION_LABEL[regionKey], secondHomeOk, jongbuLowPriceOk, notes,
   };
 }

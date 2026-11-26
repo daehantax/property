@@ -59,7 +59,7 @@
 | 세법 동향 일지 + 계산 엔진 세법 검증표 (엔진 값과 테스트로 대조) | ✅ 구현 완료 | `tax-ai-consulting/src/web/static/law-updates-data.js` (`LAW_UPDATES`, `ENGINE_AUDIT`), `tests/web/law-audit.test.js` |
 | 세무 판정기 (양도세·취득세 중과, 1세대1주택·재건축·혼인 비과세, 지방주택 1세대1주택) | ✅ 구현 완료 | `tax-ai-consulting/src/core/heavy-tax-judge.js`, `single-house-exempt.js`, `redev-exempt.js`, `marriage-exempt.js`, `local-house-judge.js` |
 
-테스트 574개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
+테스트 581개 (모든 AI 단계는 mock으로 네트워크 없이 검증).
 
 ## 저장소 구조
 
@@ -201,7 +201,7 @@ node scripts/law-watch.js --days 62   # 동향 감시 기간 변경 (기본 31�
 ## 매일 자동 점검 (daily-check)
 
 `daily-check` 워크플로가 **매일 06:00 KST**에 API 키 없이 3단계를 점검합니다:
-① 계산 엔진 회귀 테스트(vitest 574개) → ② 정적 사이트 빌드 → ③ 화면 스모크 테스트(`scripts/smoke-test.js` — 18개 페이지 로드·JS 에러 0건, 계산기/판정기 버튼 클릭 후 결과 표시 확인, 메인 화면 세목 클릭 시 하위 메뉴 화면 전환 확인). 실패 시 `daily-check` 라벨 이슈가 자동 생성됩니다. 로컬 실행: `npm run smoke`.
+① 계산 엔진 회귀 테스트(vitest 581개) → ② 정적 사이트 빌드 → ③ 화면 스모크 테스트(`scripts/smoke-test.js` — 18개 페이지 로드·JS 에러 0건, 계산기/판정기 버튼 클릭 후 결과 표시 확인, 메인 화면 세목 클릭 시 하위 메뉴 화면 전환 확인). 실패 시 `daily-check` 라벨 이슈가 자동 생성됩니다. 로컬 실행: `npm run smoke`.
 
 ## 프롬프트 튜닝 (사례 일괄 실행)
 

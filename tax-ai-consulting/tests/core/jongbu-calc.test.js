@@ -125,10 +125,9 @@ describe('집 종류 판정 (책 111·119쪽)', () => {
     expect(local({ sido: '세종', name: '세종특별자치시' }).kind).toBe('normal');
     expect(local({ sido: '세종', name: '세종특별자치시', sejongRural: true }).kind).toBe('rural');
   });
-  it('비수도권 인구감소지역은 2024.1.4 이후 취득분 9억까지', () => {
-    expect(local({ sido: '강원', name: '평창군', price: 8 * E, acquireDate: '2025-03-01' }).kind).toBe('rural');
-    expect(local({ sido: '강원', name: '평창군', price: 8 * E, acquireDate: '2023-03-01' }).kind).toBe('normal');
-    expect(local({ sido: '강원', name: '평창군', price: 10 * E, acquireDate: '2025-03-01' }).kind).toBe('normal');
+  it('지방 저가주택(local)은 인구감소지역이어도 4억까지 — 9억은 조특법 선택(depop)에서만', () => {
+    expect(local({ sido: '강원', name: '평창군', price: 8 * E, acquireDate: '2025-03-01' }).kind).toBe('normal');
+    expect(local({ sido: '강원', name: '평창군', price: 8 * E }).msg).toContain('조특법 §71의2');
   });
   it('상속주택: 5년 이내 / 지분 40% 이하 / 지분 공시가격 수도권 6억·그 밖 3억 이하', () => {
     const inh = (o) => classifyJongbuHouse({ pick: 'inherit', price: 10 * E, share: 1, sido: '서울', name: '강남구', ...o });
@@ -231,17 +230,58 @@ describe('지방 주택 요건 점검표 (인구감소지역·접경지역)', ()
     expect(find(c, '인구감소지역 여부').ok).toBe(false);
     expect(c.kind).toBe('normal');
   });
-  it('인구감소지역이어도 지방 저가주택은 4억 기준 — 5억이면 취득기간 요건(조특법 §71의2)을 갖춰야 한다', () => {
-    expect(local({ sido: '강원', name: '평창군', price: 5 * E }).kind).toBe('normal');
-    const c = local({ sido: '강원', name: '평창군', price: 5 * E, acquireDate: '2026-03-01' });
-    expect(c.kind).toBe('rural');
-    expect(c.basis).toBe('조특법 §71의2');
-  });
-  it('통영시: 2026.10.7 편입 — 그 전 취득분은 관심지역 기준(4억), 그 뒤 취득분은 인구감소지역 기준(9억)', () => {
-    expect(local({ sido: '경남', name: '통영시', price: 7 * E, acquireDate: '2026-03-01' }).kind).toBe('normal');
-    expect(local({ sido: '경남', name: '통영시', price: 7 * E, acquireDate: '2026-11-01' }).kind).toBe('rural');
-  });
   it('부속토지 선택', () => {
     expect(classifyJongbuHouse({ pick: 'land', price: 2 * E })).toMatchObject({ kind: 'land', ok: true });
+  });
+});
+
+describe('인구감소지역 주택 — 조세특례제한법 §71의2 · 시행령 §68의2 (종부세법과 별도 특례)', () => {
+  const dp = (o) => classifyJongbuHouse({ pick: 'depop', price: 3 * E, acquireDate: '2026-03-01', ...o });
+  it('수도권 밖 인구감소지역: 기준시가 9억 이하 (1호 나목 1))', () => {
+    expect(dp({ sido: '강원', name: '평창군', price: 8 * E })).toMatchObject({ kind: 'depop', basis: '조특법 §71의2②' });
+    expect(dp({ sido: '강원', name: '평창군', price: 10 * E }).kind).toBe('normal');
+    expect(dp({ sido: '강원', name: '평창군', price: 8 * E, acquireDate: '2025-03-01' }).kind).toBe('depop');
+  });
+  it('수도권 인구감소지역은 접경지역만, 4억 이하 (1호 가목 1)·나목 2))', () => {
+    expect(dp({ sido: '경기', name: '연천군', price: 4 * E }).kind).toBe('depop');
+    expect(dp({ sido: '경기', name: '연천군', price: 5 * E }).kind).toBe('normal');
+  });
+  it('광역시는 군만 (1호 가목 2))', () => {
+    expect(dp({ sido: '부산', name: '영도구' }).kind).toBe('normal');
+    expect(dp({ sido: '대구', name: '군위군', price: 8 * E }).kind).toBe('depop');
+  });
+  it('기존 주택과 같은 시·군·구면 제외 (1호 가목 3))', () => {
+    expect(dp({ sido: '강원', name: '평창군', sameSgg: true }).kind).toBe('normal');
+  });
+  it('취득시기 2024.1.4 ~ 2026.12.31', () => {
+    expect(dp({ sido: '강원', name: '평창군', acquireDate: '2023-12-31' }).kind).toBe('normal');
+    expect(dp({ sido: '강원', name: '평창군', acquireDate: '2027-01-01' }).kind).toBe('normal');
+    expect(dp({ sido: '강원', name: '평창군', acquireDate: '' }).kind).toBe('normal');
+  });
+  it('관심지역은 수도권 밖만 · 4억 · 2026.1.1 이후 취득분 (2호)', () => {
+    expect(dp({ sido: '강원', name: '강릉시', price: 4 * E }).kind).toBe('depop');
+    expect(dp({ sido: '강원', name: '강릉시', price: 5 * E }).kind).toBe('normal');
+    expect(dp({ sido: '강원', name: '강릉시', acquireDate: '2025-06-01' }).kind).toBe('normal');
+    expect(dp({ sido: '경기', name: '포천시' }).kind).toBe('normal');       // 수도권 관심지역 — 접경지역이어도 불가
+    expect(dp({ sido: '대전', name: '동구' }).kind).toBe('normal');         // 광역시의 구
+  });
+  it('통영시: 「취득 당시」 구분 — 2026.10.7 전 취득은 관심지역(4억), 뒤 취득은 인구감소지역(9억)', () => {
+    expect(dp({ sido: '경남', name: '통영시', price: 7 * E, acquireDate: '2026-03-01' }).kind).toBe('normal');
+    expect(dp({ sido: '경남', name: '통영시', price: 7 * E, acquireDate: '2026-11-01' }).kind).toBe('depop');
+  });
+  it('인구감소지역·관심지역이 아니면 대상 아님', () => {
+    expect(dp({ sido: '충남', name: '천안시' }).kind).toBe('normal');
+  });
+  it('계산: 신청하면 1세대 1주택자, 판정표에 조특법 특례로 따로 표시', () => {
+    const base = { mode: 'multi', price: 15 * E, age: 65, holdYears: 10, houses: [{ price: 8 * E, kind: 'depop' }] };
+    const yes = calcJongbu({ ...base, applied: true });
+    expect(yes.eligible).toBe(true);
+    expect(yes.oneHouse.deduct).toBe(12 * E);
+    expect(yes.counted).toBe(1);
+    expect(yes.judge.rows[0]).toMatchObject({ clause: '조특법 §71의2②', jotuk: true, counts: false, needApply: true });
+    const no = calcJongbu({ ...base, applied: false });
+    expect(no.judge.notApplied).toBe(true);
+    expect(no.main.deduct).toBe(9 * E);
+    expect(no.counted).toBe(2);
   });
 });

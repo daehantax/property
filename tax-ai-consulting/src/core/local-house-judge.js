@@ -151,11 +151,16 @@ function base154(house, saleDate, salePrice) {
   return { list, ok: holdOk && live.ok, ...hp };
 }
 
-/** 지방주택의 §71의2 세컨드홈 가액 기준 — 취득일·지역 구분에 따라 결정 */
-export function secondHomePriceLimit(acquireDate, depop) {
+/**
+ * 조특법 시행령 §68의2① 인구감소지역 주택 가액 기준
+ *  1호 인구감소지역: 수도권 밖 9억 / 수도권(접경지역) 4억, 2호 수도권 밖 관심지역: 4억
+ * @param {boolean} [metroArea=false] 수도권 소재 여부
+ */
+export function secondHomePriceLimit(acquireDate, depop, metroArea = false) {
   if (!acquireDate || depop === 'none') return null;
+  if (depop === 'interest' && metroArea) return null;      // 관심지역은 수도권 밖만 (§68의2① 2호 가목)
   if (onOrAfter(acquireDate, SECOND_HOME_9E_START)) {
-    return depop === 'depop' ? SECOND_HOME_PRICE_DEPOP : SECOND_HOME_PRICE_INTEREST;
+    return depop === 'depop' && !metroArea ? SECOND_HOME_PRICE_DEPOP : SECOND_HOME_PRICE_INTEREST;
   }
   return depop === 'depop' ? SECOND_HOME_PRICE : null;   // 관심지역은 2026.1.1 이후 취득분만
 }
@@ -176,18 +181,18 @@ function specialHouseChecks(metro, local) {
   const sh = [];
   const shPeriodOk = !!local.acquireDate && between(local.acquireDate, SECOND_HOME_START, SECOND_HOME_END);
   sh.push({ key: 'period', label: `취득기간 ${SECOND_HOME_START} ~ ${SECOND_HOME_END}`, ok: shPeriodOk, detail: `취득 ${local.acquireDate || '미입력'}` });
-  const depopOk = local.depop === 'depop' || (local.depop === 'interest' && !!local.acquireDate && onOrAfter(local.acquireDate, SECOND_HOME_9E_START));
+  const depopOk = local.depop === 'depop' || (local.depop === 'interest' && !rg.metroArea && !!local.acquireDate && onOrAfter(local.acquireDate, SECOND_HOME_9E_START));
   sh.push({
-    key: 'depop', label: '인구감소지역(관심지역은 2026.1.1 이후 취득분) 소재', ok: depopOk,
-    detail: local.depop === 'none' ? '인구감소지역 아님' : local.depop === 'depop' ? '인구감소지역' : (depopOk ? '인구감소관심지역 (2026.1.1 이후 취득)' : '관심지역은 2026.1.1 이후 취득분부터 적용'),
+    key: 'depop', label: '취득 당시 인구감소지역 또는 수도권 밖 관심지역(2026.1.1 이후 취득분) 소재', ok: depopOk,
+    detail: local.depop === 'none' ? '인구감소지역 아님' : local.depop === 'depop' ? '인구감소지역' : (depopOk ? '인구감소관심지역 (2026.1.1 이후 취득)' : rg.metroArea ? '수도권의 관심지역 → 대상 아님 (관심지역은 수도권 밖만)' : '관심지역은 2026.1.1 이후 취득분부터 적용'),
   });
   const shRegionOk = !rg.metroCity && (!rg.metroArea || local.region === 'borderCapital');
   sh.push({ key: 'region', label: '수도권(접경지역 제외)·광역시(군 제외) 아닐 것', ok: shRegionOk, detail: rg.label + (shRegionOk ? ' → 가능' : ' → 제외 지역') });
-  const shLimit = secondHomePriceLimit(local.acquireDate, local.depop);
+  const shLimit = secondHomePriceLimit(local.acquireDate, local.depop, rg.metroArea);
   const shPriceOk = shLimit != null && (local.acquirePrice ?? 0) <= shLimit;
   sh.push({
     key: 'price', label: `취득 당시 기준시가 ${shLimit ? eok(shLimit) : '기준'} 이하`, ok: shPriceOk,
-    detail: shLimit ? `${won(local.acquirePrice ?? 0)} (${onOrAfter(local.acquireDate || '1900-01-01', SECOND_HOME_9E_START) ? '2026.1.1 이후 취득: 인구감소 9억·관심 4억' : '2025년 이전 취득: 4억'})` : '가액 기준 산정 불가',
+    detail: shLimit ? `${won(local.acquirePrice ?? 0)} (${onOrAfter(local.acquireDate || '1900-01-01', SECOND_HOME_9E_START) ? '2026.1.1 이후 취득: 수도권 밖 인구감소지역 9억·그 외 4억' : '2025년 이전 취득: 4억'})` : '가액 기준 산정 불가',
   });
   sh.push({ key: 'sgg', label: '기존 수도권 주택과 같은 시·군·구 아닐 것', ok: !local.sameSgg, detail: local.sameSgg ? '같은 시·군·구 → 제외' : '다른 시·군·구' });
   sh.push(orderRow('1주택 보유 중 취득 (수도권 주택 → 지방주택 순)'));
@@ -421,7 +426,7 @@ function judgeJongbu(input) {
   }
   // ④ 조특법 §71의2 세컨드홈 (종부세: 과세기준일 공시가격도 기준 이내)
   {
-    const limit = secondHomePriceLimit(local.acquireDate, local.depop);
+    const limit = secondHomePriceLimit(local.acquireDate, local.depop, rg.metroArea);
     const list = sp.secondHome.map((c) => ({ ...c }));
     list.push({ key: 'gongsi', label: `과세기준일 공시가격 ${limit ? eok(limit) : '기준'} 이하`, ok: limit != null && (local.gongsi ?? 0) > 0 && local.gongsi <= limit, detail: won(local.gongsi ?? 0) });
     add('secondHome', '조특법 §71의2', '인구감소지역 주택(세컨드홈) — 종부세 1세대1주택자 의제', list);
