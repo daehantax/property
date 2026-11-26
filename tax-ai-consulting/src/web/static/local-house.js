@@ -62,7 +62,7 @@ function renderFields() {
         <input class="s-search" placeholder="예: 강릉, 군위, 연천, 부산 동구, 경기 광주" autocomplete="off">
         <div class="area-list" id="areaList"></div>
         <div class="area-badge" id="areaBadge"></div>
-        <details class="area-all"><summary>인구감소지역 89곳 · 관심지역 18곳 · 접경지역 15곳 전체 명단 보기</summary><div id="areaTable"></div></details>
+        <details class="area-all"><summary>인구감소지역 92곳 · 관심지역 18곳 · 접경지역 17곳 전체 명단 보기</summary><div id="areaTable"></div></details>
       </div>
       <div class="grid2">
         <div class="full"><label>소재지 유형</label><select class="s-region">${opts(REGIONS, 'province')}</select></div>
@@ -105,8 +105,10 @@ function renderAreaSearch() {
   $('areaList').querySelectorAll('.area-item').forEach((el) => el.addEventListener('click', () => applyArea(el.dataset.sido, el.dataset.name)));
 }
 
+let areaLowPriceCapital = false;   // 종부세 지방 저가주택 라목(가평·연천·강화·옹진) 여부 — 주소 검색으로만 정해진다
 function applyArea(sido, name) {
   const a = classifyArea(sido, name);
+  areaLowPriceCapital = a.lowPriceCapital;
   q('.s-region').value = a.regionKey;
   q('.s-depop').value = a.depop;
   q('.s-search').value = a.label;
@@ -119,12 +121,12 @@ function renderAreaTable() {
   const rows = allAreas().filter((a) => a.depop !== 'none' || a.border);
   const bySido = {};
   for (const a of rows) (bySido[a.sido] ??= []).push(a);
-  $('areaTable').innerHTML = `<div class="area-legend">${DEPOP_BADGE.depop} 인구감소지역 89 &nbsp; ${DEPOP_BADGE.interest} 관심지역 18 &nbsp; <span class="bd bd-border">접경</span> 접경지역 15
+  $('areaTable').innerHTML = `<div class="area-legend">${DEPOP_BADGE.depop} 인구감소지역 92 &nbsp; ${DEPOP_BADGE.interest} 관심지역 18 &nbsp; <span class="bd bd-border">접경</span> 접경지역 17
       &nbsp;|&nbsp; <b>세컨드홈</b>: 조특법 §71의2 지역 요건 충족 여부 &nbsp; <b>저가주택</b>: 종부세 §8④3 지역 요건 충족 여부 (가액·취득시기는 별도)</div>
     <table class="area-table"><thead><tr><th>시·도</th><th>시·군·구 (클릭하면 선택)</th></tr></thead><tbody>
     ${Object.entries(bySido).map(([sido, list]) => `<tr><td>${SIDO_LABEL[sido]}</td><td>${list.map((a) => `<span class="area-chip" data-sido="${a.sido}" data-name="${a.name}" title="세컨드홈 ${a.secondHomeOk ? '가능' : '불가'} · 종부세 저가주택 ${a.jongbuLowPriceOk ? '가능' : '불가'}">${a.name}${badges(a)}<span class="mini">${a.secondHomeOk ? '' : ' 세컨드홈✗'}${a.jongbuLowPriceOk ? '' : ' 저가✗'}</span></span>`).join('')}</td></tr>`).join('')}
     </tbody></table>
-    <div class="area-notes">출처: 행정안전부 인구감소지역 고시(2021.10.19 지정 → 2026 재지정, 89곳 동일) · 인구감소관심지역 고시 제2025-78호(2026.1.1 시행) · 접경지역 지원 특별법 §2.
+    <div class="area-notes">출처: 행정안전부 인구감소지역·관심지역 2026.10.7 재지정 고시(92곳·18곳 — 금정구·동두천시·통영시 편입) · 접경지역 지원 특별법 §2·시행령 §2(2025.3.11 가평군·속초시 추가).
       군위군은 2023.7 대구 편입(광역시 소속 군 → 특례 가능). 고시 변경 시 <code>src/core/regions-data.js</code>의 목록을 갱신하세요.</div>`;
   $('areaTable').querySelectorAll('.area-chip').forEach((el) => el.addEventListener('click', () => { applyArea(el.dataset.sido, el.dataset.name); el.closest('details').open = false; }));
 }
@@ -269,6 +271,7 @@ function judge() {
     },
     local: {
       region: val('s-region'), depop: val('s-depop'), how,
+      lowPriceCapital: areaLowPriceCapital && val('s-region') === 'borderCapital',
       acquireDate: val('s-acq'), acquirePrice: num('s-acqprice'), gongsi: num('s-gongsi'),
       eupMyeon: checked('s-eup'), sameSgg: checked('s-samesgg'), excludedArea: checked('s-excl'),
       adjacentEupMyeon: checked('s-adj'), hanok: checked('s-hanok'), smallCity: checked('s-smallcity'),

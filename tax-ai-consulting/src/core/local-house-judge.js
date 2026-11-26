@@ -22,9 +22,9 @@
  *    「중과」만 배제할 뿐 비과세 판정의 주택수에서는 빠지지 않는다 — 별도 표시
  *
  * ─ 종합부동산세 (1세대1주택자 특례, 종부세법 §8④ · 매년 9.16~9.30 신청) ─
- *  ① §8④1 일시적 2주택 (신규주택 취득일부터 3년)
- *  ② §8④2 상속주택 (상속개시 5년 이내 / 지분 40% 이하 / 지분 공시가격 수도권 6억·비수도권 3억 이하)
- *  ③ §8④3 지방 저가주택 (시행령 §4의2③: 공시가격 4억 이하 — 수도권 밖 인구감소지역 9억,
+ *  ① §8④ 2호 일시적 2주택 (신규주택 취득일부터 3년)
+ *  ② §8④ 3호 상속주택 (상속개시 5년 이내 / 지분 40% 이하 / 지분 공시가격 수도권 6억·비수도권 3억 이하)
+ *  ③ §8④ 4호 지방 저가주택 (시행령 §4의2③: 공시가격 4억 이하 — 인구감소지역이어도 4억. 9억은 조특법 §71의2,
  *          수도권·광역시(군 제외)·특별자치시 동 지역 제외, 1채)
  *  ④ 조특법 §71의2 인구감소지역 주택 / ⑤ 조특법 §98의9 준공 후 미분양주택
  *  → 특례 적용 시: 기본공제 12억(미적용 9억) + 연령·보유 세액공제는 「1주택분 산출세액」
@@ -54,7 +54,7 @@ const SC_TEMP_REASON = `${TEMP_TWO_SC_CASE}: 일시적 2주택(§155①1호)은 
 
 // ── 상수 (세법 개정 시 여기만 수정) ──────────────────────────────
 export const JONGBU_LOWPRICE = 400_000_000;         // §8④3 지방 저가주택 공시가격 (2025.2.28~, 종전 3억)
-export const JONGBU_LOWPRICE_DEPOP = 900_000_000;   // 수도권 밖 인구감소지역 9억
+export const JONGBU_LOWPRICE_DEPOP = 900_000_000;   // 조특법 §71의2 인구감소지역 주택(수도권 밖) 9억 — 지방 저가주택(§8④ 4호)에는 쓰지 않는다
 export const JONGBU_TEMP_YEARS = 3;                 // §8④1 신규주택 취득일부터 3년
 export const JONGBU_INHERIT_YEARS = 5;              // §8④2 상속개시 5년
 export const JONGBU_INHERIT_SHARE = 0.4;            // §8④2 지분 40% 이하
@@ -93,7 +93,7 @@ export const REGIONS = [
   { key: 'metroCity', label: '광역시 (군 제외 — 부산·대구·인천 제외·광주·대전·울산)', metroArea: false, metroCity: true, sejongDong: false },
   { key: 'sejongEupMyeon', label: '세종특별자치시 읍·면 지역', metroArea: false, metroCity: false, sejongDong: false },
   { key: 'sejongDong', label: '세종특별자치시 동 지역', metroArea: false, metroCity: false, sejongDong: true },
-  { key: 'borderCapital', label: '수도권 접경지역 (강화·옹진·김포·파주·연천·고양·양주·동두천·포천)', metroArea: true, metroCity: false, sejongDong: false },
+  { key: 'borderCapital', label: '수도권 접경지역 (강화·옹진·김포·파주·연천·고양·양주·동두천·포천·가평)', metroArea: true, metroCity: false, sejongDong: false },
   { key: 'capital', label: '수도권 — 접경지역 아님 (특례 불가)', metroArea: true, metroCity: false, sejongDong: false },
 ];
 const REGION = Object.fromEntries(REGIONS.map((r) => [r.key, r]));
@@ -112,8 +112,8 @@ export const HOW = [
 /** 인구감소지역 구분 */
 export const DEPOP = [
   { key: 'none', label: '해당 없음' },
-  { key: 'depop', label: '인구감소지역 (89개 시·군·구)' },
-  { key: 'interest', label: '인구감소관심지역 (2026.1.1~)' },
+  { key: 'depop', label: '인구감소지역 (92개 시·군·구)' },
+  { key: 'interest', label: '인구감소관심지역 (18개 시·군·구)' },
 ];
 
 const won = (n) => `${Math.round(n).toLocaleString('ko-KR')}원`;
@@ -372,7 +372,7 @@ function finish(sold, paths, applied, b, heavy, reasons) {
 // ── 종합부동산세 ───────────────────────────────────────────────
 const LAW_JONGBU = [
   '종합부동산세법 §8④·⑤ (1세대1주택자 판단 시 주택수 산정 제외 — 일시적 2주택·상속·지방 저가주택, 9.16~9.30 신청)',
-  '종합부동산세법 시행령 §4의2 (지방 저가주택 요건 — 공시가격 4억·인구감소지역 9억, 수도권·광역시 제외)',
+  '종합부동산세법 시행령 §4의2③ (지방 저가주택 — 공시가격 4억 이하, 지역 요건 가~라목 · 시행규칙: 가평·연천·강화·옹진)',
   '조세특례제한법 §71의2 (인구감소지역 주택) · §98의9 (비수도권 준공 후 미분양)',
   '종합부동산세법 §8① (기본공제 1세대1주택 12억·기타 9억) · §9⑦~⑨ (연령·보유 세액공제 — 1주택분 산출세액에 한정)',
   '대법원 2025두33779 (지방 저가주택 특례 — 1주택과 특례주택 모두 동일인 단독 소유 요건)',
@@ -391,7 +391,7 @@ function judgeJongbu(input) {
     const newer = sp.orderOk ? local : metro;
     const newerName = sp.orderOk ? '지방주택' : '수도권 주택';
     const ok = !!newer.acquireDate && withinYears(newer.acquireDate, taxDate, JONGBU_TEMP_YEARS);
-    add('temp', '§8④1', '일시적 2주택 (신규주택 취득일부터 3년)', [
+    add('temp', '§8④ 2호', '일시적 2주택 (신규주택 취득일부터 3년)', [
       { key: 'temp', label: `과세기준일(${taxDate}) 현재 신규주택(${newerName}) 취득 ${JONGBU_TEMP_YEARS}년 미경과`, ok, detail: newer.acquireDate ? `취득 ${newer.acquireDate} → ${fy(newer.acquireDate, taxDate)}` : '취득일 미입력' },
       { key: 'intent', label: '종전주택을 양도할 의사로 대체취득 (신규 취득 3년 내 종전 양도 — 미양도 시 특례 추징)', ok: true, detail: '입력 전제' },
     ]);
@@ -403,19 +403,19 @@ function judgeJongbu(input) {
     const shareOk = share <= JONGBU_INHERIT_SHARE;
     const priceLimit = rg.metroArea ? JONGBU_INHERIT_PRICE_METRO : JONGBU_INHERIT_PRICE_LOCAL;
     const priceOk = (local.gongsi ?? 0) * share <= priceLimit;
-    add('inherit', '§8④2', '상속주택 (5년 이내 / 지분 40% 이하 / 지분 공시가격 소액)', [
+    add('inherit', '§8④ 3호', '상속주택 (5년 이내 / 지분 40% 이하 / 지분 공시가격 소액)', [
       { key: 'any', label: '상속개시 5년 이내 · 지분 40% 이하 · 지분 공시가격 수도권 6억/비수도권 3억 이하 중 하나', ok: within5 || shareOk || priceOk, detail: `상속개시 ${local.acquireDate || '미입력'} (${within5 ? '5년 이내' : '5년 경과'}) · 지분 ${(share * 100).toFixed(0)}% · 지분 공시가격 ${won((local.gongsi ?? 0) * share)} (기준 ${eok(priceLimit)})` },
     ]);
   }
-  // ③ §8④3 지방 저가주택
+  // ③ §8④ 4호 지방 저가주택 (시행령 §4의2③): 공시가격 4억 이하 + 지역 요건 가~라목
+  //    ※ 9억은 조특법 §71의2 인구감소지역 주택(아래 ④)의 기준이고, 지방 저가주택은 인구감소지역이어도 4억이다.
   {
-    const isDepop = local.depop === 'depop' && !rg.metroArea;
-    const limit = isDepop ? JONGBU_LOWPRICE_DEPOP : JONGBU_LOWPRICE;
-    const regionOk = !rg.metroArea && !rg.metroCity && !rg.sejongDong;
-    add('lowPrice', '§8④3', `지방 저가주택 (공시가격 ${eok(limit)} 이하)`, [
-      { key: 'region', label: '수도권·광역시(군 제외)·특별자치시 동 지역 외 소재', ok: regionOk, detail: rg.label + (regionOk ? ' → 가능' : ' → 제외 지역') + (rg.sejongDong ? ' (세종 동 지역: 종전 조문상 제외 — 최신 조문 확인)' : '') },
-      { key: 'gongsi', label: `과세기준일 공시가격 ${eok(limit)} 이하${isDepop ? ' (수도권 밖 인구감소지역)' : ''}`, ok: (local.gongsi ?? 0) > 0 && local.gongsi <= limit, detail: won(local.gongsi ?? 0) },
-      { key: 'acq', label: `취득일 현재 가액(기준시가) ${eok(limit)} 이하`, ok: (local.acquirePrice ?? 0) <= limit, detail: won(local.acquirePrice ?? 0) },
+    const limit = JONGBU_LOWPRICE;
+    const capitalOk = rg.metroArea && !!local.lowPriceCapital;   // 라목: 가평·연천·강화·옹진
+    const regionOk = capitalOk || (!rg.metroArea && !rg.metroCity && !rg.sejongDong);
+    add('lowPrice', '§8④ 4호', `지방 저가주택 (공시가격 ${eok(limit)} 이하)`, [
+      { key: 'region', label: '소재지 요건 — 수도권 밖(광역시는 군, 세종은 읍·면) 또는 수도권 인구감소·접경지역 중 가평·연천·강화·옹진', ok: regionOk, detail: rg.label + (capitalOk ? ' → 시행규칙이 정한 지역(라목)' : regionOk ? ' → 가능' : rg.metroArea ? ' → 수도권은 가평·연천·강화·옹진군만 가능' : ' → 제외 지역') },
+      { key: 'gongsi', label: `과세기준일 공시가격 ${eok(limit)} 이하`, ok: (local.gongsi ?? 0) > 0 && local.gongsi <= limit, detail: won(local.gongsi ?? 0) },
       { key: 'one', label: '지방 저가주택 1채 (2채 이상은 특례 불가)', ok: true, detail: '입력 전제' },
     ]);
   }
@@ -432,7 +432,7 @@ function judgeJongbu(input) {
   const applied = paths.find((p) => p.ok) || null;
   const common = [
     { key: 'sole', label: '두 주택 모두 같은 세대원 1인의 단독 소유 (세대원 중 1명만 주택 소유)', ok: !!soleOwner, detail: soleOwner ? '단독 소유' : '공동명의·세대원 분산 소유 → 1세대1주택자 특례 불가 (대법원 2025두33779)' },
-    { key: 'apply', label: `${taxYear}.9.16 ~ 9.30 관할 세무서에 「주택수 산정 제외 특례」 신청`, ok: true, warn: true, detail: '신청하지 않으면 다주택 방식(9억 공제·세액공제 없음)으로 고지 — 홈택스 신청 가능' },
+    { key: 'apply', label: `${taxYear}.9.16 ~ 9.30 관할 세무서장에게 신청 (종부세법 §8⑤)`, ok: true, warn: true, detail: '신청하지 않으면 다주택 방식(9억 공제·세액공제 없음)으로 고지 — 홈택스 신청 가능' },
   ];
   const specialOk = !!applied && !!soleOwner;
 

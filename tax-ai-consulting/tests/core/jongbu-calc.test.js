@@ -164,3 +164,84 @@ describe('보조 함수', () => {
     expect(classifyJongbuHouse({ pick: 'local', sido: '전북', name: '고창군', price: 100_000_000 }).kind).toBe('rural');
   });
 });
+
+describe('1세대 1주택자 판정 — 종부세법 §8④·⑤', () => {
+  const base = { mode: 'multi', price: 15 * E, age: 65, holdYears: 10 };
+  const rural = { price: 3 * E, kind: 'rural' };
+  it('지방 저가주택(4호): 신청하면 12억 공제 + 세액공제, 신청하지 않으면 9억 방식', () => {
+    const yes = calcJongbu({ ...base, houses: [rural], applied: true });
+    expect(yes.eligible).toBe(true);
+    expect(yes.judge.needApply).toBe(true);
+    expect(yes.judge.oneHouseHolder).toBe(true);
+    expect(yes.oneHouse.deduct).toBe(12 * E);
+    const no = calcJongbu({ ...base, houses: [rural], applied: false });
+    expect(no.eligible).toBe(false);
+    expect(no.judge.notApplied).toBe(true);
+    expect(no.main.deduct).toBe(9 * E);
+    expect(no.ifApplied.total).toBe(yes.oneHouse.total);
+    expect(no.diff).toBe(no.main.total - no.ifApplied.total);
+    expect(no.diff).toBeGreaterThan(0);
+  });
+  it('applied 를 주지 않으면 신청한 것으로 본다 (기존 동작 유지)', () => {
+    expect(calcJongbu({ ...base, houses: [rural] }).eligible).toBe(true);
+  });
+  it('다른 주택의 부속토지(1호)는 신청 대상이 아니다 — 신청하지 않아도 1세대 1주택자', () => {
+    const r = calcJongbu({ ...base, houses: [{ price: 2 * E, kind: 'land' }], applied: false });
+    expect(r.judge.needApply).toBe(false);
+    expect(r.eligible).toBe(true);
+    expect(r.judge.rows[0].clause).toBe('§8④ 1호');
+  });
+  it('판정표: 호별 근거와 신청 필요 여부', () => {
+    const r = calcJongbu({ ...base, houses: [{ price: 2 * E, kind: 'temp' }, { price: 2 * E, kind: 'inherit' }, rural] });
+    expect(r.judge.rows.map((x) => x.clause)).toEqual(['§8④ 2호', '§8④ 3호', '§8④ 4호']);
+    expect(r.judge.rows.every((x) => x.needApply && !x.counts)).toBe(true);
+  });
+  it('신청하지 않으면 신규주택·지방 저가주택은 세율 적용 주택 수에 들어가고, 상속주택은 빠진다', () => {
+    const r = calcJongbu({ ...base, houses: [{ price: 2 * E, kind: 'temp' }, rural, { price: 2 * E, kind: 'inherit' }], applied: false });
+    expect(r.counted).toBe(3);
+    expect(r.three).toBe(true);
+    expect(calcJongbu({ ...base, houses: [{ price: 2 * E, kind: 'temp' }, rural, { price: 2 * E, kind: 'inherit' }] }).counted).toBe(1);
+  });
+  it('일반 주택이 더 있으면 신청해도 1세대 1주택자가 아니다', () => {
+    const r = calcJongbu({ ...base, houses: [rural, { price: 5 * E, kind: 'normal' }], applied: true });
+    expect(r.judge.structureOk).toBe(false);
+    expect(r.eligible).toBe(false);
+  });
+});
+
+describe('지방 주택 요건 점검표 (인구감소지역·접경지역)', () => {
+  const local = (o) => classifyJongbuHouse({ pick: 'local', price: 3 * E, ...o });
+  const find = (c, kw) => c.checks.find((x) => x.label.includes(kw));
+  it('가평군: 수도권이지만 인구감소지역 ○ · 접경지역 ○ · 시행규칙 지정 ○ → 지방 저가주택', () => {
+    const c = local({ sido: '경기', name: '가평군' });
+    expect(c.kind).toBe('rural');
+    expect(c.basis).toBe('§8④ 4호');
+    expect(find(c, '인구감소지역 여부').ok).toBe(true);
+    expect(find(c, '접경지역 여부').ok).toBe(true);
+    expect(find(c, '시행규칙').ok).toBe(true);
+  });
+  it('동두천시: 인구감소지역 ○ · 접경지역 ○ 이지만 시행규칙 지정 × → 지방 저가주택 아님', () => {
+    const c = local({ sido: '경기', name: '동두천시' });
+    expect(find(c, '소재지 요건').ok).toBe(false);
+    expect(find(c, '시행규칙').ok).toBe(false);
+    expect(c.kind).toBe('normal');
+  });
+  it('파주시: 접경지역 ○ · 인구감소지역 × → 불가', () => {
+    const c = local({ sido: '경기', name: '파주시' });
+    expect(find(c, '인구감소지역 여부').ok).toBe(false);
+    expect(c.kind).toBe('normal');
+  });
+  it('인구감소지역이어도 지방 저가주택은 4억 기준 — 5억이면 취득기간 요건(조특법 §71의2)을 갖춰야 한다', () => {
+    expect(local({ sido: '강원', name: '평창군', price: 5 * E }).kind).toBe('normal');
+    const c = local({ sido: '강원', name: '평창군', price: 5 * E, acquireDate: '2026-03-01' });
+    expect(c.kind).toBe('rural');
+    expect(c.basis).toBe('조특법 §71의2');
+  });
+  it('통영시: 2026.10.7 편입 — 그 전 취득분은 관심지역 기준(4억), 그 뒤 취득분은 인구감소지역 기준(9억)', () => {
+    expect(local({ sido: '경남', name: '통영시', price: 7 * E, acquireDate: '2026-03-01' }).kind).toBe('normal');
+    expect(local({ sido: '경남', name: '통영시', price: 7 * E, acquireDate: '2026-11-01' }).kind).toBe('rural');
+  });
+  it('부속토지 선택', () => {
+    expect(classifyJongbuHouse({ pick: 'land', price: 2 * E })).toMatchObject({ kind: 'land', ok: true });
+  });
+});

@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEPOP_AREAS, INTEREST_AREAS, BORDER_AREAS, SIGUNGU, classifyArea, searchAreas, allAreas,
+  VITAL_PLUS_AREAS, LOWPRICE_CAPITAL_AREAS, depopAt, jongbuLowPriceRegion,
 } from '../../src/core/regions-data.js';
 
 describe('지역 데이터 — 개수·정합성', () => {
-  it('인구감소지역 89곳 · 관심지역 18곳 · 접경지역 15곳 · 시군구 229곳', () => {
-    expect(DEPOP_AREAS).toHaveLength(89);
+  it('인구감소지역 92곳(2026.10.7 재지정) · 관심지역 18곳 · 접경지역 17곳(2025.3.11 가평·속초 추가) · 시군구 229곳', () => {
+    expect(DEPOP_AREAS).toHaveLength(92);
     expect(INTEREST_AREAS).toHaveLength(18);
-    expect(BORDER_AREAS).toHaveLength(15);
+    expect(BORDER_AREAS).toHaveLength(17);
+    expect(VITAL_PLUS_AREAS).toHaveLength(12);       // 인구감소지역 쪽 3 + 관심지역 쪽 9
+    expect(LOWPRICE_CAPITAL_AREAS).toHaveLength(4);
     expect(allAreas()).toHaveLength(229);
   });
 
@@ -23,9 +26,9 @@ describe('지역 데이터 — 개수·정합성', () => {
 
   it('시·도별 인구감소지역 개수 (행안부 고시)', () => {
     const count = (sido) => DEPOP_AREAS.filter(([s]) => s === sido).length;
-    expect(count('부산')).toBe(3); expect(count('대구')).toBe(3); expect(count('인천')).toBe(2); expect(count('경기')).toBe(2);
+    expect(count('부산')).toBe(4); expect(count('대구')).toBe(3); expect(count('인천')).toBe(2); expect(count('경기')).toBe(3);
     expect(count('강원')).toBe(12); expect(count('충북')).toBe(6); expect(count('충남')).toBe(9); expect(count('전북')).toBe(10);
-    expect(count('전남')).toBe(16); expect(count('경북')).toBe(15); expect(count('경남')).toBe(11);
+    expect(count('전남')).toBe(16); expect(count('경북')).toBe(15); expect(count('경남')).toBe(12);
   });
 });
 
@@ -54,24 +57,49 @@ describe('classifyArea — 세법상 지역 분류', () => {
     expect(a.jongbuLowPriceOk).toBe(false);
   });
 
-  it('경기 연천군: 인구감소 + 수도권 접경 → 세컨드홈 가능, 종부세 지방 저가주택 불가', () => {
+  it('경기 연천군: 인구감소 + 수도권 접경 → 세컨드홈 가능, 종부세 지방 저가주택도 가능(시행규칙 라목)', () => {
     const a = classifyArea('경기', '연천군');
     expect(a.depop).toBe('depop');
     expect(a.border).toBe(true);
     expect(a.regionKey).toBe('borderCapital');
     expect(a.secondHomeOk).toBe(true);
-    expect(a.jongbuLowPriceOk).toBe(false);
+    expect(a.jongbuLowPriceOk).toBe(true);
+    expect(jongbuLowPriceRegion(a).item).toBe('라');
   });
 
-  it('경기 가평군: 인구감소지역이나 수도권 비접경 → 모든 특례 불가', () => {
+  it('경기 가평군: 2025.3.11 접경지역 편입 → 수도권 접경 인구감소지역, 시행규칙 라목(2025.3.21)', () => {
     const a = classifyArea('경기', '가평군');
     expect(a.depop).toBe('depop');
-    expect(a.regionKey).toBe('capital');
-    expect(a.secondHomeOk).toBe(false);
-    expect(a.jongbuLowPriceOk).toBe(false);
+    expect(a.border).toBe(true);
+    expect(a.regionKey).toBe('borderCapital');
+    expect(a.secondHomeOk).toBe(true);
+    expect(a.jongbuLowPriceOk).toBe(true);
   });
 
-  it('경기 동두천시·포천시: 관심지역 + 접경 → 세컨드홈 가능 / 인천 동구: 관심지역이나 수도권 비접경 → 불가', () => {
+  it('경기 동두천시: 2026.10.7 인구감소지역 편입 + 접경지역이지만 시행규칙 지정이 아니라 종부세 지방 저가주택 불가', () => {
+    const a = classifyArea('경기', '동두천시');
+    expect(a.depop).toBe('depop');
+    expect(a.depopSince).toBe('2026-10-07');
+    expect(depopAt(a, '2026-03-01')).toBe('interest');     // 재지정 전 취득분은 관심지역
+    expect(depopAt(a, '2026-11-01')).toBe('depop');
+    expect(a.border).toBe(true);
+    expect(a.jongbuLowPriceOk).toBe(false);
+    expect(jongbuLowPriceRegion(a).ok).toBe(false);
+  });
+
+  it('지방 저가주택 지역 요건 가~라목', () => {
+    const item = (s, n, rural) => jongbuLowPriceRegion(classifyArea(s, n), rural).item;
+    expect(item('강원', '원주시')).toBe('가');
+    expect(item('부산', '기장군')).toBe('나');
+    expect(item('부산', '금정구')).toBeNull();               // 인구감소지역이어도 광역시의 구는 제외
+    expect(item('세종', '세종특별자치시', true)).toBe('다');
+    expect(item('세종', '세종특별자치시', false)).toBeNull();
+    expect(item('인천', '강화군')).toBe('라');
+    expect(item('경기', '파주시')).toBeNull();               // 접경지역이지만 인구감소지역 아님
+    expect(item('서울', '강남구')).toBeNull();
+  });
+
+  it('경기 동두천시·포천시: 접경 → 세컨드홈 가능 / 인천 동구: 관심지역이나 수도권 비접경 → 불가', () => {
     expect(classifyArea('경기', '동두천시').secondHomeOk).toBe(true);
     expect(classifyArea('경기', '포천시').regionKey).toBe('borderCapital');
     expect(classifyArea('인천', '동구').secondHomeOk).toBe(false);

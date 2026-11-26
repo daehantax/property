@@ -52,6 +52,36 @@
   .miss summary { cursor: pointer; font-weight: 700; color: #2c3e50; font-size: 14.5px; }
   .miss p { margin: 6px 0 0; font-size: 14px; line-height: 1.65; color: #47606f; }
   .miss em { font-style: normal; font-weight: 700; color: #1a5276; }
+  .area-tags { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 5px; align-items: center; }
+  .area-tags b { color: #1a2733; margin-right: 4px; }
+  .atag { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
+  .atag.depop { background: #fdecea; color: #a93226; border-color: #f5b7b1; }
+  .atag.int { background: #fef5e7; color: #9a6a0a; border-color: #f5cba7; }
+  .atag.vital { background: #eaf7f1; color: #1e6b3e; border-color: #abebc6; }
+  .atag.border { background: #eaf2fb; color: #1f5f99; border-color: #aed6f1; }
+  .atag.cap { background: #eef1f4; color: #47606f; border-color: #d5dbe0; }
+  .atag.off { background: #fff; color: #98a6b3; border-color: #e3e8ed; font-weight: 400; }
+  .req-list { list-style: none; margin: 8px 0 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .req-list li { display: flex; gap: 8px; padding: 4px 0; font-size: 13px; line-height: 1.45; }
+  .req-list li + li { border-top: 1px solid #eef2f4; }
+  .req-list i { font-style: normal; font-weight: 800; width: 16px; flex-shrink: 0; text-align: center; }
+  .req-list li.ok i { color: #1e8449; } .req-list li.no i { color: #c0392b; } .req-list li.info i { color: #98a6b3; }
+  .req-list b { display: block; color: #2c3e50; font-weight: 700; }
+  .req-list small { color: #6f8496; }
+  .req-list li.no b { color: #a93226; }
+  .apply-box { margin-top: 10px; border: 1.5px solid #e0b84c; background: #fffaeb; border-radius: 9px; padding: 10px 12px; }
+  .apply-box label { display: flex; gap: 8px; align-items: flex-start; margin: 0; cursor: pointer; font-weight: 400; color: #5c4a05; font-size: 14px; }
+  .apply-box input { width: auto; margin-top: 4px; }
+  .apply-box small { display: block; color: #7d6608; font-size: 12.5px; margin-top: 2px; line-height: 1.5; }
+  .judge-box { border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; border: 1px solid var(--line); background: #fbfcfd; }
+  .judge-box.ok { border-color: #abebc6; background: #f2fbf5; }
+  .judge-box.warn { border-color: #e0b84c; background: #fffaeb; }
+  .judge-box h4 { margin: 0 0 4px; font-size: 15px; color: #1a2733; }
+  .judge-box > p { margin: 0 0 8px; font-size: 13.5px; color: #47606f; }
+  .judge-box .notice th, .judge-box .notice td { font-size: 13.5px; padding: 6px 9px; }
+  .judge-box .apply-note { margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: #5c4a05; }
+  .jb-pill { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+  .jb-pill.green { background: #e9f7ef; color: #145a32; } .jb-pill.red { background: #fdecea; color: #a93226; } .jb-pill.gray { background: #eef1f4; color: #566573; }
   @media (max-width: 900px) { .jb-layout { flex-direction: column; } #jbForm { width: 100%; } .cmp { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -125,6 +155,12 @@
           <div class="fld-hint" id="housesHint" style="margin-bottom:6px"></div>
           <div id="houses"></div>
           <button type="button" class="add-btn" id="addHouse">＋ 집 추가</button>
+          <div class="apply-box" id="applyBox" hidden>
+            <label><input type="checkbox" id="inApplied">
+              <span><b>9월 16일~30일에 1세대 1주택자 특례를 신청했습니다</b> (또는 신청할 예정)
+                <small>종부세법 §8⑤ — 일시적 2주택·상속주택·지방 저가주택은 신청해야 1세대 1주택자로 봅니다.
+                  체크하지 않으면 9억 공제 방식으로 계산하고, 신청했을 때의 세액을 함께 보여 드립니다.</small></span></label>
+          </div>
         </div>
       </div>
 
