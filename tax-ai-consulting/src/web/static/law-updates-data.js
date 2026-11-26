@@ -56,6 +56,34 @@ export const OFFICIAL_SOURCES = [
 
 export const LAW_UPDATES = [
   {
+    date: '2026-11-26',
+    category: '엔진점검',
+    title: '종부세 계산기 — 1세대 1주택자 판정(§8④ 1~4호)·신청 여부(§8⑤) 반영, 지방 저가주택 지역 요건 재검증',
+    summary: '종부세 통합 계산기가 다른 집의 종류를 종부세법 §8④ 각 호(1호 다른 주택의 부속토지, 2호 일시적 2주택, 3호 상속주택, 4호 지방 저가주택)로 판정해 판정표로 보여 준다. 2~4호는 해당 연도 9.16~9.30 신청(§8⑤)을 체크해야 1세대 1주택자(12억 공제·세액공제)로 계산하고, 미신청이면 9억 방식으로 계산하면서 신청 시 세액을 함께 표시한다. 지방 저가주택은 주소를 고르면 인구감소지역·접경지역 여부와 시행령 §4의2③ 2호 가~라목 해당 여부를 요건별로 점검한다. 수도권은 시행규칙이 정한 경기 가평군·연천군, 인천 강화군·옹진군만 인정한다.',
+    affects: ['종부세', '보유세', '판정기'],
+    engineStatus: '반영완료',
+    engineNote: 'jongbu-calc.js calcJongbu(applied·judge)·classifyJongbuHouse(checks), regions-data.js jongbuLowPriceRegion(). 지방주택 판정기(local-house-judge.js)의 지방 저가주택 기준을 「인구감소지역 9억」에서 조문대로 4억으로 정정 — 9억은 조특법 §71의2 인구감소지역 주택 경로에만 적용. 조문 번호도 §8④ 2·3·4호로 정정',
+    sources: [
+      { label: '국가법령정보센터 — 종합부동산세법 §8④·⑤', url: 'https://www.law.go.kr/법령/종합부동산세법' },
+      { label: '국가법령정보센터 — 종합부동산세법 시행령 §4의2③', url: 'https://www.law.go.kr/법령/종합부동산세법시행령' },
+      { label: '국세청 「2026 주택과 세금」 111·119~122쪽', url: 'https://www.nts.go.kr' },
+    ],
+  },
+  {
+    date: '2026-10-07',
+    category: '규제지역',
+    title: '인구감소지역 5년 만에 재지정 — 89곳 → 92곳 (부산 금정구·경기 동두천시·경남 통영시 편입), 관심지역 18곳',
+    summary: '행정안전부가 인구감소지역 92곳과 인구감소관심지역 18곳을 재지정·고시했다. 부산 금정구·경기 동두천시·경남 통영시가 관심지역에서 인구감소지역으로 편입됐고, 관심지역에는 부산 북구·경북 예천군·칠곡군이 새로 들어왔다. 여건이 나아진 전남 영광군·부산 동구·대구 서구 등 12곳은 「인구활력+지역」으로 분류돼 5년간 종전 지원을 유지한다. 세컨드홈(조특법 §71의2)은 취득 당시 지정 여부로 판단하므로, 편입 3곳은 2026.10.7 전 취득분이면 관심지역 기준(4억)이 적용된다.',
+    affects: ['종부세', '양도세', '판정기'],
+    engineStatus: '반영완료',
+    engineNote: 'regions-data.js DEPOP_AREAS 92곳·INTEREST_AREAS 18곳·VITAL_PLUS_AREAS·depopAt(취득일 기준 구분). 접경지역도 2025.3.11 가평군·속초시 추가분을 반영해 17곳. 동두천시는 인구감소지역이면서 접경지역이지만 종부세 시행규칙 지정 지역이 아니라 지방 저가주택 대상이 아님. 인구활력+지역의 세제 특례 유지 여부와 인천 행정구역 개편(제물포구 등) 반영은 확인 필요',
+    sources: [
+      { label: '정책브리핑 — 인구감소지역 92곳 재지정, 개선 지역도 5년간 지원', url: 'https://www.korea.kr/news/policyNewsView.do?newsId=148973138' },
+      { label: '세계일보 — 부산 금정·동두천·통영도… 5년 만에 인구감소지역 재지정', url: 'https://www.segye.com/newsView/20261007516709' },
+      { label: '서울신문 — 가평·속초, 접경지역 지정', url: 'https://m.go.seoul.co.kr/news/2024/12/13/20241213500030' },
+    ],
+  },
+  {
     date: '2026-11-21',
     category: '엔진점검',
     title: '양도소득세 계산기 확장·세법 재검증 — 토지·건물·비사업용 토지, 필요경비 항목, 달력 보유기간',
@@ -269,7 +297,7 @@ export const LAW_UPDATES = [
  *   note    비고 (전제·한계)
  * 엔진 값과 이 표가 어긋나지 않도록 tests/web/law-audit.test.js 가 핵심 숫자를 엔진과 대조한다.
  */
-export const ENGINE_AUDIT_DATE = '2026-11-21';
+export const ENGINE_AUDIT_DATE = '2026-11-26';
 export const ENGINE_AUDIT = [
   { rule: '기본세율', law: '소득세법 §55①·§104①1', engine: '8단계 6%~45% (1,400만·5,000만·8,800만·1.5억·3억·5억·10억 구간)', where: 'transfer-tax.js baseBracket()', status: '현행일치', note: '2023.1.1 이후 양도분 세율표' },
   { rule: '양도차익 = 양도가액 − 취득가액 − 필요경비', law: '소득세법 §95①·§97, 시행령 §163', engine: '취득가액 + 취득세·법무사 수수료·취득 중개수수료 + 자본적 지출 + 양도 중개수수료·기타 양도비', where: 'transfer-tax.js calcSaleIncomeTaxDetailed()', status: '현행일치', note: '국세청 「2026 주택과 세금」 198~202쪽. 수익적 지출·대출이자는 불가, 감면받은 취득세는 제외' },

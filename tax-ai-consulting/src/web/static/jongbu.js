@@ -9,7 +9,7 @@
 import {
   calcJongbu, classifyJongbuHouse, priceFromPropertyTaxBase, priceFromPropertyTax, propertyTaxBaseFromTax, JONGBU_RULES,
 } from '../../core/jongbu-calc.js';
-import { SIGUNGU, SIDO_LABEL } from '../../core/regions-data.js';
+import { SIGUNGU, SIDO_LABEL, classifyArea } from '../../core/regions-data.js';
 import {
   won, fmt, bindMoneyInputs, moneyVal, initFxDialog, bindFxButtons, AGGR_RATE_TABLE_HTML,
 } from './notice-ui.js';
@@ -25,8 +25,11 @@ let fxMap = {};
 
 // 집 종류 선택지
 const PICKS = [
-  ['normal', '일반 주택'], ['excl', '합산배제 주택 (등록임대 등)'], ['inherit', '상속주택'],
-  ['temp', '이사용 새집 (일시적 2주택)'], ['local', '지방 주택 (저가주택 · 인구감소지역)'],
+  ['normal', '일반 주택'], ['excl', '합산배제 주택 (등록임대 등)'],
+  ['land', '다른 주택의 부속토지 — 건물 주인이 다른 땅 (§8④ 1호)'],
+  ['temp', '이사용 새집 — 일시적 2주택 (§8④ 2호)'],
+  ['inherit', '상속주택 (§8④ 3호)'],
+  ['local', '지방 저가주택 · 인구감소지역 주택 (§8④ 4호)'],
 ];
 const EXCL = [
   ['rent', '등록 임대주택', '임대사업자 등록 · 임대료 5% 이내 인상 · 의무임대기간 준수'],
@@ -127,8 +130,10 @@ function addHouse() {
         <input type="date" class="h-acq" style="margin-top:4px"></label>
       <label class="h-sejongBox" hidden><input type="checkbox" class="h-sejong"><span>세종시 <b>읍·면</b> 지역입니다</span></label>
     </div>
-    <p class="verdict-line" hidden></p>`;
-  d.querySelector('.del').addEventListener('click', () => { d.remove(); renumber(); });
+    <div class="area-tags" hidden></div>
+    <p class="verdict-line" hidden></p>
+    <ul class="req-list" hidden></ul>`;
+  d.querySelector('.del').addEventListener('click', () => { d.remove(); renumber(); syncApplyBox(); });
   d.querySelector('.h-sido').addEventListener('change', (e) => {
     d.querySelector('.h-sgg').innerHTML = '<option value="">시·군·구</option>' + selOpts((SIGUNGU[e.target.value] || []).map((n) => [n, n]));
   });
@@ -161,22 +166,59 @@ function readHouse(d, i) {
     sejongRural: d.querySelector('.h-sejong').checked,
   };
 }
+// 주소를 고르면 인구감소지역·접경지역 여부를 배지로 보여 준다
+function areaTags(h) {
+  if (!h.sido || !h.name) return '';
+  const a = classifyArea(h.sido, h.name);
+  const tag = (on, text, cls) => `<span class="atag ${on ? cls : 'off'}">${text} ${on ? '○' : '×'}</span>`;
+  return `<b>${esc(a.label)}</b>`
+    + tag(a.depop === 'depop', '인구감소지역', 'depop')
+    + (a.depop === 'interest' ? '<span class="atag int">인구감소관심지역 ○</span>' : '')
+    + (a.vitalPlus ? '<span class="atag vital">인구활력+지역</span>' : '')
+    + tag(a.border, '접경지역', 'border')
+    + `<span class="atag ${a.capital ? 'cap' : 'off'}">${a.capital ? '수도권' : '수도권 밖'}</span>`
+    + (a.metroCity ? `<span class="atag cap">광역시 ${a.gun ? '군' : '구'}</span>` : '');
+}
 // 요건 판정 결과를 카드 아래에 바로 보여 준다
 function verdict(d, i = 0) {
   const h = readHouse(d, i);
   for (const k of ['excl', 'inherit', 'local']) d.querySelector(`.s-${k}`).hidden = h.pick !== k;
   d.querySelector('.h-sejongBox').hidden = h.sido !== '세종';
   const c = classifyJongbuHouse(h);
+  const tags = d.querySelector('.area-tags');
+  const tagHtml = areaTags(h);
+  tags.hidden = !tagHtml;
+  tags.innerHTML = tagHtml;
   const v = d.querySelector('.verdict-line');
   v.hidden = !c.msg || !h.price;
   v.className = `verdict-line ${c.ok ? 'ok' : 'no'}`;
   v.textContent = `${c.ok ? '✓ ' : '※ '}${c.msg}`;
+  // 지방 주택: 요건별 점검표 (공시가격 · 소재지 · 인구감소지역 · 접경지역 · 시행규칙 지정)
+  const list = d.querySelector('.req-list');
+  list.hidden = !(c.checks && h.price);
+  list.innerHTML = (c.checks || []).map((x) => `<li class="${x.ok === null ? 'info' : x.ok ? 'ok' : 'no'}">
+    <i>${x.ok === null ? '·' : x.ok ? '✓' : '✗'}</i><span><b>${esc(x.label)}</b><small>${esc(x.detail)}</small></span></li>`).join('');
+  syncApplyBox();
   return c;
+}
+/** §8⑤ 신청 체크 칸 — 신청이 필요한 집(2~4호)이 하나라도 있을 때만 보인다 */
+function syncApplyBox() {
+  const box = $('applyBox');
+  if (!box) return;
+  const need = mode() === 'multi' && [...document.querySelectorAll('#houses .row-mini')].some((d) => {
+    const h = readHouse(d, 0);
+    if (!h.price) return false;
+    const k = classifyJongbuHouse(h).kind;
+    return k === 'temp' || k === 'inherit' || k === 'rural';
+  });
+  box.hidden = !need;
 }
 function readHouses() {
   const list = [...document.querySelectorAll('#houses .row-mini')].map((d, i) => {
     const h = readHouse(d, i);
-    h.kind = verdict(d, i).kind;
+    const c = verdict(d, i);
+    h.kind = c.kind;
+    h.basis = c.basis || '';
     h.card = d;
     return h;
   }).filter((h) => h.price > 0);
@@ -215,6 +257,7 @@ function syncMode() {
     : m === 'multi' ? '다른 집이 모두 합산배제·상속주택 등이어서 1주택자로 계산될 때만 적용됩니다. 재건축 주택은 옛집을 산 날부터 셉니다.'
       : '합산 최대 80%. 재건축 주택은 없어진 옛집을 취득한 날부터, 배우자에게 상속받은 집은 배우자가 취득한 날부터 셉니다.';
   syncOwnerBoxes();
+  syncApplyBox();
 }
 
 /* ── 결과: 고지서식 표 + 산식 팝업 ───────── */
@@ -311,6 +354,29 @@ const cmpCard = (title, total, small, win) => `
   <div class="${win ? 'win' : ''}"><h5>${title}${win ? '<span class="tag">유리</span>' : ''}</h5><p>${won(total)}</p><small>${small}</small></div>`;
 const summary = (r) => `내 명의 ${r.total}채 중 세율 적용 주택 수 ${r.counted}채${r.excl ? ` · 합산배제 ${r.excl}채 제외` : ''}${r.special ? ` · 상속 등 특례 ${r.special}채` : ''}`;
 
+/** 1세대 1주택자 판정표 — 종부세법 §8④(1~4호)·⑤(신청) */
+function judgeBox(r) {
+  const j = r.judge;
+  if (!j || !j.rows.length) return '';
+  const state = j.oneHouseHolder ? 'ok' : j.notApplied ? 'warn' : 'no';
+  const title = j.oneHouseHolder ? '1세대 1주택자로 봅니다' : j.notApplied ? '요건은 갖췄지만 신청하지 않았습니다' : '1세대 1주택자가 아닙니다';
+  const applyCell = (x) => !x.needApply ? '<span class="jb-pill gray">신청 불필요</span>'
+    : j.applied ? '<span class="jb-pill green">신청함</span>' : '<span class="jb-pill red">미신청</span>';
+  return `<div class="judge-box ${state}">
+    <h4>${state === 'ok' ? '✅' : state === 'warn' ? '⚠️' : '✗'} 1세대 1주택자 판정 — ${title}</h4>
+    <p>${esc(j.reason)}</p>
+    <div class="notice-wrap"><table class="notice">
+      <tr><th>집</th><th>종류</th><th>근거</th><th>1주택 판정 주택 수</th><th>신청 (§8⑤)</th></tr>
+      <tr><td class="rowlabel">이 집</td><td>본인 주택</td><td>—</td><td>포함</td><td>—</td></tr>
+      ${j.rows.map((x) => `<tr><td class="rowlabel">${esc(x.label)}</td><td>${esc(x.name)}</td><td>${esc(x.clause)}</td>
+        <td>${x.counts ? '<b>포함</b>' : '제외'}</td><td>${x.kind === 'normal' ? '—' : applyCell(x)}</td></tr>`).join('')}
+    </table></div>
+    ${j.needApply ? `<p class="apply-note"><b>신청 (종부세법 §8⑤)</b> — 일시적 2주택·상속주택·지방 저가주택은 <b>해당 연도 ${JONGBU_RULES.applyFrom}~${JONGBU_RULES.applyTo}</b>에
+      관할세무서장에게 신청해야 1세대 1주택자로 봅니다(홈택스 가능). 한 번 신청하면 변동이 없는 한 다음 해에도 유지됩니다.
+      놓쳤다면 <b>12월 1일~15일</b> 납부기간에 신고·납부로 바로잡을 수 있습니다.</p>` : ''}
+  </div>`;
+}
+
 const MISS_HTML = `
   <div class="miss"><b style="color:#1a5276">꼭 확인하세요 · 놓치기 쉬운 6가지</b>
     <details><summary>① 부부 공동명의 — 「1주택 특례」가 더 쌀 수 있습니다</summary>
@@ -320,7 +386,7 @@ const MISS_HTML = `
     <details><summary>③ 상속받은 집이 있어도 1주택 혜택을 받을 수 있습니다</summary>
       <p><em>상속 후 5년 이내</em>이거나 <em>상속 지분 40% 이하</em> 또는 <em>지분 공시가격 6억(수도권 밖 3억) 이하</em>이면 신청에 따라 1세대 1주택자로 계산합니다. 상속주택 공시가격은 과세표준에는 더해집니다.</p></details>
     <details><summary>④ 이사 가려고 잠깐 2주택 · 지방 저가주택</summary>
-      <p>새집을 사고 <em>3년 안에 옛집을 파는</em> 일시적 2주택, <em>지방 저가주택 1채</em>(공시가격 4억 이하)나 <em>인구감소지역 주택</em>을 더 가진 경우에도 신청하면 1세대 1주택자 방식으로 계산합니다. 신청하지 않으면 9억 공제·세액공제 없음으로 고지됩니다.</p></details>
+      <p>새집을 사고 <em>3년 안에 옛집을 파는</em> 일시적 2주택, <em>지방 저가주택 1채</em>(공시가격 4억 이하 — 수도권은 가평·연천·강화·옹진군만)나 <em>인구감소지역 주택</em>을 더 가진 경우에도 <em>9.16~9.30에 신청하면</em> 1세대 1주택자 방식으로 계산합니다(종부세법 §8④·⑤). 신청하지 않으면 9억 공제·세액공제 없음으로 고지됩니다. 다른 주택의 <em>부속토지만</em> 더 가진 경우는 신청 없이 적용됩니다.</p></details>
     <details><summary>⑤ 임대주택 — 등록이 말소되면 합산배제도 끝납니다</summary>
       <p>합산배제 신고한 등록임대주택은 종부세 계산에서 빠지지만, <em>임대등록이 말소</em>되거나 임대료 5% 상한 등 요건을 어기면 그 뒤로는 과세 대상입니다.</p></details>
     <details><summary>⑥ 고지서가 틀렸다면 — 12월 15일까지 바로잡을 수 있습니다</summary>
@@ -358,18 +424,29 @@ function render(r, src) {
     if (r.eligible) h += `<p class="tbl-title">1주택 특례 — 납세의무자 한 사람이 합산</p>${noticeTable(r.special.taxpayer, 'tp', { withCredit: true })}`;
   } else if (r.eligible) {
     const win = r.diff > 0;
-    h += headline('종합부동산세 + 농특세 — 유리한 방법 기준 (연간)', Math.min(r.oneHouse.total, r.main.total), summary(r));
-    h += `<div class="cmp">${cmpCard('1주택자 방식으로 신청', r.oneHouse.total, `12억 공제 + 세액공제 ${pct(r.oneHouse.creditRate)} (이 집 몫에만)`, win)}
-      ${cmpCard('신청하지 않으면', r.main.total, '9억 공제 · 세액공제 없음', false)}</div>`;
-    if (win) h += `<p class="advice">일반 주택이 이 집 한 채뿐이라 1주택자 방식을 신청할 수 있고 <b>${won(r.diff)}</b> 덜 냅니다. 세대원에게 다른 집이 없어야 하며, 합산배제 임대주택만 더 가진 경우에는 이 집에 주민등록이 되어 있고 실제로 살아야 합니다.</p>`;
+    h += headline('종합부동산세 + 농특세 — 1세대 1주택자 방식 (연간)', r.oneHouse.total, summary(r));
+    h += judgeBox(r);
+    h += `<div class="cmp">${cmpCard(r.judge.needApply ? '1주택자 방식 (신청함)' : '1주택자 방식', r.oneHouse.total, `12억 공제 + 세액공제 ${pct(r.oneHouse.creditRate)} (이 집 몫에만)`, win)}
+      ${cmpCard(r.judge.needApply ? '신청하지 않았다면' : '일반 방식이었다면', r.main.total, '9억 공제 · 세액공제 없음', false)}</div>`;
+    if (win) h += `<p class="advice">1세대 1주택자 방식으로 <b>${won(r.diff)}</b> 덜 냅니다. 세대원에게 다른 집이 없어야 하며, 합산배제 임대주택만 더 가진 경우에는 이 집에 주민등록이 되어 있고 실제로 살아야 합니다.</p>`;
     h += `<p class="tbl-title">1주택자 방식</p>${noticeTable(r.oneHouse, 'one', { withCredit: true })}`;
-    h += `<p class="tbl-title">신청하지 않을 때</p>${noticeTable(r.main, 'main', { withCredit: false })}`;
+    h += `<p class="tbl-title">${r.judge.needApply ? '신청하지 않았을 때' : '일반 방식'}</p>${noticeTable(r.main, 'main', { withCredit: false })}`;
+  } else if (r.judge && r.judge.notApplied) {
+    // 요건은 갖췄지만 §8⑤ 신청을 하지 않음 → 9억 방식이 실제 세액
+    h += headline('종합부동산세 + 농특세 — 신청하지 않아 일반 방식 (연간)', r.main.total, `${summary(r)} · 9억 공제 · 세액공제 없음`);
+    h += judgeBox(r);
+    h += `<div class="cmp">${cmpCard('지금 (미신청)', r.main.total, '9억 공제 · 세액공제 없음', false)}
+      ${cmpCard('신청하면', r.ifApplied.total, `12억 공제 + 세액공제 ${pct(r.ifApplied.creditRate)} (이 집 몫에만)`, r.diff > 0)}</div>`;
+    if (r.diff > 0) h += `<p class="advice">신청하면 <b>${won(r.diff)}</b> 덜 냅니다. 2번의 「신청했습니다」를 체크하면 신청 기준으로 다시 계산합니다.</p>`;
+    h += `<p class="tbl-title">지금 — 일반 방식</p>${noticeTable(r.main, 'main', { withCredit: false })}`;
+    h += `<p class="tbl-title">신청했을 때 — 1주택자 방식</p>${noticeTable(r.ifApplied, 'one', { withCredit: true })}`;
   } else {
     const t = r.main;
     h += headline('종합부동산세 + 농특세 (연간)', t.total, t.base <= 0
       ? `${summary(r)} · 공시가격 합계가 기본공제 9억 이하 → 종부세 없음`
       : `${summary(r)} · 9억 공제 · ${r.three ? '3주택 이상 세율' : '2주택 이하 세율'}`);
-    if (r.total === r.counted) h += '<p class="advice">다른 집 중에 상속주택·이사용 새집·등록임대주택이 있다면 「집 종류」를 바꿔 다시 계산해 보세요. 세금이 크게 줄 수 있습니다.</p>';
+    h += judgeBox(r);
+    if (r.total === r.counted) h += '<p class="advice">다른 집 중에 상속주택·이사용 새집·등록임대주택·지방 저가주택이 있다면 「집 종류」를 바꿔 다시 계산해 보세요. 세금이 크게 줄 수 있습니다.</p>';
     h += noticeTable(t, 'main', { withCredit: false });
   }
   if (src === 'local') h += '<p style="font-size:13.5px;color:#7d6608;margin:8px 0 0">※ 이 집은 <b>공시가격 미공시 — 지자체 산정가액 기준</b>으로 계산했습니다. 종부세의 주택 공시가격은 공시된 가액이 없으면 지방자치단체장이 산정한 가액입니다 (국세청 「2026 주택과 세금」 107쪽).</p>';
@@ -399,6 +476,7 @@ function calculate() {
     holdYears: Number($('inHold').value) || 0,
     assessedPropertyTax: assessed,
     prevYearTotal: m === 'couple' ? 0 : moneyVal($('inPrev')),
+    applied: $('inApplied').checked,
   }), src);
 }
 
@@ -417,7 +495,7 @@ for (const id of ['inConvKind', 'inConvAmt', 'inConvRatio']) {
   $(id).addEventListener('input', convert);
   $(id).addEventListener('change', convert);
 }
-document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener('change', syncMode));
+document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener('change', () => { syncMode(); syncApplyBox(); }));
 $('addHouse').addEventListener('click', addHouse);
 $('calcBtn').addEventListener('click', calculate);
 syncMode();

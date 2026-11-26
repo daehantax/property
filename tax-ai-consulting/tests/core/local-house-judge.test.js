@@ -261,13 +261,23 @@ describe('종부세 — 1세대1주택자 특례 (§8④) 판정', () => {
     expect(b.credit).toBeCloseTo(b.creditFull * 0.8, 0);
   });
 
-  it('공시 7억 지방주택: 인구감소지역이면 9억 기준으로 특례, 아니면 4억 초과로 불가', () => {
+  it('공시 7억 지방주택: 지방 저가주택(§8④ 4호)은 인구감소지역이어도 4억 기준 — 9억은 조특법 §71의2(취득기간 요건) 경로', () => {
     const big = { acquirePrice: 600_000_000, gongsi: 700_000_000 };
-    expect(judgeLocalHouse(withLocal({ ...big, depop: 'depop' })).jongbu.verdict).toBe('exempt');
+    const dep = judgeLocalHouse(withLocal({ ...big, depop: 'depop' })).jongbu;
+    expect(chk(path(dep, 'lowPrice'), 'gongsi').ok).toBe(false);          // 인구감소지역이어도 4억 초과 → 저가주택 아님
+    expect(path(dep, 'lowPrice').law).toBe('§8④ 4호');
+    // 2026.1.1 이후 취득한 인구감소지역 주택이면 세컨드홈(9억) 경로로 1세대1주택자
+    const sh = judgeLocalHouse(withLocal({ ...big, depop: 'depop', eupMyeon: false, acquireDate: '2026-03-01' })).jongbu;
+    expect(path(sh, 'secondHome').ok).toBe(true);
+    expect(sh.verdict).toBe('exempt');
     const no = judgeLocalHouse(withLocal(big)).jongbu;
     expect(chk(path(no, 'lowPrice'), 'gongsi').ok).toBe(false);
     expect(no.verdict).toBe('taxable');
-    expect(no.compare.special.total).toBe(no.compare.special.total);   // 계산은 항상 제공
+  });
+  it('수도권 접경지역: 가평·연천·강화·옹진(시행규칙)만 지방 저가주택 지역 요건 충족', () => {
+    const j = (o) => chk(path(judgeLocalHouse(withLocal({ region: 'borderCapital', ...o })).jongbu, 'lowPrice'), 'region').ok;
+    expect(j({ lowPriceCapital: true })).toBe(true);
+    expect(j({})).toBe(false);            // 동두천·파주 등 — 접경지역이지만 시행규칙 지정 아님
   });
 
   it('광역시(군 제외)·세종 동 지역·수도권 접경지역은 지방 저가주택 불가', () => {
