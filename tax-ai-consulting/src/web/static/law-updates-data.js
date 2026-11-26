@@ -56,6 +56,20 @@ export const OFFICIAL_SOURCES = [
 
 export const LAW_UPDATES = [
   {
+    date: '2026-11-27',
+    category: '엔진점검',
+    title: '종부세 계산기 — 인구감소지역 주택(조특법 §71의2)을 지방 저가주택(종부세법 §8④ 4호)과 분리해 별도 특례로 표시',
+    summary: '1세대 1주택자 판정에서 주택 수를 빼 주는 규정은 종부세법 §8④(부속토지·일시적 2주택·상속주택·지방 저가주택)과 조세특례제한법 §71의2(인구감소지역 주택)로 근거가 다르다. 계산기에서 두 가지를 따로 고르게 하고 판정표에도 「조세특례제한법 특례」로 구분해 표시한다. 조특법 시행령 §68의2① 조문대로 판정한다 — 1호 인구감소지역(수도권 밖 9억·수도권 4억), 2호 수도권 밖 인구감소관심지역(4억), 제외지역은 수도권(접경지역 제외)·광역시(군 제외)·기존 주택과 같은 시·군·구, 취득시기 2024.1.4~2026.12.31, 신청은 §71의2③(9.16~9.30).',
+    affects: ['종부세', '보유세', '판정기'],
+    engineStatus: '반영완료',
+    engineNote: 'jongbu-calc.js classifyJongbuHouse(pick: local=§8④ 4호만 / depop=조특법만), SPECIAL_BASIS.depop. 수도권 관심지역(포천시·인천 동구)은 대상 아님, 수도권 인구감소지역(접경)은 4억. 지방주택 판정기 secondHomePriceLimit 도 같은 기준으로 정정. 관심지역 적용시기(2026.1.1 이후 취득분)와 9억 적용시기는 부칙 미확인 — 국세청 책자 112·119쪽 기준',
+    sources: [
+      { label: '국가법령정보센터 — 조세특례제한법 §71의2', url: 'https://www.law.go.kr/법령/조세특례제한법' },
+      { label: '국가법령정보센터 — 조세특례제한법 시행령 §68의2', url: 'https://www.law.go.kr/법령/조세특례제한법시행령' },
+      { label: '국세청 「2026 주택과 세금」 118·119쪽 (종부세 1세대 1주택자)', url: 'https://www.nts.go.kr' },
+    ],
+  },
+  {
     date: '2026-11-26',
     category: '엔진점검',
     title: '종부세 계산기 — 1세대 1주택자 판정(§8④ 1~4호)·신청 여부(§8⑤) 반영, 지방 저가주택 지역 요건 재검증',
@@ -297,7 +311,7 @@ export const LAW_UPDATES = [
  *   note    비고 (전제·한계)
  * 엔진 값과 이 표가 어긋나지 않도록 tests/web/law-audit.test.js 가 핵심 숫자를 엔진과 대조한다.
  */
-export const ENGINE_AUDIT_DATE = '2026-11-26';
+export const ENGINE_AUDIT_DATE = '2026-11-27';
 export const ENGINE_AUDIT = [
   { rule: '기본세율', law: '소득세법 §55①·§104①1', engine: '8단계 6%~45% (1,400만·5,000만·8,800만·1.5억·3억·5억·10억 구간)', where: 'transfer-tax.js baseBracket()', status: '현행일치', note: '2023.1.1 이후 양도분 세율표' },
   { rule: '양도차익 = 양도가액 − 취득가액 − 필요경비', law: '소득세법 §95①·§97, 시행령 §163', engine: '취득가액 + 취득세·법무사 수수료·취득 중개수수료 + 자본적 지출 + 양도 중개수수료·기타 양도비', where: 'transfer-tax.js calcSaleIncomeTaxDetailed()', status: '현행일치', note: '국세청 「2026 주택과 세금」 198~202쪽. 수익적 지출·대출이자는 불가, 감면받은 취득세는 제외' },

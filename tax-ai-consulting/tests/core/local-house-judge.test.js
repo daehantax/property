@@ -190,6 +190,8 @@ describe('양도세 — 조특법 §71의2 세컨드홈 · §98의9 준공 후 �
     expect(secondHomePriceLimit('2026-01-01', 'interest')).toBe(400_000_000);
     expect(secondHomePriceLimit('2025-06-01', 'interest')).toBeNull();
     expect(secondHomePriceLimit('2026-01-01', 'none')).toBeNull();
+    expect(secondHomePriceLimit('2026-01-01', 'depop', true)).toBe(400_000_000);      // 수도권 인구감소지역 4억
+    expect(secondHomePriceLimit('2026-01-01', 'interest', true)).toBeNull();          // 관심지역은 수도권 밖만
   });
 
   it('준공 후 미분양: 수도권 밖 85㎡·6억 이하, 2024.1.10~2026.12.31 취득', () => {

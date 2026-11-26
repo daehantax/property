@@ -18,7 +18,7 @@
  */
 
 import { calcPropertyTax } from './property-tax.js';
-import { classifyArea, depopAt, jongbuLowPriceRegion, DEPOP_REDESIGNATED } from './regions-data.js';
+import { classifyArea, depopAt, jongbuLowPriceRegion } from './regions-data.js';
 import {
   JONGBU_LOWPRICE, JONGBU_LOWPRICE_DEPOP, JONGBU_INHERIT_YEARS, JONGBU_INHERIT_SHARE,
   JONGBU_INHERIT_PRICE_METRO, JONGBU_INHERIT_PRICE_LOCAL, SECOND_HOME_START, SECOND_HOME_END,
@@ -56,6 +56,8 @@ const LAW_REF = [
   '종합부동산세법 §10(세부담의 상한 150%)',
   '종합부동산세법 §10의2(공동명의 1주택자 특례)',
   '종합부동산세법 시행령 §4의3(공제할 재산세액 · 세율 적용 주택 수)',
+  '조세특례제한법 §71의2②·③(인구감소지역 주택 — 1주택 보유 세대가 2024.1.4~2026.12.31 취득하면 1세대 1주택자로 봄, 9.16~9.30 신청)',
+  '조세특례제한법 시행령 §68의2①(인구감소지역 주택 — 1호 인구감소지역: 수도권 밖 9억·수도권 4억 / 2호 수도권 밖 관심지역 4억, 수도권(접경 제외)·광역시(군 제외)·기존 주택과 같은 시·군·구 제외)',
   '농어촌특별세법 §5(종부세분 20%)',
 ];
 
@@ -158,13 +160,15 @@ export function personTax(o) {
 }
 
 // 과세표준에는 더하되 1세대 1주택자 판정의 주택 수에서는 빼는 집 (종부세법 §8④ 각 호)
-const SPECIAL = new Set(['land', 'inherit', 'temp', 'rural']);
+const SPECIAL = new Set(['land', 'inherit', 'temp', 'rural', 'depop']);
 /** 집 종류별 근거 조문과 신청 필요 여부 (§8⑤: 2~4호만 신청 대상) */
 export const SPECIAL_BASIS = {
   land: { clause: '§8④ 1호', name: '다른 주택의 부속토지', needApply: false },
   temp: { clause: '§8④ 2호', name: '일시적 2주택 (신규주택)', needApply: true },
   inherit: { clause: '§8④ 3호', name: '상속주택', needApply: true },
   rural: { clause: '§8④ 4호', name: '지방 저가주택', needApply: true },
+  // 종부세법이 아니라 조세특례제한법의 별도 특례 — 1주택 보유 세대가 취득하면 1세대 1주택자로 본다(§71의2②), 신청은 §71의2③
+  depop: { clause: '조특법 §71의2②', name: '인구감소지역 주택 (조특법 특례)', needApply: true, jotuk: true },
 };
 
 /**
@@ -177,7 +181,8 @@ export const SPECIAL_BASIS = {
  * @param {number} [inp.share] 이 집의 본인 지분 (couple 기본 0.5, multi 기본 1)
  * @param {Array<{label?, price, share?, owner?:'me'|'spouse', kind}>} [inp.houses] 다른 집
  *        kind = 'normal' 일반 / 'excl' 합산배제(과세 제외) /
- *               'land'·'inherit'·'temp'·'rural' 특례주택(과세표준에는 합산, 주택 수에서는 제외 — §8④ 1~4호)
+ *               'land'·'inherit'·'temp'·'rural' 특례주택(과세표준에는 합산, 주택 수에서는 제외 — §8④ 1~4호) /
+ *               'depop' 인구감소지역 주택(조특법 §71의2 — 종부세법과 별도 특례, 같은 방식으로 주택 수에서 제외)
  * @param {boolean} [inp.applied=true] §8⑤ 신청(9.16~9.30) 여부 — multi 에서 2~4호 특례주택이 있을 때만 의미가 있다.
  *        false 면 1세대 1주택자로 보지 않고 9억 공제 방식으로 계산한다(신청했을 때의 세액은 ifApplied 로 함께 돌려준다)
  * @param {number} [inp.age] 만 나이 @param {number} [inp.holdYears] 보유기간(년)
@@ -263,7 +268,7 @@ export function calcJongbu(inp) {
     if (sb) {
       special++;
       if (sb.needApply) needApplyN++;
-      rows.push({ label: h.label, kind: h.kind, clause: h.basis || sb.clause, name: sb.name, counts: false, needApply: sb.needApply });
+      rows.push({ label: h.label, kind: h.kind, clause: h.basis || sb.clause, name: sb.name, counts: false, needApply: sb.needApply, jotuk: !!sb.jotuk });
     } else {
       normalOthers++;
       rows.push({ label: h.label, kind: 'normal', clause: '—', name: '일반 주택', counts: true, needApply: false });
@@ -280,7 +285,7 @@ export function calcJongbu(inp) {
   let counted = 1;
   for (const h of houses) {
     if (h.kind === 'excl' || h.kind === 'inherit' || h.kind === 'land') continue;
-    if ((h.kind === 'temp' || h.kind === 'rural') && oneHouseHolder) continue;
+    if ((h.kind === 'temp' || h.kind === 'rural' || h.kind === 'depop') && oneHouseHolder) continue;
     counted++;
   }
   const three = counted >= 3;
@@ -328,14 +333,16 @@ const eokText = (n) => {
  * 다른 집 한 채의 입력 → 계산에 쓸 종류로 판정 (책 111·119쪽)
  *
  * @param {object} h
- * @param {'normal'|'excl'|'land'|'inherit'|'temp'|'local'} h.pick 사용자가 고른 집 종류
+ * @param {'normal'|'excl'|'land'|'inherit'|'temp'|'local'|'depop'} h.pick 사용자가 고른 집 종류
+ *        local = 지방 저가주택(종부세법 §8④ 4호) / depop = 인구감소지역 주택(조특법 §71의2 — 별도 특례)
+ * @param {boolean} [h.sameSgg] 기존 주택과 같은 시·군·구 (pick='depop' 제외사유)
  * @param {string} [h.exclType] 합산배제 주택 종류 (pick='excl')
  * @param {string} [h.sido] @param {string} [h.name] 시·도, 시·군·구 (regions-data.js 표기: '경기', '가평군')
  * @param {boolean} [h.sejongRural] 세종시 읍·면 지역 여부
  * @param {number} h.price 주택 전체 공시가격 @param {number} [h.share=1] 지분
  * @param {boolean} [h.within5] 상속 후 5년 이내 (pick='inherit')
- * @param {string} [h.acquireDate] 취득일 YYYY-MM-DD (pick='local' — 인구감소지역 세컨드홈 판정)
- * @returns {{ kind:'normal'|'excl'|'land'|'inherit'|'temp'|'rural', ok:boolean, msg:string, basis?:string,
+ * @param {string} [h.acquireDate] 취득일 YYYY-MM-DD (pick='depop' — 취득시기·취득 당시 지역 구분)
+ * @returns {{ kind:'normal'|'excl'|'land'|'inherit'|'temp'|'rural'|'depop', ok:boolean, msg:string, basis?:string,
  *   checks?:Array<{label:string, ok:boolean|null, detail:string}> }}
  *   checks: 지방 주택(pick='local')의 요건별 점검표. ok=null 은 참고 정보(판정에 직접 쓰이지 않음)
  */
@@ -387,24 +394,45 @@ export function classifyJongbuHouse(h) {
     if (rg.ok && priceOk) {
       return { kind: 'rural', ok: true, basis: '§8④ 4호', checks, msg: `지방 저가주택 — ${where}, ${rg.item}목 지역, 공시가격 4억 이하입니다. 9.16~9.30 신청이 필요합니다. (§8④ 4호)` };
     }
-    // ── 조특법 §71의2 인구감소(관심)지역 주택 — 지방 저가주택(4억)과는 별개 규정 (책 119쪽, 이미지 확인):
-    //    1주택자가 2024.1.4~2026.12.31 취득, 가액은 비수도권 인구감소지역 9억·그 외 4억. 관심지역은 비수도권만·2026.1.1 이후 취득분
-    if (area.secondHomeOk) {
-      const tag = depopThen === 'depop' ? '인구감소지역' : '인구감소관심지역';
-      const lim = depopThen === 'depop' && !area.capital ? JONGBU_LOWPRICE_DEPOP : JONGBU_LOWPRICE;
-      const from = depopThen === 'depop' ? SECOND_HOME_START : JONGBU_RULES.interestAreaFrom;
-      const inPeriod = d >= from && d <= SECOND_HOME_END;
-      const then = area.depopSince && d && d < DEPOP_REDESIGNATED ? ` (취득 당시 ${tag})` : '';
-      checks.push(
-        { label: `인구감소지역 주택 — 취득일 ${from} ~ ${SECOND_HOME_END} (조특법 §71의2)`, ok: inPeriod, detail: d || '취득일 미입력' },
-        { label: `인구감소지역 주택 — 가액 ${eokText(lim)} 이하`, ok: h.price <= lim, detail: `${eokText(h.price || 0)}${then}` },
-      );
-      if (inPeriod && h.price <= lim) return { kind: 'rural', ok: true, basis: '조특법 §71의2', checks, msg: `${tag} 주택(세컨드홈) — ${where}, 가액 한도(${eokText(lim)}) 이내, ${from} 이후 취득입니다. 9.16~9.30 신청이 필요합니다.` };
-      if (h.price > lim) return { kind: 'normal', ok: false, checks, msg: `${where} — ${tag}이지만 공시가격이 한도(${eokText(lim)})를 넘습니다. 일반 주택으로 계산합니다.` };
-      return { kind: 'normal', ok: false, checks, msg: `${where} — ${tag}이지만 ${from} ~ ${SECOND_HOME_END} 사이에 취득한 집만 대상입니다. 취득일을 확인하세요. 일반 주택으로 계산합니다.` };
+    // 지방 저가주택이 아니어도 조특법 §71의2(별도 특례) 대상일 수 있다 → 집 종류를 바꿔 확인하도록 안내
+    const hint = area.secondHomeOk ? ' 다만 조특법 §71의2 「인구감소지역 주택」 특례 대상일 수 있으니 집 종류를 그쪽으로 바꿔 확인해 보세요.' : '';
+    if (rg.ok) return { kind: 'normal', ok: false, checks, msg: `${where} — 대상 지역이지만 공시가격이 4억을 넘습니다. 일반 주택으로 계산합니다.${hint}` };
+    return { kind: 'normal', ok: false, checks, msg: `${where} — 지방 저가주택 대상 지역이 아닙니다. ${rg.label}. 일반 주택으로 계산합니다.${hint}` };
+  }
+  if (h.pick === 'depop') {
+    // ── 조세특례제한법 §71의2 · 시행령 §68의2 인구감소지역 주택 — 종부세법 §8④(지방 저가주택)과는 별개의 특례
+    if (!known) return { kind: 'normal', ok: false, msg: '주소(시·도, 시·군·구)를 고르면 인구감소지역 여부를 확인해 자동으로 판정합니다. 지금은 일반 주택으로 계산합니다.' };
+    const d = h.acquireDate || '';
+    const then = d ? depopAt(area, d) : area.depop;        // 「취득 당시」 구분 (2026.10.7 재지정 반영)
+    const isDepop = then === 'depop';
+    const isInterest = then === 'interest';
+    // 1호: 인구감소지역 / 2호: 수도권 밖 인구감소관심지역(2026.1.1 이후 취득분)
+    const areaOk = isDepop || (isInterest && !area.capital);
+    const from = isInterest ? JONGBU_RULES.interestAreaFrom : SECOND_HOME_START;
+    const periodOk = !!d && d >= from && d <= SECOND_HOME_END;
+    const capitalExcluded = area.capital && !area.border;                    // 수도권(접경지역 제외)
+    const metroExcluded = area.metroCity && !area.gun;                       // 광역시(군 제외)
+    const lim = isDepop && !area.capital ? JONGBU_LOWPRICE_DEPOP : JONGBU_LOWPRICE;   // 수도권 밖 인구감소지역 9억, 그 외 4억
+    const priceOk = h.price > 0 && h.price <= lim;
+    const checks = [
+      { label: `취득시기 ${from} ~ ${SECOND_HOME_END} (조특법 §71의2②${isInterest ? ' · 관심지역은 2026.1.1 이후 취득분' : ''})`, ok: periodOk, detail: d || '취득일을 넣어 주세요' },
+      { label: '취득 당시 인구감소지역 또는 수도권 밖 인구감소관심지역 (시행령 §68의2① 1호·2호)', ok: areaOk,
+        detail: isDepop ? `인구감소지역 (1호)${area.depopSince && d && d >= area.depopSince ? ' — 2026.10.7 재지정 편입' : ''}`
+          : isInterest ? (area.capital ? '수도권의 관심지역 → 대상 아님 (관심지역은 수도권 밖만)' : `인구감소관심지역 (2호)${area.depopSince ? ' — 취득 당시 기준' : ''}`)
+            : '인구감소지역·관심지역 아님' },
+      { label: '제외지역 ① 수도권 — 접경지역은 제외에서 빠짐', ok: !capitalExcluded, detail: area.capital ? (area.border ? '수도권이지만 접경지역 → 가능' : '수도권(접경지역 아님) → 제외') : '수도권 밖' },
+      { label: '제외지역 ② 광역시 — 군 지역은 제외에서 빠짐', ok: !metroExcluded, detail: area.metroCity ? (area.gun ? '광역시의 군 → 가능' : '광역시의 구 → 제외') : '광역시 아님' },
+      { label: '제외지역 ③ 기존 주택과 같은 시·군·구', ok: !h.sameSgg, detail: h.sameSgg ? '같은 시·군·구 → 제외' : '다른 시·군·구' },
+      { label: `기준시가 ${eokText(lim)} 이하 — 취득일 및 과세기준일(6.1) 현재`, ok: priceOk, detail: `${eokText(h.price || 0)} (${isDepop && !area.capital ? '수도권 밖 인구감소지역 9억' : isDepop ? '수도권 인구감소지역 4억' : '관심지역 4억'})` },
+      { label: '1주택을 보유한 상태에서 취득 · 인구감소지역 주택은 1채만', ok: null, detail: '입력 전제 — 해당하지 않으면 일반 주택으로 바꾸세요' },
+    ];
+    const ok = checks.every((x) => x.ok !== false);
+    if (ok) {
+      return { kind: 'depop', ok: true, basis: '조특법 §71의2②', checks,
+        msg: `인구감소지역 주택(조특법 특례) — ${where}, ${isDepop ? '인구감소지역' : '수도권 밖 관심지역'}, 기준시가 ${eokText(lim)} 이하입니다. 9.16~9.30 신청이 필요합니다. (조특법 §71의2③)` };
     }
-    if (rg.ok) return { kind: 'normal', ok: false, checks, msg: `${where} — 대상 지역이지만 공시가격이 4억을 넘습니다. 일반 주택으로 계산합니다.` };
-    return { kind: 'normal', ok: false, checks, msg: `${where} — 지방 저가주택 대상 지역이 아닙니다. ${rg.label}. 일반 주택으로 계산합니다.` };
+    const why = checks.find((x) => x.ok === false);
+    return { kind: 'normal', ok: false, checks, msg: `${where} — 조특법 §71의2 인구감소지역 주택 요건 미충족 (${why.label.split(' (')[0]}: ${why.detail}). 일반 주택으로 계산합니다.` };
   }
   return { kind: 'normal', ok: true, msg: '' };
 }

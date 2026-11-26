@@ -29,7 +29,8 @@ const PICKS = [
   ['land', '다른 주택의 부속토지 — 건물 주인이 다른 땅 (§8④ 1호)'],
   ['temp', '이사용 새집 — 일시적 2주택 (§8④ 2호)'],
   ['inherit', '상속주택 (§8④ 3호)'],
-  ['local', '지방 저가주택 · 인구감소지역 주택 (§8④ 4호)'],
+  ['local', '지방 저가주택 (§8④ 4호)'],
+  ['depop', '인구감소지역 주택 — 조세특례제한법 특례 (조특법 §71의2)'],
 ];
 const EXCL = [
   ['rent', '등록 임대주택', '임대사업자 등록 · 임대료 5% 이내 인상 · 의무임대기간 준수'],
@@ -126,9 +127,14 @@ function addHouse() {
       ${EXCL.map(([v, t, n]) => `<label><input type="radio" name="${id}-excl" value="${v}"><span>${t}${n ? ` <small>— ${n}</small>` : ''}</span></label>`).join('')}</div>
     <div class="sub-opts s-inherit" hidden><label><input type="checkbox" class="h-within5"><span>상속받은 지 <b>5년이 지나지 않았습니다</b> <small>(6월 1일 기준)</small></span></label></div>
     <div class="sub-opts s-local" hidden>
-      <label style="display:block"><span>취득일 <small>(인구감소지역 주택은 2024.1.4 ~ 2026.12.31 취득분만 대상)</small></span>
-        <input type="date" class="h-acq" style="margin-top:4px"></label>
       <label class="h-sejongBox" hidden><input type="checkbox" class="h-sejong"><span>세종시 <b>읍·면</b> 지역입니다</span></label>
+      <small class="h-localNote">공시가격 4억 이하 + 지역 요건만 봅니다. 취득일은 묻지 않습니다.</small>
+    </div>
+    <div class="sub-opts s-depop" hidden>
+      <b>조세특례제한법 §71의2 — 종부세법과 별도의 특례입니다</b>
+      <label style="display:block"><span>취득일 <small>(2024.1.4 ~ 2026.12.31 취득분만 · 관심지역은 2026.1.1 이후)</small></span>
+        <input type="date" class="h-acq" style="margin-top:4px"></label>
+      <label><input type="checkbox" class="h-samesgg"><span>「이 집」(기존 주택)과 <b>같은 시·군·구</b>에 있습니다 <small>— 제외 사유</small></span></label>
     </div>
     <div class="area-tags" hidden></div>
     <p class="verdict-line" hidden></p>
@@ -163,6 +169,7 @@ function readHouse(d, i) {
     exclType: ex ? ex.value : '',
     within5: d.querySelector('.h-within5').checked,
     acquireDate: d.querySelector('.h-acq').value,
+    sameSgg: d.querySelector('.h-samesgg').checked,
     sejongRural: d.querySelector('.h-sejong').checked,
   };
 }
@@ -180,7 +187,7 @@ function areaTags(h) {
 // 요건 판정 결과를 카드 아래에 바로 보여 준다
 function verdict(d, i = 0) {
   const h = readHouse(d, i);
-  for (const k of ['excl', 'inherit', 'local']) d.querySelector(`.s-${k}`).hidden = h.pick !== k;
+  for (const k of ['excl', 'inherit', 'local', 'depop']) d.querySelector(`.s-${k}`).hidden = h.pick !== k;
   d.querySelector('.h-sejongBox').hidden = h.sido !== '세종';
   const c = classifyJongbuHouse(h);
   const tags = d.querySelector('.area-tags');
@@ -191,7 +198,7 @@ function verdict(d, i = 0) {
   v.hidden = !c.msg || !h.price;
   v.className = `verdict-line ${c.ok ? 'ok' : 'no'}`;
   v.textContent = `${c.ok ? '✓ ' : '※ '}${c.msg}`;
-  // 지방 주택: 요건별 점검표 (공시가격 · 소재지 · 인구감소지역 · 접경지역 · 시행규칙 지정)
+  // 지방 저가주택·인구감소지역 주택: 요건별 점검표
   const list = d.querySelector('.req-list');
   list.hidden = !(c.checks && h.price);
   list.innerHTML = (c.checks || []).map((x) => `<li class="${x.ok === null ? 'info' : x.ok ? 'ok' : 'no'}">
@@ -207,7 +214,7 @@ function syncApplyBox() {
     const h = readHouse(d, 0);
     if (!h.price) return false;
     const k = classifyJongbuHouse(h).kind;
-    return k === 'temp' || k === 'inherit' || k === 'rural';
+    return k === 'temp' || k === 'inherit' || k === 'rural' || k === 'depop';
   });
   box.hidden = !need;
 }
@@ -220,14 +227,15 @@ function readHouses() {
     h.card = d;
     return h;
   }).filter((h) => h.price > 0);
-  // 지방 저가주택·인구감소지역 주택은 1채만 인정된다. 2채 이상이면 모두 일반 주택으로 계산한다.
-  const rural = list.filter((h) => h.kind === 'rural');
-  if (rural.length > 1) {
-    for (const h of rural) {
+  // 지방 저가주택(§8④ 4호)과 인구감소지역 주택(조특법 §71의2)은 각각 1채만 인정된다. 2채 이상이면 일반 주택으로 계산한다.
+  for (const [kind, name] of [['rural', '지방 저가주택'], ['depop', '인구감소지역 주택(조특법)']]) {
+    const same = list.filter((h) => h.kind === kind);
+    if (same.length < 2) continue;
+    for (const h of same) {
       h.kind = 'normal';
       const v = h.card.querySelector('.verdict-line');
       v.hidden = false; v.className = 'verdict-line no';
-      v.textContent = '※ 지방 주택 특례는 1채만 인정됩니다. 2채 이상이라 일반 주택으로 계산합니다.';
+      v.textContent = `※ ${name} 특례는 1채만 인정됩니다. 2채 이상이라 일반 주택으로 계산합니다.`;
     }
   }
   return list;
@@ -360,16 +368,19 @@ function judgeBox(r) {
   const title = j.oneHouseHolder ? '1세대 1주택자로 봅니다' : j.notApplied ? '요건은 갖췄지만 신청하지 않았습니다' : '1세대 1주택자가 아닙니다';
   const applyCell = (x) => !x.needApply ? '<span class="jb-pill gray">신청 불필요</span>'
     : j.applied ? '<span class="jb-pill green">신청함</span>' : '<span class="jb-pill red">미신청</span>';
+  const row = (list) => list.map((x) => `<tr><td class="rowlabel">${esc(x.label)}</td><td>${esc(x.name)}</td><td>${esc(x.clause)}</td>
+        <td>${x.counts ? '<b>포함</b>' : '제외'}</td><td>${x.kind === 'normal' ? '—' : applyCell(x)}</td></tr>`).join('');
+  const hasJotuk = j.rows.some((x) => x.jotuk && x.needApply);
   return `<div class="judge-box ${state}">
     <h4>${state === 'ok' ? '✅' : state === 'warn' ? '⚠️' : '✗'} 1세대 1주택자 판정 — ${title}</h4>
     <p>${esc(j.reason)}</p>
     <div class="notice-wrap"><table class="notice">
-      <tr><th>집</th><th>종류</th><th>근거</th><th>1주택 판정 주택 수</th><th>신청 (§8⑤)</th></tr>
+      <tr><th>집</th><th>종류</th><th>근거</th><th>1주택 판정 주택 수</th><th>신청</th></tr>
       <tr><td class="rowlabel">이 집</td><td>본인 주택</td><td>—</td><td>포함</td><td>—</td></tr>
-      ${j.rows.map((x) => `<tr><td class="rowlabel">${esc(x.label)}</td><td>${esc(x.name)}</td><td>${esc(x.clause)}</td>
-        <td>${x.counts ? '<b>포함</b>' : '제외'}</td><td>${x.kind === 'normal' ? '—' : applyCell(x)}</td></tr>`).join('')}
+      ${row(j.rows.filter((x) => !x.jotuk))}
+      ${j.rows.some((x) => x.jotuk) ? `<tr class="sep"><td colspan="5">조세특례제한법 특례 — 종부세법 §8④과 별도 규정 (주택 수에서 제외)</td></tr>${row(j.rows.filter((x) => x.jotuk))}` : ''}
     </table></div>
-    ${j.needApply ? `<p class="apply-note"><b>신청 (종부세법 §8⑤)</b> — 일시적 2주택·상속주택·지방 저가주택은 <b>해당 연도 ${JONGBU_RULES.applyFrom}~${JONGBU_RULES.applyTo}</b>에
+    ${j.needApply ? `<p class="apply-note"><b>신청 (종부세법 §8⑤${hasJotuk ? ' · 조특법 §71의2③' : ''})</b> — 일시적 2주택·상속주택·지방 저가주택${hasJotuk ? '·인구감소지역 주택(조특법)' : ''}은 <b>해당 연도 ${JONGBU_RULES.applyFrom}~${JONGBU_RULES.applyTo}</b>에
       관할세무서장에게 신청해야 1세대 1주택자로 봅니다(홈택스 가능). 한 번 신청하면 변동이 없는 한 다음 해에도 유지됩니다.
       놓쳤다면 <b>12월 1일~15일</b> 납부기간에 신고·납부로 바로잡을 수 있습니다.</p>` : ''}
   </div>`;
@@ -384,7 +395,7 @@ const MISS_HTML = `
     <details><summary>③ 상속받은 집이 있어도 1주택 혜택을 받을 수 있습니다</summary>
       <p><em>상속 후 5년 이내</em>이거나 <em>상속 지분 40% 이하</em> 또는 <em>지분 공시가격 6억(수도권 밖 3억) 이하</em>이면 신청에 따라 1세대 1주택자로 계산합니다. 상속주택 공시가격은 과세표준에는 더해집니다.</p></details>
     <details><summary>④ 이사 가려고 잠깐 2주택 · 지방 저가주택</summary>
-      <p>새집을 사고 <em>3년 안에 옛집을 파는</em> 일시적 2주택, <em>지방 저가주택 1채</em>(공시가격 4억 이하 — 수도권은 가평·연천·강화·옹진군만)나 <em>인구감소지역 주택</em>을 더 가진 경우에도 <em>9.16~9.30에 신청하면</em> 1세대 1주택자 방식으로 계산합니다(종부세법 §8④·⑤). 신청하지 않으면 9억 공제·세액공제 없음으로 고지됩니다. 다른 주택의 <em>부속토지만</em> 더 가진 경우는 신청 없이 적용됩니다.</p></details>
+      <p>새집을 사고 <em>3년 안에 옛집을 파는</em> 일시적 2주택, <em>지방 저가주택 1채</em>(공시가격 4억 이하 — 수도권은 가평·연천·강화·옹진군만)를 더 가진 경우에도 <em>9.16~9.30에 신청하면</em> 1세대 1주택자 방식으로 계산합니다(종부세법 §8④·⑤). 이와 별도로 <em>조세특례제한법 §71의2</em>는 1주택자가 2024.1.4~2026.12.31에 취득한 <em>인구감소지역 주택 1채</em>(수도권 밖 9억·수도권 접경지역 4억, 수도권 밖 관심지역 4억)도 신청하면 주택 수에서 빼 줍니다. 신청하지 않으면 9억 공제·세액공제 없음으로 고지됩니다. 다른 주택의 <em>부속토지만</em> 더 가진 경우는 신청 없이 적용됩니다.</p></details>
     <details><summary>⑤ 임대주택 — 등록이 말소되면 합산배제도 끝납니다</summary>
       <p>합산배제 신고한 등록임대주택은 종부세 계산에서 빠지지만, <em>임대등록이 말소</em>되거나 임대료 5% 상한 등 요건을 어기면 그 뒤로는 과세 대상입니다.</p></details>
     <details><summary>⑥ 고지서가 틀렸다면 — 12월 15일까지 바로잡을 수 있습니다</summary>
