@@ -373,8 +373,8 @@ export function classifyJongbuHouse(h) {
     const depopNow = area.depop;
     const depopThen = depopAt(area, d);             // 취득 당시 구분 (2026.10.7 재지정 반영)
     const depopLabel = depopNow === 'depop'
-      ? `인구감소지역 ○${area.depopSince ? ` (${area.depopSince} 재지정으로 편입)` : ''}${area.vitalPlus ? ' · 인구활력+지역' : ''}`
-      : depopNow === 'interest' ? `인구감소관심지역${area.vitalPlus ? ' · 인구활력+지역' : ''} (인구감소지역은 아님)` : '인구감소지역 ×';
+      ? `인구감소지역 ○${area.depopSince ? ` (${area.depopSince} 재지정으로 편입)` : ''}`
+      : depopNow === 'interest' ? '인구감소지역 × (관심지역 — 지방 저가주택 판정과 무관)' : '인구감소지역 ×';
     const checks = [
       { label: '공시가격 4억원 이하 (시행령 §4의2③ 1호)', ok: priceOk, detail: `${eokText(h.price || 0)}` },
       { label: '소재지 요건 (시행령 §4의2③ 2호 가~라목)', ok: rg.ok, detail: rg.label },
@@ -387,7 +387,8 @@ export function classifyJongbuHouse(h) {
     if (rg.ok && priceOk) {
       return { kind: 'rural', ok: true, basis: '§8④ 4호', checks, msg: `지방 저가주택 — ${where}, ${rg.item}목 지역, 공시가격 4억 이하입니다. 9.16~9.30 신청이 필요합니다. (§8④ 4호)` };
     }
-    // ── 조특법 §71의2 인구감소(관심)지역 주택(세컨드홈): 2024.1.4~2026.12.31 취득, 비수도권 인구감소지역 9억·그 외 4억
+    // ── 조특법 §71의2 인구감소(관심)지역 주택 — 지방 저가주택(4억)과는 별개 규정 (책 119쪽, 이미지 확인):
+    //    1주택자가 2024.1.4~2026.12.31 취득, 가액은 비수도권 인구감소지역 9억·그 외 4억. 관심지역은 비수도권만·2026.1.1 이후 취득분
     if (area.secondHomeOk) {
       const tag = depopThen === 'depop' ? '인구감소지역' : '인구감소관심지역';
       const lim = depopThen === 'depop' && !area.capital ? JONGBU_LOWPRICE_DEPOP : JONGBU_LOWPRICE;

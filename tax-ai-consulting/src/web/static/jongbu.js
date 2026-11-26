@@ -173,8 +173,6 @@ function areaTags(h) {
   const tag = (on, text, cls) => `<span class="atag ${on ? cls : 'off'}">${text} ${on ? '○' : '×'}</span>`;
   return `<b>${esc(a.label)}</b>`
     + tag(a.depop === 'depop', '인구감소지역', 'depop')
-    + (a.depop === 'interest' ? '<span class="atag int">인구감소관심지역 ○</span>' : '')
-    + (a.vitalPlus ? '<span class="atag vital">인구활력+지역</span>' : '')
     + tag(a.border, '접경지역', 'border')
     + `<span class="atag ${a.capital ? 'cap' : 'off'}">${a.capital ? '수도권' : '수도권 밖'}</span>`
     + (a.metroCity ? `<span class="atag cap">광역시 ${a.gun ? '군' : '구'}</span>` : '');

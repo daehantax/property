@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEPOP_AREAS, INTEREST_AREAS, BORDER_AREAS, SIGUNGU, classifyArea, searchAreas, allAreas,
-  VITAL_PLUS_AREAS, LOWPRICE_CAPITAL_AREAS, depopAt, jongbuLowPriceRegion,
+  LOWPRICE_CAPITAL_AREAS, depopAt, jongbuLowPriceRegion,
 } from '../../src/core/regions-data.js';
 
 describe('지역 데이터 — 개수·정합성', () => {
@@ -9,7 +9,6 @@ describe('지역 데이터 — 개수·정합성', () => {
     expect(DEPOP_AREAS).toHaveLength(92);
     expect(INTEREST_AREAS).toHaveLength(18);
     expect(BORDER_AREAS).toHaveLength(17);
-    expect(VITAL_PLUS_AREAS).toHaveLength(12);       // 인구감소지역 쪽 3 + 관심지역 쪽 9
     expect(LOWPRICE_CAPITAL_AREAS).toHaveLength(4);
     expect(allAreas()).toHaveLength(229);
   });
@@ -99,9 +98,11 @@ describe('classifyArea — 세법상 지역 분류', () => {
     expect(item('서울', '강남구')).toBeNull();
   });
 
-  it('경기 동두천시·포천시: 접경 → 세컨드홈 가능 / 인천 동구: 관심지역이나 수도권 비접경 → 불가', () => {
+  it('동두천시(인구감소·수도권 접경) → 가능 / 포천시·인천 동구(수도권 관심지역) → 불가: 관심지역은 비수도권만', () => {
     expect(classifyArea('경기', '동두천시').secondHomeOk).toBe(true);
     expect(classifyArea('경기', '포천시').regionKey).toBe('borderCapital');
+    expect(classifyArea('경기', '포천시').secondHomeOk).toBe(false);
+    expect(classifyArea('전남', '영광군').depop).toBe('depop');      // 고시 표 「인구활력+지역」 칸도 92곳 안
     expect(classifyArea('인천', '동구').secondHomeOk).toBe(false);
     expect(classifyArea('인천', '강화군').regionKey).toBe('borderCapital');
   });
