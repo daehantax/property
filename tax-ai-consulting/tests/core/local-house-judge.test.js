@@ -157,17 +157,18 @@ describe('양도세 — 조특법 §71의2 세컨드홈 · §98의9 준공 후 �
     salePrice: 1_100_000_000,
   }).transfer;
 
-  it('2026.1.1 이후 인구감소지역 취득 기준시가 8억(≤9억) → 세컨드홈 특례 비과세', () => {
+  it('인구감소지역 취득 기준시가 8억(≤9억) → 세컨드홈 특례 비과세', () => {
     const r = sh({});
     expect(path(r, 'secondHome').ok).toBe(true);
     expect(r.applied.key).toBe('secondHome');
     expect(r.verdict).toBe('exempt');
   });
 
-  it('2025년 취득분은 4억 기준 → 8억 미충족', () => {
+  it('2025년 취득분도 수도권 밖 인구감소지역이면 9억 기준 → 8억 충족 (2024.1.4 이후 취득분 전체)', () => {
     const r = sh({ acquireDate: '2025-06-01' });
-    expect(chk(path(r, 'secondHome'), 'price').ok).toBe(false);
-    expect(r.verdict).toBe('taxable');
+    expect(chk(path(r, 'secondHome'), 'price').ok).toBe(true);
+    expect(chk(path(sh({ acquireDate: '2025-06-01', acquirePrice: 950_000_000 }), 'secondHome'), 'price').ok).toBe(false);
+    expect(chk(path(sh({ acquireDate: '2023-12-31' }), 'secondHome'), 'period').ok).toBe(false);
   });
 
   it('인구감소관심지역은 2026.1.1 이후 취득 + 4억 이하', () => {
@@ -185,7 +186,8 @@ describe('양도세 — 조특법 §71의2 세컨드홈 · §98의9 준공 후 �
   });
 
   it('secondHomePriceLimit: 취득일·지역별 가액 기준', () => {
-    expect(secondHomePriceLimit('2025-06-01', 'depop')).toBe(400_000_000);
+    expect(secondHomePriceLimit('2025-06-01', 'depop')).toBe(900_000_000);      // 2024.1.4 이후 취득분 전체 9억
+    expect(secondHomePriceLimit('2024-01-04', 'depop')).toBe(900_000_000);
     expect(secondHomePriceLimit('2026-01-01', 'depop')).toBe(900_000_000);
     expect(secondHomePriceLimit('2026-01-01', 'interest')).toBe(400_000_000);
     expect(secondHomePriceLimit('2025-06-01', 'interest')).toBeNull();

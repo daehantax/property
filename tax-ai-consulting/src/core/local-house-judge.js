@@ -14,7 +14,7 @@
  *  ⑤ 조특법 §99의4  농어촌주택·고향주택 (2003.8.1~2028.12.31 취득, 기준시가 3억·한옥 4억, 3년 보유,
  *                   일반주택 취득 후 취득, 도시·토허·조정·관광단지 제외, 같은·연접 읍면 제외)
  *  ⑥ 조특법 §71의2  인구감소지역 주택(세컨드홈) — 1주택자가 2024.1.4~2026.12.31 취득,
- *                   취득 당시 기준시가 4억(2026.1.1 이후 취득분 인구감소지역 9억·관심지역 4억),
+ *                   취득 당시 기준시가 — 수도권 밖 인구감소지역 9억·수도권 인구감소지역 4억·수도권 밖 관심지역 4억(2026.1.1 이후 취득분),
  *                   수도권(접경지역 제외)·광역시(군 제외) 제외, 기존 주택과 같은 시·군·구 제외
  *  ⑦ 조특법 §98의9  비수도권 준공 후 미분양주택 — 1주택자가 2024.1.10~2026.12.31 취득, 전용 85㎡·취득가액 6억 이하
  *  → 특례 충족 시 §154① 보유 2년·거주 2년(2017.8.3 이후 조정 취득)·고가 12억 초과분 과세 적용
@@ -63,10 +63,11 @@ export const JONGBU_INHERIT_PRICE_LOCAL = 300_000_000;  // 비수도권 3억
 
 export const SECOND_HOME_START = '2024-01-04';      // 조특법 §71의2 취득기간
 export const SECOND_HOME_END = '2026-12-31';
-export const SECOND_HOME_PRICE = 400_000_000;       // 취득 당시 기준시가 4억 (2025.12.31 이전 취득분)
-export const SECOND_HOME_PRICE_DEPOP = 900_000_000; // 2026.1.1 이후 취득분: 인구감소지역 9억
-export const SECOND_HOME_PRICE_INTEREST = 400_000_000; // 2026.1.1 이후 취득분: 인구감소관심지역 4억
-export const SECOND_HOME_9E_START = '2026-01-01';
+export const SECOND_HOME_PRICE = 400_000_000;       // 수도권(접경지역) 인구감소지역 4억
+export const SECOND_HOME_PRICE_DEPOP = 900_000_000; // 수도권 밖 인구감소지역 9억 — 2024.1.4 이후 취득분 전체 (종부세 계산기와 같은 기준)
+export const SECOND_HOME_PRICE_INTEREST = 400_000_000; // 수도권 밖 인구감소관심지역 4억 (2026.1.1 이후 취득분)
+export const INTEREST_AREA_START = '2026-01-01';     // 관심지역 적용 시작 (2026.1.1 이후 취득분)
+export const SECOND_HOME_9E_START = INTEREST_AREA_START;   // (옛 이름 — 9억 기준은 이제 취득일로 나누지 않는다)
 
 export const UNSOLD_START = '2024-01-10';           // 조특법 §98의9 준공 후 미분양 취득기간
 export const UNSOLD_END = '2026-12-31';
@@ -158,11 +159,13 @@ function base154(house, saleDate, salePrice) {
  */
 export function secondHomePriceLimit(acquireDate, depop, metroArea = false) {
   if (!acquireDate || depop === 'none') return null;
-  if (depop === 'interest' && metroArea) return null;      // 관심지역은 수도권 밖만 (§68의2① 2호 가목)
-  if (onOrAfter(acquireDate, SECOND_HOME_9E_START)) {
-    return depop === 'depop' && !metroArea ? SECOND_HOME_PRICE_DEPOP : SECOND_HOME_PRICE_INTEREST;
+  if (depop === 'interest') {
+    // 2호 관심지역: 수도권 밖만 · 2026.1.1 이후 취득분 · 4억
+    if (metroArea || !onOrAfter(acquireDate, INTEREST_AREA_START)) return null;
+    return SECOND_HOME_PRICE_INTEREST;
   }
-  return depop === 'depop' ? SECOND_HOME_PRICE : null;   // 관심지역은 2026.1.1 이후 취득분만
+  // 1호 인구감소지역: 취득기간(2024.1.4~2026.12.31) 전체에 수도권 밖 9억 · 수도권 4억
+  return metroArea ? SECOND_HOME_PRICE : SECOND_HOME_PRICE_DEPOP;
 }
 
 /**
@@ -192,7 +195,7 @@ function specialHouseChecks(metro, local) {
   const shPriceOk = shLimit != null && (local.acquirePrice ?? 0) <= shLimit;
   sh.push({
     key: 'price', label: `취득 당시 기준시가 ${shLimit ? eok(shLimit) : '기준'} 이하`, ok: shPriceOk,
-    detail: shLimit ? `${won(local.acquirePrice ?? 0)} (${onOrAfter(local.acquireDate || '1900-01-01', SECOND_HOME_9E_START) ? '2026.1.1 이후 취득: 수도권 밖 인구감소지역 9억·그 외 4억' : '2025년 이전 취득: 4억'})` : '가액 기준 산정 불가',
+    detail: shLimit ? `${won(local.acquirePrice ?? 0)} (수도권 밖 인구감소지역 9억 · 수도권 인구감소지역 4억 · 수도권 밖 관심지역 4억)` : '가액 기준 산정 불가',
   });
   sh.push({ key: 'sgg', label: '기존 수도권 주택과 같은 시·군·구 아닐 것', ok: !local.sameSgg, detail: local.sameSgg ? '같은 시·군·구 → 제외' : '다른 시·군·구' });
   sh.push(orderRow('1주택 보유 중 취득 (수도권 주택 → 지방주택 순)'));
